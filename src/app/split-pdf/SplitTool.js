@@ -1,5 +1,4 @@
 // src/app/split-pdf/SplitTool.js
-// --- 'use client'; has been REMOVED from this file ---
 
 import { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
@@ -324,4 +323,4 @@ export default function SplitTool() {
           </div>
           <div>
             <h4 className="text-xl font-semibold">How does this tool guarantee my privacy?</h4>
-            <p>Your privacy is guaranteed because your files never leave your computer. All the processing—whether it's visual selection or automated splitting—happens dire
+            <p>Your privacy is guaranteed because your files never leave your computer. All the processing—whether it's visual selection or automated splitting—happens directly inside your web browser. Nothing is ever uploaded to
