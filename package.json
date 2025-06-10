@@ -8,7 +8,6 @@
   "start": "next start",
   "lint": "next lint"
 },
-},
   "dependencies": {
     "@vercel/kv": "^3.0.0",
     "file-saver": "^2.0.5",
