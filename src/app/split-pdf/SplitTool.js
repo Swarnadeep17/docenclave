@@ -17,18 +17,17 @@ export default function SplitTool() {
   const [selectedPages, setSelectedPages] = useState(new Set());
   const [outputType, setOutputType] = useState(null);
 
-  // --- NEW STATE FOR ADVANCED OPTIONS ---
+  // State for advanced options
   const [splitMode, setSplitMode] = useState('visual'); // 'visual' or 'automated'
   const [fixedRange, setFixedRange] = useState(2); // Default for fixed range split
 
   const handleFileChange = async (event) => {
-    // Reset all states on new file upload
     setPages([]);
     setSelectedPages(new Set());
     setOriginalFile(null);
     setOutputType(null);
     setIsProcessing(true);
-    setSplitMode('visual'); // Default to visual mode on new upload
+    setSplitMode('visual');
 
     const file = event.target.files[0];
     event.target.value = null;
@@ -105,11 +104,9 @@ export default function SplitTool() {
             const newPdf = await PDFDocument.create();
             const copiedPages = await newPdf.copyPages(sourcePdf, selectedPageNumbers);
             copiedPages.forEach(page => newPdf.addPage(page));
-
             const newPdfBytes = await newPdf.save();
             const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
             saveAs(blob, 'docenclave-extracted-pages.pdf');
-
         } else if (type === 'split') {
             const zip = new JSZip();
             for (let i = 0; i < selectedPageNumbers.length; i++) {
@@ -124,7 +121,6 @@ export default function SplitTool() {
             saveAs(zipBlob, "docenclave-split-pages.zip");
         }
         
-        // Increment download stat
         fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
     } catch (error) {
       console.error(`Error during ${type} process:`, error);
@@ -134,7 +130,6 @@ export default function SplitTool() {
     }
   };
 
-  // --- NEW: LOGIC FOR AUTOMATED TASKS ---
   const handleAutomatedProcess = async (type) => {
     setIsProcessing(true);
     
@@ -142,14 +137,12 @@ export default function SplitTool() {
         const sourcePdfBytes = await originalFile.arrayBuffer();
         let pageIndicesToExtract = [];
 
-        // Determine which pages to extract based on the task type
         if (type === 'odd') {
             pageIndicesToExtract = pages.map(p => p.originalPageNumber - 1).filter(n => (n + 1) % 2 !== 0);
         } else if (type === 'even') {
             pageIndicesToExtract = pages.map(p => p.originalPageNumber - 1).filter(n => (n + 1) % 2 === 0);
         }
 
-        // Logic for Fixed Range split
         if (type === 'fixedRange') {
             const zip = new JSZip();
             const totalPages = pages.length;
@@ -159,35 +152,27 @@ export default function SplitTool() {
                 setIsProcessing(false);
                 return;
             }
-
             for (let i = 0; i < totalPages; i += range) {
-                // We need to load the PDF here because pdf-lib docs cannot be reused across async operations easily
                 const sourcePdf = await PDFDocument.load(sourcePdfBytes.slice(0), { ignoreEncryption: true });
                 const newPdf = await PDFDocument.create();
                 const chunkPageIndices = Array.from({ length: Math.min(range, totalPages - i) }, (_, k) => i + k);
-                
                 const copiedPages = await newPdf.copyPages(sourcePdf, chunkPageIndices);
                 copiedPages.forEach(page => newPdf.addPage(page));
-                
                 const newPdfBytes = await newPdf.save();
                 zip.file(`docenclave_pages_${i + 1}-${i + range}.pdf`, newPdfBytes);
             }
             const zipBlob = await zip.generateAsync({ type: "blob" });
             saveAs(zipBlob, "docenclave-split-by-range.zip");
-
-        // Logic for Odd/Even Pages extraction
         } else {
             const sourcePdf = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
             const newPdf = await PDFDocument.create();
             const copiedPages = await newPdf.copyPages(sourcePdf, pageIndicesToExtract);
             copiedPages.forEach(page => newPdf.addPage(page));
-
             const newPdfBytes = await newPdf.save();
             const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
             saveAs(blob, `docenclave-extracted-${type}-pages.pdf`);
         }
         
-        // Increment download stat
         fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
     } catch (error) {
         console.error(`Error during automated split (${type}):`, error);
@@ -209,23 +194,17 @@ export default function SplitTool() {
 
   return (
     <div className="w-full max-w-6xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
+      {/* --- UPDATED HEADER --- */}
       <ToolPageHeader 
-        title="Visual PDF Splitter"
-        description="Click to select the exact pages you want to extract or split. Complete privacy, no uploads."
+        title="Advanced PDF Splitter"
+        description="Visually select pages or use automated rules to split by fixed ranges, odd/even pages, and more."
       />
-      {/* --- NEW: Mode Toggle UI --- */}
       {originalFile && (
         <div className="flex justify-center mb-8 border-b-2 border-gray-700">
-            <button
-                onClick={() => setSplitMode('visual')}
-                className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'visual' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}
-            >
+            <button onClick={() => setSplitMode('visual')} className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'visual' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}>
                 Visual Selection
             </button>
-            <button
-                onClick={() => setSplitMode('automated')}
-                className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'automated' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}
-            >
+            <button onClick={() => setSplitMode('automated')} className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'automated' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}>
                 Automated Splitting
             </button>
         </div>
@@ -279,7 +258,6 @@ export default function SplitTool() {
                         </div>
                     </>
                 )}
-
                 {splitMode === 'automated' && (
                     <div className="py-8">
                         <h3 className="text-xl font-semibold text-center mb-6 text-gray-200">Choose an Automated Task</h3>
@@ -287,14 +265,7 @@ export default function SplitTool() {
                             <div className="bg-gray-900/50 p-4 rounded-lg flex items-center justify-between gap-4">
                                 <div className="flex items-center">
                                     <label htmlFor="fixed-range" className="mr-4 text-gray-300">Split every</label>
-                                    <input
-                                    type="number"
-                                    id="fixed-range"
-                                    value={fixedRange}
-                                    onChange={(e) => setFixedRange(Math.max(1, parseInt(e.target.value) || 1))}
-                                    className="w-20 bg-gray-700 text-white p-2 rounded-md text-center"
-                                    min="1"
-                                    />
+                                    <input type="number" id="fixed-range" value={fixedRange} onChange={(e) => setFixedRange(Math.max(1, parseInt(e.target.value) || 1))} className="w-20 bg-gray-700 text-white p-2 rounded-md text-center" min="1"/>
                                     <span className="ml-4 text-gray-300">pages</span>
                                 </div>
                                 <button onClick={() => handleAutomatedProcess('fixedRange')} className="bg-accent text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600">Run</button>
@@ -315,39 +286,46 @@ export default function SplitTool() {
             </>
         )}
       </div>
-
+      
+      {/* --- NEW, FULLY UPDATED SEO CONTENT BLOCK --- */}
       <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
-        <h2 className="text-3xl font-bold mb-6">The Visual Way to Split PDF Files</h2>
-        <p>Stop guessing with page numbers. The DocEnclave PDF Splitter gives you a bird's-eye view of your entire document, allowing you to hand-pick the exact pages you need. Whether you're extracting a single chapter for a colleague, separating a batch of invoices, or just saving a specific section for your records, our tool provides the precision you need, with the privacy you deserve.</p>
-        <p>Like all DocEnclave tools, the splitting process happens entirely on your device. Your large reports, confidential agreements, and personal documents are never uploaded, analyzed, or stored on any server. It's the most secure way to deconstruct a PDF.</p>
-
-        <h3 className="text-2xl font-bold mt-12 mb-4">Two Powerful Splitting Modes</h3>
-        <p>We understand that not all tasks are the same. That's why our tool offers two distinct modes for maximum flexibility:</p>
-        <ul className="list-disc pl-6 space-y-2">
-          <li><strong>Extract Selected Pages:</strong> This is your precision tool. Click to select any number of pages, in any order, and our tool will create a single new PDF containing only your selection. Perfect for creating custom excerpts or reports.</li>
-          <li><strong>Split into Separate Files:</strong> Have a document with 100 individual invoices? With one click, this mode will take every page you've selected and save each one as its own separate PDF file, neatly packaged in a downloadable ZIP archive. It's a massive time-saver for batch processing.</li>
+        <h2 className="text-3xl font-bold mb-6">The Smartest Way to Split and Extract PDF Pages</h2>
+        <p>Move beyond basic splitting. The DocEnclave PDF Splitter is an intelligent tool designed for both precision and automation. Whether you need to visually hand-pick specific pages for a presentation or automatically deconstruct a 500-page batch of reports, our splitter gives you the right tool for the job. And because every operation happens securely in your browser, your sensitive documents are never exposed to the risks of server uploads.</p>
+        <h3 className="text-2xl font-bold mt-12 mb-4">You're in Control: Visual vs. Automated Splitting</h3>
+        <p>Every splitting task is unique. That's why we offer two distinct modes, giving you unparalleled flexibility:</p>
+        <ul className="list-disc pl-6 space-y-4">
+          <li><strong>Visual Selection:</strong> Our intuitive page grid lets you see your entire document at a glance. Simply click to select the exact pages you need. It's perfect for extracting specific chapters, images, or creating custom-tailored documents from multiple sources.</li>
+          <li><strong>Automated Splitting:</strong> For repetitive or rule-based tasks, this mode is your time-saving powerhouse. Instead of tedious manual clicking, you can split your document instantly based on powerful rules.</li>
         </ul>
-
-        <h3 className="text-2xl font-bold mt-12 mb-4">Your Workflow, Your Privacy</h3>
-        <p>The freedom to manage your documents should not come at the cost of your privacy. Our in-browser approach ensures that you are always in control. There are no file size limits imposed by servers and no waiting for uploads. Just instant, secure, and intuitive PDF splitting.</p>
-
+        <h3 className="text-2xl font-bold mt-12 mb-4">Powerful Automation Rules at Your Fingertips</h3>
+        <p>Our Automated Splitting mode is built to handle the most common and complex splitting requirements with ease:</p>
+        <div className="space-y-4 not-prose my-6">
+          <div className="bg-card-bg p-4 rounded-lg border border-gray-700">
+              <h4 className="font-semibold text-lg text-accent">Split by Fixed Range</h4>
+              <p className="text-gray-400 mt-1">Have a document containing multiple reports of the same length? Tell our tool to "split every 2 pages" (or any number you choose), and it will instantly create separate files for each section. Ideal for invoices, scanned statements, or batched reports.</p>
+          </div>
+          <div className="bg-card-bg p-4 rounded-lg border border-gray-700">
+              <h4 className="font-semibold text-lg text-accent">Extract Odd or Even Pages</h4>
+              <p className="text-gray-400 mt-1">Perfect for scanned books or double-sided documents. With a single click, you can create a new PDF containing only the odd-numbered pages (1, 3, 5...) or only the even-numbered pages (2, 4, 6...). It's the ultimate fix for common scanning workflows.</p>
+          </div>
+        </div>
         <h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2>
         <div className="space-y-8">
           <div>
-            <h4 className="text-xl font-semibold">How do I extract specific pages from a PDF?</h4>
-            <p>It's easy. 1) Upload your PDF file. 2) In the visual grid, click on all the pages you wish to keep. They will be highlighted. 3) Click the "Extract Pages" button to download a new PDF containing only your selection.</p>
+            <h4 className="text-xl font-semibold">How do I split a PDF every 2 pages?</h4>
+            <p>1) Upload your PDF. 2) Click the "Automated Splitting" tab. 3) In the "Split by Fixed Range" option, enter the number '2'. 4) Click "Run". A ZIP file containing all your new two-page PDFs will be downloaded.</p>
           </div>
           <div>
-            <h4 className="text-xl font-semibold">Is this PDF splitter free to use?</h4>
-            <p>Yes, 100%. The DocEnclave PDF Splitter is completely free, with no page limits, no watermarks, and no registration needed. It's part of our commitment to providing powerful, private document tools for everyone.</p>
+            <h4 className="text-xl font-semibold">Can I extract only the odd pages from my PDF?</h4>
+            <p>Yes. After uploading your file, select the "Automated Splitting" mode. Simply click the "Odd Pages" button, and a new PDF containing only the odd-numbered pages (1, 3, 5, etc.,) will be created for you to download instantly.</p>
           </div>
           <div>
-            <h4 className="text-xl font-semibold">How do I separate every page of a PDF into its own file?</h4>
-            <p>After uploading your PDF, click the "Select All Pages" button (or manually select the ones you want). Then, click the "Split into Separate Files" button. Your browser will download a ZIP file containing each selected page as an individual PDF.</p>
+            <h4 className="text-xl font-semibold">Is it free to use these advanced splitting features?</h4>
+            <p>Absolutely. All features of the DocEnclave PDF Splitter, from visual selection to automated rules, are 100% free, with no limits, watermarks, or registration required. We believe powerful tools should be accessible to everyone.</p>
           </div>
           <div>
-            <h4 className="text-xl font-semibold">Is splitting my PDF here secure?</h4>
-            <p>It is the most secure method available. Because the tool runs entirely in your browser, your PDF file is never sent over the internet. It never leaves your computer, guaranteeing the confidentiality of your information.</p>
+            <h4 className="text-xl font-semibold">How does this tool guarantee my privacy?</h4>
+            <p>Your privacy is guaranteed because your files never leave your computer. All the processing—whether it's visual selection or automated splitting—happens directly inside your web browser. Nothing is ever uploaded to a server, making it the most secure solution possible.</p>
           </div>
         </div>
       </div>
