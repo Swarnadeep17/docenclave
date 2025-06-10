@@ -12,7 +12,6 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # --- THIS IS THE ONLY LINE THAT CHANGED ---
       - name: Install Node.js v20
         uses: actions/setup-node@v3
         with:
@@ -31,3 +30,6 @@ jobs:
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOCENCLAVE_APP }}'
           channelId: live
           projectId: docenclave-d5a43
+        # This environment variable enables special handling for Next.js
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
