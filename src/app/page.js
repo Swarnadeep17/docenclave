@@ -1,18 +1,19 @@
 // src/app/page.js
 import ImpactCounter from '@/components/ImpactCounter';
 import Link from 'next/link';
+import { getStatsData } from '@/lib/stats'; // <--- NEW: Import the direct database function
 
-// --- THIS IS THE NEW CATEGORY-BASED STRUCTURE ---
+// --- DATA FOR STATIC CONTENT (no changes needed here) ---
 const toolCategories = [
   { 
     name: 'PDF Tools', 
     description: 'Merge, split, and more. A full suite of tools for your PDF needs.', 
-    href: '/pdf-tools' // This now links to our new PDF tools page
+    href: '/pdf-tools'
   },
   { 
     name: 'Image Tools', 
     description: 'Quickly compress, convert, and resize images without uploading them.', 
-    href: '#', // Stays as a placeholder for now
+    href: '#',
     isComingSoon: true 
   },
   { 
@@ -28,7 +29,6 @@ const toolCategories = [
     isComingSoon: true 
   },
 ];
-// --- END OF NEW STRUCTURE ---
 
 const uspItems = [
     {
@@ -48,27 +48,11 @@ const uspItems = [
     }
 ];
 
-async function getStats() {
-  try {
-    const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL 
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` 
-      : 'http://localhost:3000';
-      
-    const statsRes = await fetch(`${baseUrl}/api/stats`, { next: { revalidate: 60 } });
-
-    if (!statsRes.ok) {
-        console.error("Failed to fetch stats:", statsRes.status, await statsRes.text());
-        return { visits: 0, downloads: 0 };
-    }
-    return await statsRes.json();
-  } catch (error) {
-    console.error("Could not fetch stats:", error);
-    return { visits: 0, downloads: 0 };
-  }
-}
+// --- REMOVED: The old async function getStats() that used fetch is gone. ---
 
 export default async function HomePage() {
-  const initialStats = await getStats();
+  // --- NEW: This now calls the direct database function. It's cleaner and works during the build. ---
+  const initialStats = await getStatsData();
 
   return (
     <div className="w-full">
