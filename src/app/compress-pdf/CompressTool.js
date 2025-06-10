@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
-import { useDropzone } from 'react-dropzone';
 import { saveAs } from 'file-saver';
 import ToolPageHeader from '@/components/ToolPageHeader';
 
@@ -20,13 +19,23 @@ export default function CompressTool() {
   const [settings, setSettings] = useState(initialSettings);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  
-  const [compressedFile, setCompressedFile] = useState(null); 
+  const [compressedFile, setCompressedFile] = useState(null);
   const previewCanvasRef = useRef(null);
+
+  // --- RE-IMPLEMENTED handleFileChange, based on MergeTool.js ---
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    event.target.value = null; // Reset file input
+    if (selectedFile && selectedFile.type === 'application/pdf') {
+        setFile(selectedFile);
+        setCompressedFile(null); // Reset any previous result
+    } else {
+        alert('Please select a valid PDF file.');
+    }
+  };
 
   const handleProcess = async () => {
     if (!file) return;
-
     setIsProcessing(true);
     setProcessingMessage('Reconstructing PDF...');
     
@@ -99,18 +108,6 @@ export default function CompressTool() {
       fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: useCallback(acceptedFiles => {
-        const uploadedFile = acceptedFiles[0];
-        if (uploadedFile && uploadedFile.type.includes('pdf')) {
-            setFile(uploadedFile);
-            setCompressedFile(null); // Reset preview on new file
-        }
-        else alert("Please upload a valid PDF file.");
-    }, []),
-    accept: { 'application/pdf': ['.pdf'] }, multiple: false,
-  });
-
   const formatBytes = (bytes, decimals = 2) => {
     if (!+bytes) return '0 Bytes';
     const k = 1024;
@@ -130,20 +127,22 @@ export default function CompressTool() {
   };
 
   const UploadView = () => (
-    <div {...getRootProps()} className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-accent bg-gray-800' : 'hover:bg-gray-800 hover:border-gray-400'}`}>
-      <input {...getInputProps()} />
-      <svg className="w-8 h-8 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
-      <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{isDragActive ? 'Drop PDF here' : 'Click to upload or drag & drop'}</span></p>
-      <p className="text-xs text-gray-500">Select a single PDF file</p>
-    </div>
+    <label htmlFor="file-upload" className="mb-8 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:bg-gray-800 hover:border-accent transition-colors">
+        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <svg className="w-8 h-8 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+            <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">Click to upload a file</span></p>
+            <p className="text-xs text-gray-500">Select a single PDF file</p>
+        </div>
+        <input id="file-upload" type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
+    </label>
   );
 
   const SettingsView = () => (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex flex-col items-center justify-center min-h-[400px] text-center">
-              <h3 className="text-2xl font-semibold mb-4 text-gray-200">Your file is ready to be compressed.</h3>
+              <h3 className="text-2xl font-semibold mb-4 text-gray-200">Your file is ready.</h3>
               <p className="text-gray-400">Original Size: <span className="font-bold">{formatBytes(file.size)}</span></p>
-              <p className="mt-4 max-w-sm text-gray-500">Choose your desired settings on the right, then click the button below to generate a compressed preview.</p>
+              <p className="mt-4 max-w-sm text-gray-500">Choose your desired compression settings on the right, then click the button below to generate a compressed preview.</p>
           </div>
           <div className="md:col-span-1 flex flex-col space-y-6">
               <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Settings</h3>
