@@ -12,14 +12,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 const initialSettings = {
   quality: 75,
   isGrayscale: false,
-};
-
-// This function now models the non-linear nature of JPEG compression for better accuracy.
-const getQualityModifier = (quality) => {
-  if (quality >= 95) return 1.0;
-  if (quality <= 10) return 0.1;
-  // A curve that drops off slowly then more rapidly
-  return Math.pow(quality / 100, 2);
+  removeMetadata: true,
 };
 
 export default function CompressTool() {
@@ -32,9 +25,9 @@ export default function CompressTool() {
   
   const analysisData = useRef({
     pageCount: 0,
-    baseSize: 0, // The estimated size of the document if it were all images at 100% quality
+    sizeAtLowQuality: 0,
+    sizeAtHighQuality: 0,
   });
-  const debounceTimeoutRef = useRef(null);
 
   // --- Effect for Initial File Analysis (Runs ONCE per file) ---
   useEffect(() => {
@@ -42,7 +35,7 @@ export default function CompressTool() {
 
     const analyzeFile = async () => {
       setIsProcessing(true);
-      setProcessingMessage('Analyzing PDF...');
+      setProcessingMessage('Analyzing PDF for estimation...');
       setSettings(initialSettings);
 
       try {
@@ -60,11 +53,12 @@ export default function CompressTool() {
         canvas.width = viewport.height;
         await page.render({ canvasContext: ctx, viewport }).promise;
         
-        // This is now our stable, unchanging preview image
         setPreviewImageSrc(canvas.toDataURL('image/png'));
         
-        const jpgDataUrl100 = canvas.toDataURL('image/jpeg', 1.0);
-        analysisData.current.baseSize = jpgDataUrl100.length * pdfjsDoc.numPages;
+        const jpgDataUrlLow = canvas.toDataURL('image/jpeg', 0.10); // 10% quality
+        const jpgDataUrlHigh = canvas.toDataURL('image/jpeg', 0.95); // 95% quality
+        analysisData.current.sizeAtLowQuality = jpgDataUrlLow.length;
+        analysisData.current.sizeAtHighQuality = jpgDataUrlHigh.length;
         
       } catch (error) {
         console.error("Fatal error during analysis:", error);
@@ -79,26 +73,27 @@ export default function CompressTool() {
     analyzeFile();
   }, [file]);
 
-  // --- UNIFIED Effect for INSTANTLY Updating Stats ---
-  // NO Debounce needed as the calculation is now instant.
+  // --- UNIFIED Effect for INSTANTLY Updating Stats (NO DEBOUNCE) ---
   useEffect(() => {
     if (!file || !previewImageSrc) return;
 
-    const { baseSize } = analysisData.current;
-    if (baseSize > 0) {
-        const qualityModifier = getQualityModifier(settings.quality);
-        let estimatedTotalSize = baseSize * qualityModifier;
-        
-        if (settings.isGrayscale) estimatedTotalSize *= 0.7; // Grayscale factor
-        
-        const originalSize = file.size;
-        const reduction = originalSize > 0 ? 100 - (estimatedTotalSize / originalSize) * 100 : 0;
-        
-        setStats({ 
-            originalSize, 
-            estimatedSize: estimatedTotalSize, 
-            reduction: Math.max(0, Math.round(reduction))
-        });
+    const { pageCount, sizeAtLowQuality, sizeAtHighQuality } = analysisData.current;
+    if (pageCount > 0 && sizeAtHighQuality > 0) {
+      const qualityRatio = Math.max(0, (settings.quality - 10) / (95 - 10)); // Normalize quality from 0 to 1 in our range
+      const compressibleRange = sizeAtHighQuality - sizeAtLowQuality;
+      let estimatedPageSize = sizeAtLowQuality + (compressibleRange * qualityRatio);
+      
+      if (settings.isGrayscale) estimatedPageSize *= 0.7;
+      
+      const estimatedTotalSize = estimatedPageSize * pageCount;
+      const originalSize = file.size;
+      const reduction = originalSize > 0 ? 100 - (estimatedTotalSize / originalSize) * 100 : 0;
+      
+      setStats({ 
+          originalSize, 
+          estimatedSize: estimatedTotalSize, 
+          reduction: Math.max(0, Math.round(reduction))
+      });
     }
   }, [settings, file, previewImageSrc]);
   
@@ -139,8 +134,10 @@ export default function CompressTool() {
         }
         
         setProcessingMessage('Saving file...');
-        newPdfDoc.setTitle('');
-        newPdfDoc.setAuthor('');
+        if (settings.removeMetadata) {
+            newPdfDoc.setTitle('');
+            newPdfDoc.setAuthor('');
+        }
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, `docenclave-compressed-${file.name}`);
@@ -237,6 +234,7 @@ export default function CompressTool() {
               
               <div className="space-y-3">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
+                  <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label><button onClick={() => setSettings(prev => ({...prev, removeMetadata: !prev.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
                <div className="text-xs text-yellow-400/80 bg-yellow-900/30 p-2 rounded-md">Note: Compression makes text non-selectable.</div>
               <div className="pt-4 border-t border-gray-600 space-y-3">
