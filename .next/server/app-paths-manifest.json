@@ -3,7 +3,7 @@
   "/api/stats/route": "app/api/stats/route.js",
   "/page": "app/page.js",
   "/split-pdf/page": "app/split-pdf/page.js",
-  "/merge-pdf/page": "app/merge-pdf/page.js",
   "/compress-pdf/page": "app/compress-pdf/page.js",
+  "/merge-pdf/page": "app/merge-pdf/page.js",
   "/pdf-tools/page": "app/pdf-tools/page.js"
 }
