@@ -10,8 +10,9 @@ import ToolPageHeader from '@/components/ToolPageHeader';
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const initialSettings = {
-  imageQuality: 0.75, // Corresponds to 75% quality
+  imageQuality: 75, // Now a 1-100 scale for the input
   isGrayscale: false,
+  removeMetadata: true,
 };
 
 export default function CompressTool() {
@@ -26,7 +27,7 @@ export default function CompressTool() {
   const originalPreviewDataUrl = useRef(null);
   const debounceTimeoutRef = useRef(null);
 
-  // --- Effect for File Processing ---
+  // --- STATE-DRIVEN FILE PROCESSING ---
   useEffect(() => {
     if (!file) return;
 
@@ -53,14 +54,14 @@ export default function CompressTool() {
           const context = canvas.getContext('2d');
           await page.render({ canvasContext: context, viewport }).promise;
           
-          originalPreviewDataUrl.current = canvas.toDataURL();
+          originalPreviewDataUrl.current = canvas.toDataURL(); // Store the original preview
           setPreviewStatus('success');
         } catch (previewError) {
           console.warn("Could not generate PDF preview. Proceeding without it.", previewError);
           setPreviewStatus('failed');
         }
 
-        const estimatedSize = file.size * initialSettings.imageQuality;
+        const estimatedSize = file.size * (initialSettings.imageQuality / 100);
         const reduction = 100 - (estimatedSize / file.size) * 100;
         setStats({ originalSize: file.size, estimatedSize, reduction: Math.round(reduction) });
 
@@ -77,7 +78,8 @@ export default function CompressTool() {
     processFile();
   }, [file]);
 
-  // --- Effect for Redrawing Preview on Settings Change ---
+  // --- EFFECT FOR REDRAWING PREVIEW ---
+  // This now correctly redraws the preview from a stored original whenever settings change.
   useEffect(() => {
     if (previewStatus !== 'success' || !previewCanvasRef.current || !originalPreviewDataUrl.current) return;
     
@@ -93,9 +95,9 @@ export default function CompressTool() {
     };
     
     img.src = originalPreviewDataUrl.current;
-  }, [settings.isGrayscale, previewStatus]);
+  }, [settings.isGrayscale, previewStatus]); // Depends only on what visually changes it
 
-  // --- Debounced Effect for Updating Estimates ---
+  // --- DEBOUNCED EFFECT FOR UPDATING ESTIMATES ---
   useEffect(() => {
     if (!file) return;
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
@@ -103,17 +105,17 @@ export default function CompressTool() {
     debounceTimeoutRef.current = setTimeout(() => {
       setStats(prevStats => {
         const originalSize = prevStats.originalSize;
-        let estimatedSize = originalSize * settings.imageQuality;
+        let estimatedSize = originalSize * (settings.imageQuality / 100);
         if (settings.isGrayscale) estimatedSize *= 0.7;
         const reduction = 100 - (estimatedSize / originalSize) * 100;
         return { originalSize, estimatedSize, reduction: Math.round(reduction) };
       });
-    }, 200);
+    }, 300); // A slightly longer debounce for typing
 
     return () => clearTimeout(debounceTimeoutRef.current);
   }, [settings, file]);
   
-  // *** THE NEW "RECONSTRUCTION" COMPRESSION LOGIC ***
+  // --- ROBUST "RECONSTRUCTION" COMPRESSION LOGIC ---
   const handleCompress = async () => {
     if (!file) return;
 
@@ -128,42 +130,35 @@ export default function CompressTool() {
         for (let i = 1; i <= sourcePdf.numPages; i++) {
             setProcessingMessage(`Processing page ${i} of ${sourcePdf.numPages}...`);
             const page = await sourcePdf.getPage(i);
-            
-            // Render the page to a canvas at a good resolution for print quality
-            const viewport = page.getViewport({ scale: 2.0 }); // 2.0 scale is ~144 DPI
+            const viewport = page.getViewport({ scale: 2.0 });
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             await page.render({ canvasContext: ctx, viewport }).promise;
             
-            // Apply grayscale if toggled
             if (settings.isGrayscale) {
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
                 for (let j = 0; j < data.length; j += 4) {
                     const avg = (data[j] + data[j + 1] + data[j + 2]) / 3;
-                    data[j] = avg;     // red
-                    data[j + 1] = avg; // green
-                    data[j + 2] = avg; // blue
+                    data[j] = avg; data[j + 1] = avg; data[j + 2] = avg;
                 }
                 ctx.putImageData(imageData, 0, 0);
             }
 
-            // Embed the canvas content as a compressed JPG
-            const jpgImageBytes = await newPdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.imageQuality));
-
-            // Add a new page to our new document and draw the image
+            const jpgImageBytes = await newPdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.imageQuality / 100));
             const newPage = newPdfDoc.addPage([page.view[2], page.view[3]]);
             newPage.drawImage(jpgImageBytes, {
-                x: 0,
-                y: 0,
-                width: newPage.getWidth(),
-                height: newPage.getHeight(),
+                x: 0, y: 0, width: newPage.getWidth(), height: newPage.getHeight(),
             });
         }
         
         setProcessingMessage('Saving file...');
+        if (settings.removeMetadata) {
+            newPdfDoc.setTitle('');
+            newPdfDoc.setAuthor('');
+        }
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, `docenclave-compressed-${file.name}`);
@@ -176,6 +171,14 @@ export default function CompressTool() {
         setIsProcessing(false);
         setProcessingMessage('');
     }
+  };
+
+  const handleQualityInputChange = (e) => {
+    let value = parseInt(e.target.value, 10);
+    if (isNaN(value)) value = 1;
+    if (value < 1) value = 1;
+    if (value > 100) value = 100;
+    setSettings(prev => ({ ...prev, imageQuality: value }));
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -243,20 +246,23 @@ export default function CompressTool() {
                   <div><p className="text-xs text-gray-400">Estimated</p><p className="font-semibold text-lg text-accent">{formatBytes(stats.estimatedSize)}</p></div>
                   <div><p className="text-xs text-gray-400">Reduction</p><p className="font-semibold text-lg text-green-400">~{stats.reduction}%</p></div>
               </div>
+              
+              {/* --- NEW INPUT FIELD --- */}
               <div>
-                <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
-                <input 
-                  id="quality" type="range" min="0.1" max="1" step="0.01"
-                  value={settings.imageQuality}
-                  onChange={(e) => setSettings(prev => ({...prev, imageQuality: parseFloat(e.target.value)}))}
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>Lower</span>
-                    <span className="font-bold text-accent">{Math.round(settings.imageQuality * 100)}%</span>
-                    <span>Higher</span>
+                <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-2">Image Quality</label>
+                <div className="relative">
+                    <input 
+                      id="quality" 
+                      type="number"
+                      min="1" max="100"
+                      value={settings.imageQuality}
+                      onChange={handleQualityInputChange}
+                      className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg focus:ring-accent focus:border-accent block w-full p-2.5 text-center"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-gray-400">%</div>
                 </div>
               </div>
+              
               <div className="space-y-3">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
                   <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Remove Metadata</label><button onClick={() => setSettings(prev => ({...prev, removeMetadata: !prev.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
