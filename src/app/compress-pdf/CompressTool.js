@@ -19,22 +19,23 @@ export default function CompressTool() {
   const [settings, setSettings] = useState(initialSettings);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  const [compressedFile, setCompressedFile] = useState(null);
+  const [compressedFile, setCompressedFile] = useState(null); // Stores { blob, size, name }
   const previewCanvasRef = useRef(null);
 
-  // --- NEW, SIMPLIFIED handleFileChange based on MergeTool ---
+  // --- FILE UPLOAD HANDLER (from MergeTool.js pattern) ---
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
-    event.target.value = null; // Reset file input for re-uploads
+    event.target.value = null; 
     if (selectedFile && selectedFile.type === 'application/pdf') {
         setFile(selectedFile);
-        setCompressedFile(null);
-    } else if (selectedFile) { // only alert if a file was actually selected
+        setCompressedFile(null); // Reset on new file
+        setSettings(initialSettings); // Reset settings
+    } else if (selectedFile) {
         alert('Please select a valid PDF file.');
     }
   };
 
-  const handleProcess = async () => {
+  const handleProcessAndPreview = async () => {
     if (!file) return;
     setIsProcessing(true);
     setProcessingMessage('Reconstructing PDF...');
@@ -69,7 +70,6 @@ export default function CompressTool() {
             newPage.drawImage(jpgImageBytes, { x: 0, y: 0, width: newPage.getWidth(), height: newPage.getHeight() });
         }
         
-        setProcessingMessage('Rendering final preview...');
         if (settings.removeMetadata) {
             newPdfDoc.setTitle('');
             newPdfDoc.setAuthor('');
@@ -77,9 +77,10 @@ export default function CompressTool() {
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
 
+        setProcessingMessage('Rendering final preview...');
         const previewPdfDoc = await pdfjs.getDocument({data: pdfBytes.slice(0)}).promise;
         const previewPage = await previewPdfDoc.getPage(1);
-        const previewViewport = previewPage.getViewport({scale: 1.5});
+        const previewViewport = previewPage.getViewport({scale: 1.0}); // Preview at normal scale
         const liveCanvas = previewCanvasRef.current;
         if(liveCanvas) {
             liveCanvas.height = previewViewport.height;
@@ -123,17 +124,18 @@ export default function CompressTool() {
   };
   
   const handleReconfigure = () => {
-    setCompressedFile(null);
+    setCompressedFile(null); // Go back to settings view
   };
 
+  // --- UI RENDER FUNCTIONS ---
   const UploadView = () => (
-    <label htmlFor="file-upload" className="mb-8 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:bg-gray-800 hover:border-accent transition-colors">
+    <label htmlFor="file-upload-compress" className="mb-8 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:bg-gray-800 hover:border-accent transition-colors">
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
             <svg className="w-8 h-8 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
-            <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">Click to upload file</span></p>
-            <p className="text-xs text-gray-500">Select a single PDF file</p>
+            <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">Click to upload PDF</span></p>
+            <p className="text-xs text-gray-500">Select a single PDF file to compress</p>
         </div>
-        <input id="file-upload" type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
+        <input id="file-upload-compress" type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
     </label>
   );
 
@@ -141,6 +143,7 @@ export default function CompressTool() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex flex-col items-center justify-center min-h-[400px] text-center">
               <h3 className="text-2xl font-semibold mb-4 text-gray-200">Your file is ready.</h3>
+              <p className="text-gray-400">Original Name: <span className="font-medium">{file.name}</span></p>
               <p className="text-gray-400">Original Size: <span className="font-bold">{formatBytes(file.size)}</span></p>
               <p className="mt-4 max-w-sm text-gray-500">Choose your desired compression settings on the right, then click the button below to generate a compressed preview.</p>
           </div>
@@ -157,7 +160,7 @@ export default function CompressTool() {
               </div>
               <div className="text-xs text-yellow-400/80 bg-yellow-900/30 p-2 rounded-md">Note: Compression makes text non-selectable.</div>
               <div className="pt-4 border-t border-gray-600 space-y-3">
-                <button onClick={handleProcess} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors">Compress & Preview</button>
+                <button onClick={handleProcessAndPreview} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors">Compress & Preview</button>
                 <button onClick={handleStartOver} className="w-full text-sm text-gray-400 hover:text-white hover:underline">Use a different file</button>
               </div>
           </div>
@@ -206,6 +209,31 @@ export default function CompressTool() {
       <div className="bg-card-bg border border-gray-700 rounded-lg p-8">
         <CurrentView />
       </div>
+      {/* SEO Content Block Starts Here */}
+      <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
+        <h2 className="text-3xl font-bold mb-6">Take Control of Your PDF Size</h2>
+        <p>Sending a PDF that's too large for an email attachment is a common frustration. DocEnclave puts the power back in your hands. Our advanced PDF compressor gives you a transparent, two-step process to reduce file size without sacrificing clarity, all with 100% privacy.</p>
+        <h3 className="text-2xl font-bold mt-12 mb-4">Configure First, Then Preview</h3>
+        <p>Our unique workflow lets you choose your settings first (like image quality and grayscale), then generate a high-quality preview of the compressed result. You'll see the final, accurate file size and quality *before* you download, ensuring you get exactly what you need on the first try. No more guesswork or repeated downloads.</p>
+        <h3 className="text-2xl font-bold mt-12 mb-4">Smarter Compression, Total Privacy</h3>
+        <p>DocEnclave's compressor is designed to be intelligent. It primarily targets the large images within your PDF for compression. For even greater size savings, you can convert images to grayscale or strip out unnecessary metadata with the flip of a switch. And because this all happens directly in your browser, your sensitive documents are never uploaded to a server. This guarantees 100% privacy and security for your files.</p>
+        <h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2>
+        <div className="space-y-8">
+          <div>
+            <h4 className="text-xl font-semibold">How do I reduce the size of my PDF?</h4>
+            <p>It's a simple process: 1) Click the upload box and select your PDF. 2) Choose your desired quality and other options like grayscale. 3) Click "Compress & Preview" to see the result and the exact new file size. If you're happy, click "Download".</p>
+          </div>
+          <div>
+            <h4 className="text-xl font-semibold">Will compressing my PDF reduce its quality?</h4>
+            <p>Our method focuses on reducing the quality of images inside the PDF to save space, as this provides the biggest size savings. Text will become part of the page image but will remain sharp. You can use the quality slider to find the perfect balance for your needs.</p>
+          </div>
+          <div>
+            <h4 className="text-xl font-semibold">Is it safe to compress my confidential documents here?</h4>
+            <p>Yes, it is the safest way possible. DocEnclave operates entirely within your web browser. Your files are not sent to or stored on any external servers. The entire compression process happens on your own computer, ensuring your data remains completely private and secure.</p>
+          </div>
+        </div>
+      </div>
+      {/* SEO Content Block Ends Here */}
     </div>
   );
 }
