@@ -1,12 +1,23 @@
 // src/app/split-pdf/page.js
-import SplitTool from './SplitTool'; // We will create this component next
 
+// ... keep your SplitTool import
+
+// --- NEW ENHANCED METADATA ---
 export const metadata = {
-  title: 'Split PDF Free & Securely | Extract Pages Offline | DocEnclave',
-  description: 'Split a PDF into multiple files or extract specific pages. Select pages visually and download securely in your browser. No file uploads required.',
+  title: 'Split PDF by Range, Odd/Even Pages - Secure & Free | DocEnclave',
+  description: 'Advanced PDF splitter to extract pages, split by a fixed page range (e.g., every 2 pages), or separate odd/even pages. 100% free, private, and offline.',
+  keywords: [
+    'split pdf', 
+    'pdf splitter', 
+    'extract pages from pdf', 
+    'split pdf every 2 pages', 
+    'split by page range',
+    'extract odd pages from pdf',
+    'extract even pages from pdf',
+    'separate pdf pages', 
+    'free pdf splitter', 
+    'offline pdf splitter'
+  ],
 };
 
-// This Server Component just renders our interactive client component
-export default function SplitPdfPage() {
-  return <SplitTool />;
-}
+// ... keep the rest of your page component
