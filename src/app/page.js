@@ -1,3 +1,6 @@
+// src/app/page.js
+import ImpactCounter from '@/components/ImpactCounter';
+
 const toolCategories = [
   { name: 'PDF Tools', description: 'Merge, split, compress, and edit PDFs securely on your own device.', href: '/merge-pdf' },
   { name: 'Image Tools', description: 'Quickly compress, convert, and resize images without uploading them.', href: '#' },
@@ -23,7 +26,29 @@ const uspItems = [
     }
 ];
 
-export default function HomePage() {
+// This async function fetches the stats on the server before rendering
+// It uses a revalidation period to cache the results and keep it fast.
+async function getStats() {
+  try {
+    // The URL must be absolute for server-side fetching. process.env.VERCEL_URL is provided by Vercel.
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    const statsRes = await fetch(`${baseUrl}/api/stats`, { next: { revalidate: 60 } }); // Revalidate every 60 seconds
+
+    if (!statsRes.ok) {
+        console.error("Failed to fetch stats:", statsRes.status, await statsRes.text());
+        return { visits: 0, downloads: 0 };
+    }
+    return statsRes.json();
+  } catch (error) {
+    console.error("Could not fetch stats:", error);
+    return { visits: 0, downloads: 0 }; // Return default values on error
+  }
+}
+
+export default async function HomePage() {
+  // Fetch the initial stats on the server
+  const initialStats = await getStats();
+
   return (
     <div className="w-full">
       {/* Hero Section */}
@@ -34,6 +59,12 @@ export default function HomePage() {
         <p className="text-lg md:text-xl text-gray-300 max-w-3xl">
           The secure offline toolkit to merge, compress, and convert your files. No uploads. No tracking. No compromise.
         </p>
+
+        {/* We render the counter here, passing the server-fetched data */}
+        <ImpactCounter 
+          initialVisits={initialStats.visits} 
+          initialDownloads={initialStats.downloads} 
+        />
       </section>
 
       {/* Tools & USP Sections Wrapper */}
