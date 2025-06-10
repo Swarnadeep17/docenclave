@@ -1,31 +1,34 @@
 // src/app/page.js
 import ImpactCounter from '@/components/ImpactCounter';
+import Link from 'next/link';
 
-// --- UPDATED SECTION ---
-// We've made the tool links more specific to showcase our features.
+// --- THIS IS THE NEW CATEGORY-BASED STRUCTURE ---
 const toolCategories = [
   { 
-    name: 'Merge PDF', 
-    description: 'Combine multiple PDFs and orchestrate every single page with our advanced visual tool.', 
-    href: '/merge-pdf' 
+    name: 'PDF Tools', 
+    description: 'Merge, split, and more. A full suite of tools for your PDF needs.', 
+    href: '/pdf-tools' // This now links to our new PDF tools page
   },
   { 
-    name: 'Split PDF', 
-    description: 'Visually select and extract pages from any PDF, or split it into multiple files.', 
-    href: '/split-pdf' 
-  },
-  { 
-    name: 'Image Tools (Coming Soon)', 
+    name: 'Image Tools', 
     description: 'Quickly compress, convert, and resize images without uploading them.', 
-    href: '#' 
+    href: '#', // Stays as a placeholder for now
+    isComingSoon: true 
   },
   { 
-    name: 'More Tools (Coming Soon)', 
-    description: 'More advanced PDF, Office, and AI-powered tools are on the way.', 
-    href: '#' 
+    name: 'Office Tools', 
+    description: 'View Word & Excel files, convert them to PDF, all in complete privacy.', 
+    href: '#',
+    isComingSoon: true 
+  },
+  { 
+    name: 'AI Tools', 
+    description: 'Summarize, chat with, and extract data from your documents. Powered by AI.', 
+    href: '#',
+    isComingSoon: true 
   },
 ];
-// --- END OF UPDATED SECTION ---
+// --- END OF NEW STRUCTURE ---
 
 const uspItems = [
     {
@@ -45,16 +48,13 @@ const uspItems = [
     }
 ];
 
-// This async function fetches the stats on the server before rendering
-// It uses a revalidation period to cache the results and keep it fast.
 async function getStats() {
   try {
-    // USE THIS NEW, MORE RELIABLE WAY TO BUILD THE URL
     const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL 
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` 
       : 'http://localhost:3000';
       
-    const statsRes = await fetch(`${baseUrl}/api/stats`, { next: { revalidate: 60 } }); // Revalidate every 60 seconds
+    const statsRes = await fetch(`${baseUrl}/api/stats`, { next: { revalidate: 60 } });
 
     if (!statsRes.ok) {
         console.error("Failed to fetch stats:", statsRes.status, await statsRes.text());
@@ -63,12 +63,11 @@ async function getStats() {
     return await statsRes.json();
   } catch (error) {
     console.error("Could not fetch stats:", error);
-    return { visits: 0, downloads: 0 }; // Return default values on error
+    return { visits: 0, downloads: 0 };
   }
 }
 
 export default async function HomePage() {
-  // Fetch the initial stats on the server
   const initialStats = await getStats();
 
   return (
@@ -82,7 +81,6 @@ export default async function HomePage() {
           The secure offline toolkit to merge, compress, and convert your files. No uploads. No tracking. No compromise.
         </p>
 
-        {/* We render the counter here, passing the server-fetched data */}
         <ImpactCounter 
           initialVisits={initialStats.visits} 
           initialDownloads={initialStats.downloads} 
@@ -93,17 +91,20 @@ export default async function HomePage() {
       <div className="bg-black py-20 md:py-24 px-4">
         {/* Tool Selection Grid */}
         <div id="tools" className="w-full max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8 text-center text-gray-100">Start with a Tool</h2>
+          <h2 className="text-3xl font-bold mb-8 text-center text-gray-100">Explore Our Toolkits</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {toolCategories.map((tool) => (
-              <a 
+              <Link 
                 key={tool.name}
                 href={tool.href}
-                className={`bg-card-bg p-6 rounded-lg border border-gray-700 transition-all duration-200 group ${tool.href === '#' ? 'opacity-50 cursor-not-allowed' : 'hover:border-accent'}`}
+                className={`bg-card-bg p-6 rounded-lg border border-gray-700 transition-all duration-200 group ${tool.isComingSoon ? 'opacity-50 cursor-not-allowed' : 'hover:border-accent'}`}
               >
-                <h3 className="text-xl font-bold mb-2 group-hover:text-accent">{tool.name}</h3>
+                <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold mb-2 group-hover:text-accent">{tool.name}</h3>
+                    {tool.isComingSoon && <span className="text-xs bg-gray-600 text-gray-300 font-semibold px-2 py-1 rounded-full">Coming Soon</span>}
+                </div>
                 <p className="text-gray-400">{tool.description}</p>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
