@@ -22,54 +22,31 @@ export default function CompressTool() {
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  const [previewStatus, setPreviewStatus] = useState('idle'); // 'idle', 'generating', 'success', 'failed'
+  const [previewStatus, setPreviewStatus] = useState('idle');
 
   const previewCanvasRef = useRef(null);
-  const analysisData = useRef({ nonImageSize: 0, totalImageSize: 0 });
-
-  const updateEstimates = useCallback((newSettings) => {
-    const originalSize = file ? file.size : 0;
-    if (originalSize === 0) return;
-    
-    // Use a simplified but effective estimation
-    let estimatedSize = originalSize * newSettings.imageQuality;
-    if (newSettings.isGrayscale) {
-      estimatedSize *= 0.7; // Grayscale reduces size, estimate 30% reduction
+  
+  // *** THIS IS THE NEW CORE LOGIC (useEffect) ***
+  useEffect(() => {
+    // This effect runs whenever a new file is set
+    if (!file) {
+      return; // Do nothing if there's no file
     }
 
-    const reduction = 100 - (estimatedSize / originalSize) * 100;
+    const processFile = async () => {
+      setProcessingMessage('Analyzing PDF...');
+      setIsProcessing(true);
+      setPreviewStatus('generating');
+      setSettings(initialSettings); // Reset settings for new file
 
-    setStats({
-      originalSize,
-      estimatedSize,
-      reduction: Math.round(reduction),
-    });
-  }, [file]);
-
-  // *** THE DEFINITIVE onDrop FUNCTION (v5) ***
-  const onDrop = useCallback(async (acceptedFiles) => {
-    const uploadedFile = acceptedFiles[0];
-    if (!uploadedFile || !uploadedFile.type.includes('pdf')) {
-      alert("Please upload a valid PDF file.");
-      return;
-    }
-
-    setProcessingMessage('Analyzing PDF...');
-    setIsProcessing(true);
-    setPreviewStatus('generating');
-    setFile(uploadedFile);
-    setSettings(initialSettings);
-
-    // This timeout gives React a moment to render the canvas before we try to use its ref
-    setTimeout(async () => {
       try {
-        const fileBlob = new Blob([uploadedFile]);
+        const fileBlob = new Blob([file]);
         
         // Attempt to generate preview
         try {
           const canvas = previewCanvasRef.current;
           if (!canvas) {
-            throw new Error("Canvas element not available in time.");
+            throw new Error("Canvas not found in DOM");
           }
 
           const pdfjsBuffer = await fileBlob.arrayBuffer();
@@ -88,43 +65,53 @@ export default function CompressTool() {
           setPreviewStatus('failed');
         }
 
-        // Always proceed with analysis and controls
-        analysisData.current = {
-          totalImageSize: uploadedFile.size,
-          nonImageSize: 0,
-        };
-        updateEstimates(initialSettings);
+        // Always calculate initial estimates
+        const estimatedSize = file.size * initialSettings.imageQuality;
+        const reduction = 100 - (estimatedSize / file.size) * 100;
+        setStats({
+          originalSize: file.size,
+          estimatedSize: estimatedSize,
+          reduction: Math.round(reduction),
+        });
 
       } catch (error) {
         console.error("Fatal error processing file:", error);
         alert("Could not read the uploaded file.");
-        setFile(null);
+        setFile(null); // Reset on catastrophic error
       } finally {
         setIsProcessing(false);
         setProcessingMessage('');
       }
-    }, 100); // A small delay is key to solving the race condition
-  }, [updateEstimates]);
-
-  useEffect(() => {
-    // This effect is to redraw the canvas for grayscale.
-    if (previewStatus !== 'success' || !previewCanvasRef.current) return;
-    const canvas = previewCanvasRef.current;
-    const context = canvas.getContext('2d');
-    const tempImg = new Image();
-    tempImg.onload = () => {
-        context.clearRect(0, 0, canvas.width, canvas.height); // Clear before redraw
-        if (settings.isGrayscale) {
-            context.filter = 'grayscale(100%)';
-        } else {
-            context.filter = 'none';
-        }
-        context.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
     };
-    // Use the canvas's own data to redraw itself
-    tempImg.src = canvas.toDataURL();
-  }, [settings.isGrayscale, previewStatus]);
 
+    processFile();
+  }, [file]); // The dependency array ensures this runs ONLY when `file` changes.
+
+
+  const onDrop = useCallback((acceptedFiles) => {
+    const uploadedFile = acceptedFiles[0];
+    if (uploadedFile && uploadedFile.type.includes('pdf')) {
+      // The ONLY thing onDrop does now is set the file state.
+      setFile(uploadedFile);
+    } else {
+      alert("Please upload a valid PDF file.");
+    }
+  }, []);
+  
+  const updateEstimates = useCallback((newSettings) => {
+    if (!file) return;
+    const originalSize = file.size;
+    let estimatedSize = originalSize * newSettings.imageQuality;
+    if (newSettings.isGrayscale) {
+      estimatedSize *= 0.7;
+    }
+    const reduction = 100 - (estimatedSize / originalSize) * 100;
+    setStats({
+      originalSize,
+      estimatedSize,
+      reduction: Math.round(reduction),
+    });
+  }, [file]);
 
   const handleSettingChange = (setting, value) => {
     const newSettings = { ...settings, [setting]: value };
@@ -165,8 +152,7 @@ export default function CompressTool() {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const tempImg = new Image();
-            // Use .toPng() for better quality handling before re-compressing to JPG
-            tempImg.src = await image.toPng(); 
+            tempImg.src = await image.toPng();
             await new Promise(resolve => { tempImg.onload = resolve });
 
             canvas.width = tempImg.width;
@@ -238,6 +224,7 @@ export default function CompressTool() {
   };
   
   const PreviewArea = () => {
+    // This component now just displays based on the status
     switch (previewStatus) {
         case 'generating':
             return <p className="text-accent">Generating Preview...</p>;
@@ -246,9 +233,76 @@ export default function CompressTool() {
         case 'success':
             return <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain"></canvas>;
         default:
-            return null;
+            return null; // Don't show anything initially
     }
   };
+  
+  // Conditionally render the entire control room view based on whether a file is selected
+  const ControlRoom = () => (
+    isProcessing ? (
+      <div className="text-center py-20 text-accent">{processingMessage}</div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
+          <PreviewArea />
+        </div>
+        <div className="md:col-span-1 flex flex-col space-y-6">
+          <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Settings</h3>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-xs text-gray-400">Original</p>
+              <p className="font-semibold text-lg">{formatBytes(stats.originalSize)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Estimated</p>
+              <p className="font-semibold text-lg text-accent">{formatBytes(stats.estimatedSize)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Reduction</p>
+              <p className="font-semibold text-lg text-green-400">~{stats.reduction}%</p>
+            </div>
+          </div>
+          <div>
+            <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
+            <input
+              id="quality" type="range" min="0.1" max="1" step="0.01"
+              value={settings.imageQuality}
+              onChange={(e) => handleSettingChange('imageQuality', parseFloat(e.target.value))}
+              className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <span>Lower</span>
+              <span className="font-bold text-accent">{Math.round(settings.imageQuality * 100)}%</span>
+              <span>Higher</span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label>
+              <button onClick={() => handleSettingChange('isGrayscale', !settings.isGrayscale)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label>
+              <button onClick={() => handleSettingChange('removeMetadata', !settings.removeMetadata)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+          </div>
+          <div className="pt-4 border-t border-gray-600 space-y-3">
+            <button onClick={handleCompress} disabled={isProcessing} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-600">
+              {isProcessing ? processingMessage : 'Compress PDF'}
+            </button>
+            <button onClick={handleStartOver} className="w-full text-sm text-gray-400 hover:text-white hover:underline">
+              Use a different file
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+
 
   return (
     <div className="w-full max-w-6xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
@@ -264,71 +318,9 @@ export default function CompressTool() {
             <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{isDragActive ? 'Drop it here!' : 'Click to upload or drag & drop'}</span></p>
           </div>
         ) : (
-          isProcessing ? (
-              <div className="text-center py-20 text-accent">{processingMessage}</div>
-          ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
-              <PreviewArea />
-            </div>
-            <div className="md:col-span-1 flex flex-col space-y-6">
-              <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Settings</h3>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                      <p className="text-xs text-gray-400">Original</p>
-                      <p className="font-semibold text-lg">{formatBytes(stats.originalSize)}</p>
-                  </div>
-                   <div>
-                      <p className="text-xs text-gray-400">Estimated</p>
-                      <p className="font-semibold text-lg text-accent">{formatBytes(stats.estimatedSize)}</p>
-                  </div>
-                   <div>
-                      <p className="text-xs text-gray-400">Reduction</p>
-                      <p className="font-semibold text-lg text-green-400">~{stats.reduction}%</p>
-                  </div>
-              </div>
-              <div>
-                <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
-                <input 
-                  id="quality" type="range" min="0.1" max="1" step="0.01"
-                  value={settings.imageQuality}
-                  onChange={(e) => handleSettingChange('imageQuality', parseFloat(e.target.value))}
-                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>Lower</span>
-                    <span className="font-bold text-accent">{Math.round(settings.imageQuality * 100)}%</span>
-                    <span>Higher</span>
-                </div>
-              </div>
-              <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                      <label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label>
-                      <button onClick={() => handleSettingChange('isGrayscale', !settings.isGrayscale)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}>
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                  </div>
-                   <div className="flex items-center justify-between">
-                      <label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label>
-                      <button onClick={() => handleSettingChange('removeMetadata', !settings.removeMetadata)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}>
-                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                  </div>
-              </div>
-              <div className="pt-4 border-t border-gray-600 space-y-3">
-                  <button onClick={handleCompress} disabled={isProcessing} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-600">
-                    {isProcessing ? processingMessage : 'Compress PDF'}
-                  </button>
-                  <button onClick={handleStartOver} className="w-full text-sm text-gray-400 hover:text-white hover:underline">
-                    Use a different file
-                  </button>
-              </div>
-            </div>
-          </div>
-          ))
-        }
+          <ControlRoom />
+        )}
       </div>
-      {/* SEO Content will be added back here once functionality is perfect */}
     </div>
   );
 }
