@@ -1,17 +1,14 @@
-// src/components/ImpactCounter.js
 'use client';
 
 import { useEffect } from 'react';
 import CountUp from 'react-countup';
 
-export default function ImpactCounter({ initialVisits, initialDownloads }) {
+export default function ImpactCounter({ initialVisits, initialDownloads, isLoading }) {
   
   useEffect(() => {
-    // This effect runs only once when the component mounts on the client
     const hasVisited = sessionStorage.getItem('docenclave_visited');
     if (!hasVisited) {
       sessionStorage.setItem('docenclave_visited', 'true');
-      // Send a request to our API to increment the visit count
       fetch('/api/stats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -20,8 +17,16 @@ export default function ImpactCounter({ initialVisits, initialDownloads }) {
     }
   }, []);
 
+  if (isLoading) {
+    return (
+        <div className="text-center my-8 p-4 border-y-2 border-gray-700 h-[56px]">
+            <p className="text-sm text-gray-500 animate-pulse">Loading community stats...</p>
+        </div>
+    )
+  }
+
   return (
-    <div className="w-full max-w-4xl text-center my-8 p-4 border-y-2 border-gray-700">
+    <div className="text-center my-8 p-4 border-y-2 border-gray-700">
       <p className="text-sm sm:text-base text-gray-400">
         This month, our community has secured{' '}
         <span className="font-bold text-accent text-lg sm:text-xl px-2">
