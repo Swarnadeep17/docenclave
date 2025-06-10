@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PDFDocument, PDFName, a } from 'pdf-lib';
+import { PDFDocument, PDFName, StandardFonts } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import { useDropzone } from 'react-dropzone';
 import { saveAs } from 'file-saver';
@@ -24,10 +24,9 @@ export default function CompressTool() {
   const [previewStatus, setPreviewStatus] = useState('idle');
 
   const previewCanvasRef = useRef(null);
-  const originalPreviewDataUrl = useRef(null); // Store the original full-color preview
+  const originalPreviewDataUrl = useRef(null);
   const debounceTimeoutRef = useRef(null);
 
-  // --- STATE-DRIVEN FILE PROCESSING ---
   useEffect(() => {
     if (!file) return;
 
@@ -54,7 +53,7 @@ export default function CompressTool() {
           const context = canvas.getContext('2d');
           await page.render({ canvasContext: context, viewport }).promise;
           
-          originalPreviewDataUrl.current = canvas.toDataURL(); // Store the original preview
+          originalPreviewDataUrl.current = canvas.toDataURL();
           setPreviewStatus('success');
 
         } catch (previewError) {
@@ -79,7 +78,6 @@ export default function CompressTool() {
     processFile();
   }, [file]);
 
-  // --- EFFECT FOR REDRAWING PREVIEW ON SETTINGS CHANGE ---
   useEffect(() => {
     if (previewStatus !== 'success' || !previewCanvasRef.current || !originalPreviewDataUrl.current) return;
     
@@ -97,30 +95,22 @@ export default function CompressTool() {
     img.src = originalPreviewDataUrl.current;
   }, [settings.isGrayscale, previewStatus]);
 
-  // --- DEBOUNCED EFFECT FOR UPDATING ESTIMATES ---
   useEffect(() => {
     if (!file) return;
 
-    if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-    }
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
 
     debounceTimeoutRef.current = setTimeout(() => {
         const originalSize = file.size;
         let estimatedSize = originalSize * settings.imageQuality;
-        if (settings.isGrayscale) {
-            estimatedSize *= 0.7;
-        }
+        if (settings.isGrayscale) estimatedSize *= 0.7;
         const reduction = 100 - (estimatedSize / originalSize) * 100;
         setStats({ originalSize, estimatedSize, reduction: Math.round(reduction) });
-    }, 200); // 200ms debounce
+    }, 200);
 
-    return () => {
-        clearTimeout(debounceTimeoutRef.current);
-    };
+    return () => clearTimeout(debounceTimeoutRef.current);
   }, [settings, file]);
   
-  // --- NEW, MOST ROBUST HANDLECOMPRESS FUNCTION ---
   const handleCompress = async () => {
     if (!file) return;
 
@@ -131,67 +121,50 @@ export default function CompressTool() {
         const fileBuffer = await file.arrayBuffer();
         const pdfDoc = await PDFDocument.load(fileBuffer);
         const imageRefCache = new Map();
-
-        // Step 1: Create compressed versions of all unique images
+        
         const pages = pdfDoc.getPages();
-        for (const page of pages) {
-            const imageNames = page.node.Resources().get(PDFName.of('XObject'))?.keys() ?? [];
-            for (const imageName of imageNames) {
-                const image = page.images.get(imageName.decodeText());
-                if (!image || imageRefCache.has(image.ref.toString())) continue;
+        for (const [pageIndex, page] of pages.entries()) {
+            const resources = page.node.Resources();
+            const xobjects = resources?.lookup(PDFName.of('XObject'));
+            if (!xobjects?.isDict()) continue;
 
+            for (const [name, ref] of xobjects.entries()) {
+                if (!ref.isIndirect()) continue;
+                
+                const xobject = pdfDoc.context.lookup(ref);
+                if (xobject.lookup(PDFName.of('Subtype')) !== PDFName.of('Image')) continue;
+                
+                const imageRefString = ref.toString();
+                if (imageRefCache.has(imageRefString)) continue;
+
+                const image = pdfDoc.getImage(ref);
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 const tempImg = new Image();
                 tempImg.src = await image.toPng();
                 await new Promise(resolve => { tempImg.onload = resolve; });
-
+                
                 canvas.width = tempImg.width;
                 canvas.height = tempImg.height;
-                if (settings.isGrayscale) {
-                    ctx.filter = 'grayscale(100%)';
-                }
+                if (settings.isGrayscale) ctx.filter = 'grayscale(100%)';
                 ctx.drawImage(tempImg, 0, 0);
-                
+
                 const newImageBytes = await pdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.imageQuality));
-                imageRefCache.set(image.ref.toString(), newImageBytes);
+                imageRefCache.set(imageRefString, newImageBytes);
             }
         }
         
-        // Step 2: Replace image references in the PDF content streams
-        for (const page of pages) {
-            const contentStream = page.getContentStream();
-            const operators = contentStream.getOperators();
-            let modified = false;
-            for (const op of operators) {
-                if (op.name === 'Do') {
-                    const imageName = op.args[0].decodeText();
-                    const image = page.images.get(imageName);
-                    if (image && imageRefCache.has(image.ref.toString())) {
-                        const newImage = imageRefCache.get(image.ref.toString());
-                        const newImageName = page.node.Resources().get(PDFName.of('XObject')).keys().find(key => 
-                            page.images.get(key.decodeText()).ref === newImage.ref
-                        );
-
-                        if (!newImageName) {
-                            const newName = page.node.Resources().get(PDFName.of('XObject')).uniqueName('Im');
-                            page.node.Resources().get(PDFName.of('XObject')).set(newName, newImage.ref);
-                            op.args[0] = newName;
-                        } else {
-                           op.args[0] = newImageName;
-                        }
-                        modified = true;
-                    }
-                }
-            }
-            if(modified) {
-                page.node.set(PDFName.of('Contents'), contentStream);
-            }
+        for (const [originalRef, newImage] of imageRefCache.entries()) {
+            const refToReplace = PDFDocument.parse(originalRef, false);
+            pdfDoc.context.assign(refToReplace, newImage.ref);
         }
 
         if (settings.removeMetadata) {
             pdfDoc.setTitle('');
             pdfDoc.setAuthor('');
+            pdfDoc.setSubject('');
+            pdfDoc.setCreator('');
+            pdfDoc.setProducer('');
         }
 
         const pdfBytes = await pdfDoc.save();
@@ -230,6 +203,7 @@ export default function CompressTool() {
   const handleStartOver = () => {
     setFile(null);
     setPreviewStatus('idle');
+    originalPreviewDataUrl.current = null;
   };
 
   const PreviewArea = () => (
