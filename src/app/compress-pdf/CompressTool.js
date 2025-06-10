@@ -22,38 +22,36 @@ export default function CompressTool() {
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  const [previewStatus, setPreviewStatus] = useState('idle');
+  const [previewStatus, setPreviewStatus] = useState('idle'); // 'idle', 'generating', 'success', 'failed'
 
   const previewCanvasRef = useRef(null);
   const analysisData = useRef({ nonImageSize: 0, totalImageSize: 0 });
 
   const updateEstimates = useCallback((newSettings) => {
-    const { totalImageSize, nonImageSize } = analysisData.current;
     const originalSize = file ? file.size : 0;
-    
     if (originalSize === 0) return;
-
-    let estimatedImageSize = totalImageSize * newSettings.imageQuality;
+    
+    // Use a simplified but effective estimation
+    let estimatedSize = originalSize * newSettings.imageQuality;
     if (newSettings.isGrayscale) {
-      estimatedImageSize *= 0.7;
+      estimatedSize *= 0.7; // Grayscale reduces size, estimate 30% reduction
     }
 
-    const estimatedTotalSize = nonImageSize + estimatedImageSize;
-    const reduction = 100 - (estimatedTotalSize / originalSize) * 100;
+    const reduction = 100 - (estimatedSize / originalSize) * 100;
 
     setStats({
       originalSize,
-      estimatedSize: estimatedTotalSize,
+      estimatedSize,
       reduction: Math.round(reduction),
     });
   }, [file]);
 
-  // *** THE MOST ROBUST onDrop FUNCTION (v4) ***
+  // *** THE DEFINITIVE onDrop FUNCTION (v5) ***
   const onDrop = useCallback(async (acceptedFiles) => {
     const uploadedFile = acceptedFiles[0];
-    if (!uploadedFile || uploadedFile.type !== 'application/pdf') {
-        alert("Please upload a valid PDF file.");
-        return;
+    if (!uploadedFile || !uploadedFile.type.includes('pdf')) {
+      alert("Please upload a valid PDF file.");
+      return;
     }
 
     setProcessingMessage('Analyzing PDF...');
@@ -62,59 +60,69 @@ export default function CompressTool() {
     setFile(uploadedFile);
     setSettings(initialSettings);
 
-    try {
-        // Use a Blob to create isolated ArrayBuffers for each library
+    // This timeout gives React a moment to render the canvas before we try to use its ref
+    setTimeout(async () => {
+      try {
         const fileBlob = new Blob([uploadedFile]);
-
+        
         // Attempt to generate preview
         try {
-            // Give pdf.js its own clean ArrayBuffer from the Blob
-            const pdfjsBuffer = await fileBlob.arrayBuffer();
-            const pdfjsDoc = await pdfjs.getDocument({ data: pdfjsBuffer }).promise;
-            const page = await pdfjsDoc.getPage(1);
-            const viewport = page.getViewport({ scale: 1.0 });
-            const canvas = previewCanvasRef.current;
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            await page.render({ canvasContext: context, viewport }).promise;
-            setPreviewStatus('success');
+          const canvas = previewCanvasRef.current;
+          if (!canvas) {
+            throw new Error("Canvas element not available in time.");
+          }
+
+          const pdfjsBuffer = await fileBlob.arrayBuffer();
+          const pdfjsDoc = await pdfjs.getDocument({ data: pdfjsBuffer }).promise;
+          const page = await pdfjsDoc.getPage(1);
+          const viewport = page.getViewport({ scale: 1.0 });
+
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+          await page.render({ canvasContext: context, viewport }).promise;
+          setPreviewStatus('success');
+
         } catch (previewError) {
-            console.warn("Could not generate PDF preview. Proceeding without it.", previewError);
-            setPreviewStatus('failed');
+          console.warn("Could not generate PDF preview. Proceeding without it.", previewError);
+          setPreviewStatus('failed');
         }
 
         // Always proceed with analysis and controls
         analysisData.current = {
-            totalImageSize: uploadedFile.size, 
-            nonImageSize: 0 
+          totalImageSize: uploadedFile.size,
+          nonImageSize: 0,
         };
         updateEstimates(initialSettings);
 
-    } catch (error) {
+      } catch (error) {
         console.error("Fatal error processing file:", error);
         alert("Could not read the uploaded file.");
         setFile(null);
-    } finally {
+      } finally {
         setIsProcessing(false);
         setProcessingMessage('');
-    }
+      }
+    }, 100); // A small delay is key to solving the race condition
   }, [updateEstimates]);
 
   useEffect(() => {
-    // This effect is to redraw the canvas for grayscale, it doesn't need to re-read the file
+    // This effect is to redraw the canvas for grayscale.
     if (previewStatus !== 'success' || !previewCanvasRef.current) return;
     const canvas = previewCanvasRef.current;
     const context = canvas.getContext('2d');
-    if (settings.isGrayscale) {
-        context.filter = 'grayscale(100%)';
-    } else {
-        context.filter = 'none';
-    }
-    // We need to redraw the image data, not just change the filter
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    context.clearRect(0, 0, canvas.width, canvas.height); // Clear before redrawing
-    context.putImageData(imageData, 0, 0);
+    const tempImg = new Image();
+    tempImg.onload = () => {
+        context.clearRect(0, 0, canvas.width, canvas.height); // Clear before redraw
+        if (settings.isGrayscale) {
+            context.filter = 'grayscale(100%)';
+        } else {
+            context.filter = 'none';
+        }
+        context.drawImage(tempImg, 0, 0, canvas.width, canvas.height);
+    };
+    // Use the canvas's own data to redraw itself
+    tempImg.src = canvas.toDataURL();
   }, [settings.isGrayscale, previewStatus]);
 
 
@@ -157,7 +165,8 @@ export default function CompressTool() {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const tempImg = new Image();
-            tempImg.src = await image.toDataUrl();
+            // Use .toPng() for better quality handling before re-compressing to JPG
+            tempImg.src = await image.toPng(); 
             await new Promise(resolve => { tempImg.onload = resolve });
 
             canvas.width = tempImg.width;
@@ -319,34 +328,7 @@ export default function CompressTool() {
           ))
         }
       </div>
-      
-      <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
-        <h2 className="text-3xl font-bold mb-6">Take Control of Your PDF Size</h2>
-        <p>Sending a PDF that's too large for an email attachment is a common frustration. While many tools offer to compress your files, they often leave you in the dark, forcing you to choose between vague options like "low" or "high" quality. At DocEnclave, we believe in putting the power back in your hands. Our advanced PDF compressor gives you a transparent, interactive experience to reduce file size without sacrificing clarity.</p>
-        
-        <h3 className="text-2xl font-bold mt-12 mb-4">See the Difference in Real-Time</h3>
-        <p>Our unique interface features a live preview and an interactive quality slider. As you adjust the settings, you see the estimated final file size and percentage reduction update instantly. This feedback loop allows you to find the perfect balance between file size and image quality *before* you commit to compressing. No more downloading multiple versions to find the right one. Make the right choice the first time, every time.</p>
-        
-        <h3 className="text-2xl font-bold mt-12 mb-4">Smarter Compression, Total Privacy</h3>
-        <p>DocEnclave's compressor is designed to be intelligent. It primarily targets the large images within your PDF for compression, while striving to maintain the crispness of your text. For even greater size savings, you can convert images to grayscale or strip out unnecessary metadata with the flip of a switch. And because this all happens directly in your browser, your sensitive documents are never uploaded to a server. This guarantees 100% privacy and security for your files.</p>
-
-        <h2 className="text-3d font-bold mt-16 mb-8">Frequently Asked Questions</h2>
-        <div className="space-y-8">
-          <div>
-            <h4 className="text-xl font-semibold">How do I reduce the size of my PDF?</h4>
-            <p>Simply upload your PDF. Use the interactive slider to adjust the image quality and see the estimated size change. For more reduction, toggle the "Grayscale" or "Basic Optimization" options. Once you're satisfied with the estimate, click "Compress PDF" to download your new, smaller file.</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Will compressing my PDF reduce its quality?</h4>
-            <p>Compression primarily reduces the quality of images within the PDF to save space. Our tool allows you to control this trade-off. A setting of 75-80% is often visually indistinguishable from the original for on-screen viewing, while significantly reducing file size. Text quality is generally unaffected.</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Is it safe to compress my confidential documents here?</h4>
-            <p>Yes, it is the safest way possible. DocEnclave operates entirely within your web browser. Your files are not sent to or stored on any external servers. The entire compression process happens on your own computer, ensuring your data remains completely private and secure.</p>
-          </div>
-        </div>
-      </div>
-      
+      {/* SEO Content will be added back here once functionality is perfect */}
     </div>
   );
 }
