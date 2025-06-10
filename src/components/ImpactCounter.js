@@ -1,3 +1,4 @@
+// src/components/ImpactCounter.js
 'use client';
 
 import { useEffect } from 'react';
@@ -15,12 +16,12 @@ export default function ImpactCounter({ initialVisits, initialDownloads }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ statToIncrement: 'visits' }),
-      });
+      }).catch(err => console.error("Failed to increment visit count:", err));
     }
   }, []);
 
   return (
-    <div className="text-center my-8 p-4 border-y-2 border-gray-700">
+    <div className="w-full max-w-4xl text-center my-8 p-4 border-y-2 border-gray-700">
       <p className="text-sm sm:text-base text-gray-400">
         This month, our community has secured{' '}
         <span className="font-bold text-accent text-lg sm:text-xl px-2">
