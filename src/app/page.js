@@ -1,5 +1,5 @@
 const toolCategories = [
-  { name: 'PDF Tools', description: 'Merge, split, compress, and edit PDFs securely on your own device.', href: '#' },
+  { name: 'PDF Tools', description: 'Merge, split, compress, and edit PDFs securely on your own device.', href: '/merge-pdf' },
   { name: 'Image Tools', description: 'Quickly compress, convert, and resize images without uploading them.', href: '#' },
   { name: 'Word Tools', description: 'View Word documents or convert them to PDF in complete privacy.', href: '#' },
   { name: 'Excel Tools', description: 'View spreadsheets and export data to CSV, all from your browser.', href: '#' },
