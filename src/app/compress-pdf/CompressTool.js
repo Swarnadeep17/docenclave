@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
-import { useDropzone } from 'react-dropzone';
 import { saveAs } from 'file-saver';
 import ToolPageHeader from '@/components/ToolPageHeader';
 
@@ -22,6 +21,18 @@ export default function CompressTool() {
   const [processingMessage, setProcessingMessage] = useState('');
   const [compressedFile, setCompressedFile] = useState(null);
   const previewCanvasRef = useRef(null);
+
+  // --- NEW, SIMPLIFIED handleFileChange based on MergeTool ---
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    event.target.value = null; // Reset file input for re-uploads
+    if (selectedFile && selectedFile.type === 'application/pdf') {
+        setFile(selectedFile);
+        setCompressedFile(null);
+    } else if (selectedFile) { // only alert if a file was actually selected
+        alert('Please select a valid PDF file.');
+    }
+  };
 
   const handleProcess = async () => {
     if (!file) return;
@@ -97,19 +108,6 @@ export default function CompressTool() {
       fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
   };
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: useCallback(acceptedFiles => {
-        const uploadedFile = acceptedFiles[0];
-        if (uploadedFile && uploadedFile.type.includes('pdf')) {
-            setFile(uploadedFile);
-            setCompressedFile(null);
-        } else {
-            alert("Please upload a valid PDF file.");
-        }
-    }, []),
-    accept: { 'application/pdf': ['.pdf'] }, multiple: false,
-  });
-
   const formatBytes = (bytes, decimals = 2) => {
     if (!+bytes) return '0 Bytes';
     const k = 1024;
@@ -129,12 +127,14 @@ export default function CompressTool() {
   };
 
   const UploadView = () => (
-    <div {...getRootProps()} className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-accent bg-gray-800' : 'hover:bg-gray-800 hover:border-gray-400'}`}>
-      <input {...getInputProps()} />
-      <svg className="w-8 h-8 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
-      <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{isDragActive ? 'Drop PDF here' : 'Click to upload or drag & drop'}</span></p>
-      <p className="text-xs text-gray-500">Select a single PDF file</p>
-    </div>
+    <label htmlFor="file-upload" className="mb-8 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:bg-gray-800 hover:border-accent transition-colors">
+        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <svg className="w-8 h-8 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+            <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">Click to upload file</span></p>
+            <p className="text-xs text-gray-500">Select a single PDF file</p>
+        </div>
+        <input id="file-upload" type="file" className="hidden" accept=".pdf" onChange={handleFileChange} />
+    </label>
   );
 
   const SettingsView = () => (
@@ -206,32 +206,6 @@ export default function CompressTool() {
       <div className="bg-card-bg border border-gray-700 rounded-lg p-8">
         <CurrentView />
       </div>
-
-      {/* --- SEO CONTENT BLOCK --- */}
-      <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
-        <h2 className="text-3xl font-bold mb-6">Take Control of Your PDF Size</h2>
-        <p>Sending a PDF that's too large for an email attachment is a common frustration. While many tools offer to compress your files, they often leave you in the dark, forcing you to choose between vague options like "low" or "high" quality. At DocEnclave, we believe in putting the power back in your hands. Our advanced PDF compressor gives you a transparent, interactive experience to reduce file size without sacrificing clarity.</p>
-        <h3 className="text-2xl font-bold mt-12 mb-4">Preview Before You Download</h3>
-        <p>Our unique workflow lets you choose your settings first, then generate a high-quality preview of the compressed result. You'll see the final, accurate file size and quality *before* you download, ensuring you get exactly what you need on the first try. No more guesswork or repeated downloads.</p>
-        <h3 className="text-2xl font-bold mt-12 mb-4">Smarter Compression, Total Privacy</h3>
-        <p>DocEnclave's compressor is designed to be intelligent. It primarily targets the large images within your PDF for compression, while striving to maintain the crispness of your text. For even greater size savings, you can convert images to grayscale or strip out unnecessary metadata with the flip of a switch. And because this all happens directly in your browser, your sensitive documents are never uploaded to a server. This guarantees 100% privacy and security for your files.</p>
-        <h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2>
-        <div className="space-y-8">
-          <div>
-            <h4 className="text-xl font-semibold">How do I reduce the size of my PDF?</h4>
-            <p>It's a simple three-step process: 1) Upload your PDF. 2) Choose your desired quality and options. 3) Click "Compress & Preview" to see the result and the exact new file size. If you're happy, click "Download".</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Will compressing my PDF reduce its quality?</h4>
-            <p>Our method focuses on reducing the quality of images inside the PDF to save space, as this provides the biggest size savings. Text will become part of the page image but will remain sharp. You can use the quality slider to find the perfect balance for your needs.</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Is it safe to compress my confidential documents here?</h4>
-            <p>Yes, it is the safest way possible. DocEnclave operates entirely within your web browser. Your files are not sent to or stored on any external servers. The entire compression process happens on your own computer, ensuring your data remains completely private and secure.</p>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 }
