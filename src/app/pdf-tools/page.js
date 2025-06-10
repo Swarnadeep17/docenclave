@@ -13,7 +13,12 @@ const pdfTools = [
     description: 'Visually select and extract pages from any PDF, or split it into multiple separate files.',
     href: '/split-pdf'
   },
-  // Add new PDF tools here in the future
+  {
+    name: 'Compress PDF',
+    description: 'Reduce file size with an interactive preview of quality and compression settings.',
+    href: '/compress-pdf'
+  },
+// Add new PDF tools here in the future
 ];
 
 export const metadata = {
