@@ -1,4 +1,5 @@
-'use client';
+// src/app/split-pdf/SplitTool.js
+// --- 'use client'; has been REMOVED from this file ---
 
 import { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
@@ -194,7 +195,6 @@ export default function SplitTool() {
 
   return (
     <div className="w-full max-w-6xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
-      {/* --- UPDATED HEADER --- */}
       <ToolPageHeader 
         title="Advanced PDF Splitter"
         description="Visually select pages or use automated rules to split by fixed ranges, odd/even pages, and more."
@@ -287,7 +287,6 @@ export default function SplitTool() {
         )}
       </div>
       
-      {/* --- NEW, FULLY UPDATED SEO CONTENT BLOCK --- */}
       <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
         <h2 className="text-3xl font-bold mb-6">The Smartest Way to Split and Extract PDF Pages</h2>
         <p>Move beyond basic splitting. The DocEnclave PDF Splitter is an intelligent tool designed for both precision and automation. Whether you need to visually hand-pick specific pages for a presentation or automatically deconstruct a 500-page batch of reports, our splitter gives you the right tool for the job. And because every operation happens securely in your browser, your sensitive documents are never exposed to the risks of server uploads.</p>
@@ -325,10 +324,4 @@ export default function SplitTool() {
           </div>
           <div>
             <h4 className="text-xl font-semibold">How does this tool guarantee my privacy?</h4>
-            <p>Your privacy is guaranteed because your files never leave your computer. All the processing—whether it's visual selection or automated splitting—happens directly inside your web browser. Nothing is ever uploaded to a server, making it the most secure solution possible.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+            <p>Your privacy is guaranteed because your files never leave your computer. All the processing—whether it's visual selection or automated splitting—happens dire
