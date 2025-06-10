@@ -1,5 +1,3 @@
-// src/app/merge-pdf/MergeTool.js
-
 'use client';
 
 import { useState } from 'react';
@@ -20,6 +18,7 @@ export default function MergeTool() {
   const [duplicateCount, setDuplicateCount] = useState(0);
 
   const handleFileChange = async (event) => {
+    // Clear any existing merged file to prevent memory leaks and reset state
     if (mergedFile) URL.revokeObjectURL(mergedFile.url);
     setMergedFile(null);
     setPages([]);
@@ -27,7 +26,7 @@ export default function MergeTool() {
     setDuplicateCount(0);
     
     const selectedFiles = Array.from(event.target.files);
-    event.target.value = null; 
+    event.target.value = null; // Reset file input to allow re-uploading the same file
 
     const newOriginalFiles = new Map();
     let tempPages = [];
@@ -42,7 +41,9 @@ export default function MergeTool() {
 
       try {
         const fileBuffer = await file.arrayBuffer();
-        const pdf = await pdfjs.getDocument({ data: fileBuffer }).promise;
+        // Use a slice of the buffer for pdf.js to avoid potential transfer issues
+        const pdf = await pdfjs.getDocument({ data: fileBuffer.slice(0) }).promise;
+        
         for (let j = 1; j <= pdf.numPages; j++) {
           const page = await pdf.getPage(j);
           const viewport = page.getViewport({ scale: 0.25 });
@@ -51,6 +52,7 @@ export default function MergeTool() {
           canvas.height = viewport.height;
           canvas.width = viewport.width;
           await page.render({ canvasContext: context, viewport: viewport }).promise;
+          // Hash the visual data of the page to detect duplicates
           const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data.toString();
           const hash = SparkMD5.hash(imageData);
           
@@ -69,6 +71,7 @@ export default function MergeTool() {
       }
     }
 
+    // Identify and flag duplicate pages after all pages have been processed
     if (tempPages.length > 0) {
         const hashes = new Map();
         tempPages.forEach(p => hashes.set(p.hash, (hashes.get(p.hash) || 0) + 1));
@@ -95,6 +98,7 @@ export default function MergeTool() {
     setPages(items);
   };
   
+  // *** THIS IS THE CORRECTED MERGE FUNCTION ***
   const handleMerge = async () => {
     if (pages.length === 0) {
       alert("There are no pages to merge.");
@@ -103,26 +107,49 @@ export default function MergeTool() {
     setIsProcessing(true);
     setMergedFile(null);
 
+    // This map will act as a cache for loaded PDF documents to prevent re-loading.
+    const loadedDocsCache = new Map();
+
     try {
       const mergedPdf = await PDFDocument.create();
+
       for (const page of pages) {
-        const sourceFile = originalFiles.get(page.fileId); 
-        if (sourceFile) {
-          const sourcePdfBytes = await sourceFile.arrayBuffer();
-          const sourcePdf = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
+        let sourcePdf;
+
+        // Check if we have already loaded this PDF file.
+        if (loadedDocsCache.has(page.fileId)) {
+          // If yes, use the cached version.
+          sourcePdf = loadedDocsCache.get(page.fileId);
+        } else {
+          // If no, get the original file...
+          const sourceFile = originalFiles.get(page.fileId);
+          if (sourceFile) {
+            // ...load it into a pdf-lib document...
+            const sourcePdfBytes = await sourceFile.arrayBuffer();
+            sourcePdf = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
+            // ...and cache it for the next time we see a page from this file.
+            loadedDocsCache.set(page.fileId, sourcePdf);
+          }
+        }
+        
+        // Now, copy the page from the (potentially cached) source document.
+        if (sourcePdf) {
           const [copiedPage] = await mergedPdf.copyPages(sourcePdf, [page.originalPageNumber - 1]);
           mergedPdf.addPage(copiedPage);
         }
       }
+
       const mergedPdfBytes = await mergedPdf.save();
       const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       setMergedFile({ url: url, name: 'docenclave-merged-pages.pdf' });
+
     } catch (error) {
       console.error("Error merging pages:", error);
       alert("A critical error occurred while merging. This can happen with very complex or non-standard PDF files.");
     } finally {
       setIsProcessing(false);
+      loadedDocsCache.clear(); // Clean up the cache
     }
   };
 
@@ -135,7 +162,7 @@ export default function MergeTool() {
     setPages([]);
     setMergedFile(null);
     setOriginalFiles(new Map());
-    setDuplicateCount(0); // Also reset duplicate count
+    setDuplicateCount(0);
     const fileInput = document.getElementById('file-upload');
     if (fileInput) fileInput.value = '';
   };
@@ -189,9 +216,9 @@ export default function MergeTool() {
                           <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="relative group aspect-[7/10]">
                             <img src={page.imgSrc} alt={`Page ${index + 1}`} className={`w-full h-full object-contain border-2 rounded-md transition-colors ${page.isDuplicate ? 'border-yellow-500' : 'border-gray-600'}`} />
                             {page.isDuplicate && (
-                                <div className="absolute top-0 left-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-br-md" title="This is a potential duplicate page">D</div>
+                                <div className="absolute top-0 left-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-br-md" title="This is a potential duplicate page" aria-label="This page is a potential duplicate">D</div>
                             )}
-                            <button onClick={() => handleDeletePage(page.id)} className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10" aria-label="Delete page">X</button>
+                            <button onClick={() => handleDeletePage(page.id)} className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10" aria-label={`Delete page ${index + 1}`}>X</button>
                             <div className="absolute bottom-0 left-0 bg-black/50 text-white text-xs px-1 rounded-tr-md rounded-bl-md">{index + 1}</div>
                           </div>
                         )}
