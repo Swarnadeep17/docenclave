@@ -26,19 +26,23 @@ const uspItems = [
     }
 ];
 
+// *** THIS IS THE CORRECTED FUNCTION ***
 // This async function fetches the stats on the server before rendering
 // It uses a revalidation period to cache the results and keep it fast.
 async function getStats() {
   try {
-    // The URL must be absolute for server-side fetching. process.env.VERCEL_URL is provided by Vercel.
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
+    // USE THIS NEW, MORE RELIABLE WAY TO BUILD THE URL
+    const baseUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL 
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` 
+      : 'http://localhost:3000';
+      
     const statsRes = await fetch(`${baseUrl}/api/stats`, { next: { revalidate: 60 } }); // Revalidate every 60 seconds
 
     if (!statsRes.ok) {
         console.error("Failed to fetch stats:", statsRes.status, await statsRes.text());
         return { visits: 0, downloads: 0 };
     }
-    return statsRes.json();
+    return await statsRes.json();
   } catch (error) {
     console.error("Could not fetch stats:", error);
     return { visits: 0, downloads: 0 }; // Return default values on error
