@@ -102,7 +102,10 @@ export default function CompressTool() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: useCallback(acceptedFiles => {
         const uploadedFile = acceptedFiles[0];
-        if (uploadedFile && uploadedFile.type.includes('pdf')) setFile(uploadedFile);
+        if (uploadedFile && uploadedFile.type.includes('pdf')) {
+            setFile(uploadedFile);
+            setCompressedFile(null); // Reset preview on new file
+        }
         else alert("Please upload a valid PDF file.");
     }, []),
     accept: { 'application/pdf': ['.pdf'] }, multiple: false,
@@ -137,10 +140,10 @@ export default function CompressTool() {
 
   const SettingsView = () => (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex flex-col items-center justify-center min-h-[400px]">
-              <h3 className="text-2xl font-semibold mb-4 text-gray-200">Your file is ready.</h3>
+          <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex flex-col items-center justify-center min-h-[400px] text-center">
+              <h3 className="text-2xl font-semibold mb-4 text-gray-200">Your file is ready to be compressed.</h3>
               <p className="text-gray-400">Original Size: <span className="font-bold">{formatBytes(file.size)}</span></p>
-              <p className="mt-4 text-center max-w-sm text-gray-500">Choose your desired compression settings on the right, then click the button below to generate a compressed preview.</p>
+              <p className="mt-4 max-w-sm text-gray-500">Choose your desired settings on the right, then click the button below to generate a compressed preview.</p>
           </div>
           <div className="md:col-span-1 flex flex-col space-y-6">
               <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Settings</h3>
