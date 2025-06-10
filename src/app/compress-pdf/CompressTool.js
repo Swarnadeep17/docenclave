@@ -20,47 +20,52 @@ export default function CompressTool() {
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  
-  // State for the visible preview image
-  const [displayPreviewUrl, setDisplayPreviewUrl] = useState(null);
-  // Ref to store the original, full-color preview data
-  const originalPreviewDataUrl = useRef(null);
-  const debounceTimeoutRef = useRef(null);
+  const [previewStatus, setPreviewStatus] = useState('idle');
 
-  // --- Effect for Initial File Processing ---
+  const originalPreviewDataUrl = useRef(null);
+  const analysisData = useRef({
+    pageCount: 0,
+    sizeAtLowQuality: 0, // e.g., quality 10
+    sizeAtHighQuality: 0, // e.g., quality 95
+  });
+
+  // --- Effect for Initial File Analysis (Runs ONCE per file) ---
   useEffect(() => {
     if (!file) return;
 
-    const processFile = async () => {
+    const analyzeFile = async () => {
       setIsProcessing(true);
-      setProcessingMessage('Analyzing PDF...');
+      setProcessingMessage('Analyzing PDF for estimation...');
+      setPreviewStatus('generating');
       setSettings(initialSettings);
 
       try {
         const fileBlob = new Blob([file]);
         const pdfjsBuffer = await fileBlob.arrayBuffer();
         const pdfjsDoc = await pdfjs.getDocument({ data: pdfjsBuffer }).promise;
-        const page = await pdfjsDoc.getPage(1);
-        const viewport = page.getViewport({ scale: 1.5 }); // Slightly higher res for a good master copy
-
-        const canvas = document.createElement('canvas');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        const context = canvas.getContext('2d');
-        await page.render({ canvasContext: context, viewport }).promise;
         
-        // Store the master copy and set the initial display
-        originalPreviewDataUrl.current = canvas.toDataURL();
-        setDisplayPreviewUrl(originalPreviewDataUrl.current);
+        analysisData.current.pageCount = pdfjsDoc.numPages;
 
-        // Calculate initial stats
-        const estimatedSize = file.size * (initialSettings.quality / 100);
-        const reduction = 100 - (estimatedSize / file.size) * 100;
-        setStats({ originalSize: file.size, estimatedSize, reduction: Math.round(reduction) });
-
+        const page = await pdfjsDoc.getPage(1);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.height;
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        
+        originalPreviewDataUrl.current = canvas.toDataURL('image/png');
+        
+        // --- THE "TWO-POINT" ESTIMATION ANALYSIS ---
+        const jpgDataUrlLow = canvas.toDataURL('image/jpeg', 0.10); // 10% quality
+        const jpgDataUrlHigh = canvas.toDataURL('image/jpeg', 0.95); // 95% quality
+        analysisData.current.sizeAtLowQuality = jpgDataUrlLow.length;
+        analysisData.current.sizeAtHighQuality = jpgDataUrlHigh.length;
+        
+        setPreviewStatus('success');
       } catch (error) {
-        console.error("Fatal error processing file:", error);
-        alert("Could not process this PDF. It may be corrupt or have an unsupported format.");
+        console.error("Fatal error during analysis:", error);
+        alert("Could not analyze this PDF. It may be corrupt or have an unsupported format.");
         handleStartOver();
       } finally {
         setIsProcessing(false);
@@ -68,39 +73,56 @@ export default function CompressTool() {
       }
     };
 
-    processFile();
+    analyzeFile();
   }, [file]);
 
-  // --- UNIFIED Effect for Updating Preview and Debouncing Stats ---
+  // --- UNIFIED Effect for INSTANTLY Updating Preview and Stats ---
   useEffect(() => {
-    if (!file || !originalPreviewDataUrl.current) return;
+    if (!file || previewStatus !== 'success') return;
 
-    // --- Part 1: Update the visual preview immediately ---
-    const img = new Image();
-    img.onload = () => {
-        const canvas = document.createElement('canvas');
+    // Part 1: Instantly redraw preview from master copy
+    if (originalPreviewDataUrl.current) {
+        const canvas = document.createElement('canvas'); // Use an off-screen canvas
         const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.filter = settings.isGrayscale ? 'grayscale(100%)' : 'none';
-        ctx.drawImage(img, 0, 0);
-        // Set the state with the newly generated (and potentially grayscaled) image data
-        setDisplayPreviewUrl(canvas.toDataURL());
-    };
-    img.src = originalPreviewDataUrl.current;
+        const img = new Image();
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.filter = settings.isGrayscale ? 'grayscale(100%)' : 'none';
+            ctx.drawImage(img, 0, 0);
+            
+            const liveCanvas = document.getElementById('live-preview-canvas');
+            if (liveCanvas) {
+                const liveCtx = liveCanvas.getContext('2d');
+                liveCtx.clearRect(0, 0, liveCanvas.width, liveCanvas.height);
+                liveCanvas.width = canvas.width;
+                liveCanvas.height = canvas.height;
+                liveCtx.drawImage(canvas, 0, 0);
+            }
+        };
+        img.src = originalPreviewDataUrl.current;
+    }
 
-    // --- Part 2: Debounce the statistics calculation for performance ---
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-    debounceTimeoutRef.current = setTimeout(() => {
+    // Part 2: Instantly calculate new stats using the "Two-Point" model
+    const { pageCount, sizeAtLowQuality, sizeAtHighQuality } = analysisData.current;
+    if (pageCount > 0 && sizeAtHighQuality > 0) {
+        const qualityRatio = (settings.quality - 10) / (95 - 10); // Normalize quality from 0 to 1 in our range
+        const compressibleRange = sizeAtHighQuality - sizeAtLowQuality;
+        let estimatedPageSize = sizeAtLowQuality + (compressibleRange * qualityRatio);
+        
+        if (settings.isGrayscale) estimatedPageSize *= 0.7;
+        
+        const estimatedTotalSize = estimatedPageSize * pageCount;
         const originalSize = file.size;
-        let estimatedSize = originalSize * (settings.quality / 100);
-        if (settings.isGrayscale) estimatedSize *= 0.7;
-        const reduction = originalSize > 0 ? 100 - (estimatedSize / originalSize) * 100 : 0;
-        setStats({ originalSize, estimatedSize, reduction: Math.round(reduction) });
-    }, 200);
-
-    return () => clearTimeout(debounceTimeoutRef.current);
-  }, [settings, file]);
+        const reduction = originalSize > 0 ? 100 - (estimatedTotalSize / originalSize) * 100 : 0;
+        
+        setStats({ 
+            originalSize, 
+            estimatedSize: estimatedTotalSize, 
+            reduction: Math.max(0, Math.round(reduction))
+        });
+    }
+  }, [settings, file, previewStatus]);
   
   const handleCompress = async () => {
     if (!file) return;
@@ -156,7 +178,7 @@ export default function CompressTool() {
         setProcessingMessage('');
     }
   };
-
+  
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: useCallback(acceptedFiles => {
         const uploadedFile = acceptedFiles[0];
@@ -178,16 +200,20 @@ export default function CompressTool() {
   
   const handleStartOver = () => {
     setFile(null);
-    setDisplayPreviewUrl(null);
+    setPreviewStatus('idle');
     originalPreviewDataUrl.current = null;
   };
 
   const PreviewArea = () => (
-    displayPreviewUrl ? (
-        <img src={displayPreviewUrl} alt="PDF Preview" className="max-w-full max-h-full object-contain" />
-    ) : (
-        <p className="text-accent">{processingMessage || "Preview will appear here."}</p>
-    )
+    <>
+        <canvas 
+            id="live-preview-canvas" // Give the canvas an ID to be found easily
+            className="max-w-full max-h-full object-contain"
+            style={{ display: previewStatus === 'success' ? 'block' : 'none' }}
+        ></canvas>
+        {previewStatus === 'generating' && <p className="text-accent">Analyzing PDF...</p>}
+        {previewStatus === 'failed' && <p className="text-yellow-400">Preview not available for this document.</p>}
+    </>
   );
 
   return (
@@ -204,7 +230,7 @@ export default function CompressTool() {
             <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{isDragActive ? 'Drop it here!' : 'Click to upload or drag & drop'}</span></p>
           </div>
         ) : (
-          isProcessing && !displayPreviewUrl ? (
+          isProcessing ? (
             <div className="text-center py-20 text-accent">{processingMessage}</div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -247,7 +273,6 @@ export default function CompressTool() {
           )
         )}
       </div>
-      {/* SEO Content Block can be added back here */}
     </div>
   );
 }
