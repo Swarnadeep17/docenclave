@@ -76,8 +76,16 @@ export default function CompressTool() {
         });
       }
 
+      // Fixed metadata removal - separate calls instead of chaining
       if (settings.removeMetadata) {
-        newPdfDoc.setTitle('').setAuthor('');
+        newPdfDoc.setTitle('');
+        newPdfDoc.setAuthor('');
+        newPdfDoc.setSubject('');
+        newPdfDoc.setKeywords([]);
+        newPdfDoc.setProducer('');
+        newPdfDoc.setCreator('');
+        newPdfDoc.setCreationDate(new Date(0));
+        newPdfDoc.setModificationDate(new Date(0));
       }
 
       const pdfBytes = await newPdfDoc.save();
@@ -110,8 +118,8 @@ export default function CompressTool() {
         name: `compressed-${file.name}` 
       });
     } catch (err) {
-      console.error(err);
-      alert('An error occurred during compression.');
+      console.error('Compression error:', err);
+      alert(`An error occurred: ${err.message || 'Please try a different file'}`);
     } finally {
       setIsProcessing(false);
       setProcessingMessage('');
