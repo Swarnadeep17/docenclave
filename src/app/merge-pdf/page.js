@@ -7,19 +7,18 @@ import { PDFDocument } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
-// Required configuration for pdf.js worker to work in production
+// Required configuration for pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 export default function MergePdfPage() {
   const [pages, setPages] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [originalFiles, setOriginalFiles] = useState(new Map()); // This will now be correctly populated
+  // THE BIG CHANGE: We now store the original File objects themselves.
+  const [originalFiles, setOriginalFiles] = useState(new Map());
   const [mergedFile, setMergedFile] = useState(null);
 
   const handleFileChange = async (event) => {
-    if (mergedFile) {
-      URL.revokeObjectURL(mergedFile.url);
-    }
+    if (mergedFile) URL.revokeObjectURL(mergedFile.url);
     setMergedFile(null);
     setPages([]);
     setIsProcessing(true);
@@ -34,12 +33,12 @@ export default function MergePdfPage() {
       if (file.type !== "application/pdf") continue;
 
       const fileId = `${uploadId}-${file.name}`;
-      const fileAsArrayBuffer = await file.arrayBuffer();
-      // **THE FIX IS HERE:** We now correctly add the file data to our map
-      newOriginalFiles.set(fileId, fileAsArrayBuffer); 
+      // Store the actual File object. This is the key change.
+      newOriginalFiles.set(fileId, file);
 
       try {
-        const pdf = await pdfjs.getDocument({ data: new Uint8Array(fileAsArrayBuffer) }).promise;
+        const fileBuffer = await file.arrayBuffer(); // Read buffer for rendering
+        const pdf = await pdfjs.getDocument({ data: fileBuffer }).promise;
         for (let j = 1; j <= pdf.numPages; j++) {
           const page = await pdf.getPage(j);
           const viewport = page.getViewport({ scale: 0.5 });
@@ -63,22 +62,9 @@ export default function MergePdfPage() {
       }
     }
 
-    // And we correctly set the state here
     setOriginalFiles(newOriginalFiles);
     setPages(newPages);
     setIsProcessing(false);
-  };
-
-  const onDragEnd = (result) => {
-    if (!result.destination) return;
-    const items = Array.from(pages);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    setPages(items);
-  };
-
-  const handleDeletePage = (pageIdToDelete) => {
-    setPages(currentPages => currentPages.filter(page => page.id !== pageIdToDelete));
   };
   
   const handleMerge = async () => {
@@ -93,10 +79,14 @@ export default function MergePdfPage() {
       const mergedPdf = await PDFDocument.create();
 
       for (const page of pages) {
-        // Now this lookup will succeed because originalFiles is populated
-        const sourcePdfBytes = originalFiles.get(page.fileId); 
-        if (sourcePdfBytes) {
+        // Get the original File object from our map.
+        const sourceFile = originalFiles.get(page.fileId); 
+        if (sourceFile) {
+          // Re-read a fresh ArrayBuffer from the file right when we need it.
+          // This prevents any potential data corruption issues.
+          const sourcePdfBytes = await sourceFile.arrayBuffer();
           const sourcePdf = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
+          
           const [copiedPage] = await mergedPdf.copyPages(sourcePdf, [page.originalPageNumber - 1]);
           mergedPdf.addPage(copiedPage);
         }
@@ -109,27 +99,35 @@ export default function MergePdfPage() {
 
     } catch (error) {
       console.error("Error merging pages:", error);
-      alert("An error occurred while merging the pages. Please check the developer console for details.");
+      alert("A critical error occurred while merging. This can happen with very complex or non-standard PDF files.");
     } finally {
       setIsProcessing(false);
     }
   };
+
+  // The rest of the file (onDragEnd, handleDeletePage, handleStartOver, SuccessView, and the main return)
+  // remains exactly the same as the previous version. I am including it all for a safe copy-paste.
+  
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const items = Array.from(pages);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setPages(items);
+  };
+
+  const handleDeletePage = (pageIdToDelete) => {
+    setPages(currentPages => currentPages.filter(page => page.id !== pageIdToDelete));
+  };
   
   const handleStartOver = () => {
-    if (mergedFile) {
-      URL.revokeObjectURL(mergedFile.url);
-    }
+    if (mergedFile) URL.revokeObjectURL(mergedFile.url);
     setPages([]);
     setMergedFile(null);
     setOriginalFiles(new Map());
     const fileInput = document.getElementById('file-upload');
-    if (fileInput) {
-      fileInput.value = '';
-    }
+    if (fileInput) fileInput.value = '';
   };
-
-  // The SuccessView and the main return (...) section remain the same as the last version.
-  // I am including it all here for a complete, safe copy-paste.
 
   const SuccessView = () => (
     <div className="text-center py-8">
