@@ -34,6 +34,7 @@ export default function CompressTool() {
     }
   };
 
+
   const handleProcess = async () => {
     if (!file) return;
     setIsProcessing(true);
