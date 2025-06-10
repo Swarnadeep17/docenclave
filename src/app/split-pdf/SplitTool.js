@@ -7,7 +7,6 @@ import ToolPageHeader from '@/components/ToolPageHeader';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 
-// Required configuration for pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 export default function SplitTool() {
@@ -16,10 +15,8 @@ export default function SplitTool() {
   const [originalFile, setOriginalFile] = useState(null);
   const [selectedPages, setSelectedPages] = useState(new Set());
   const [outputType, setOutputType] = useState(null);
-
-  // State for advanced options
-  const [splitMode, setSplitMode] = useState('visual'); // 'visual' or 'automated'
-  const [fixedRange, setFixedRange] = useState(2); // Default for fixed range split
+  const [splitMode, setSplitMode] = useState('visual');
+  const [fixedRange, setFixedRange] = useState(2);
 
   const handleFileChange = async (event) => {
     setPages([]);
@@ -28,17 +25,14 @@ export default function SplitTool() {
     setOutputType(null);
     setIsProcessing(true);
     setSplitMode('visual');
-
     const file = event.target.files[0];
     event.target.value = null;
-
     if (file && file.type === "application/pdf") {
       setOriginalFile(file);
       try {
         const fileBuffer = await file.arrayBuffer();
         const pdf = await pdfjs.getDocument({ data: fileBuffer.slice(0) }).promise;
         const tempPages = [];
-
         for (let j = 1; j <= pdf.numPages; j++) {
           const page = await pdf.getPage(j);
           const viewport = page.getViewport({ scale: 0.25 });
@@ -47,12 +41,7 @@ export default function SplitTool() {
           canvas.height = viewport.height;
           canvas.width = viewport.width;
           await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-          tempPages.push({
-            id: `page-${j}`,
-            originalPageNumber: j,
-            imgSrc: canvas.toDataURL(),
-          });
+          tempPages.push({ id: `page-${j}`, originalPageNumber: j, imgSrc: canvas.toDataURL() });
         }
         setPages(tempPages);
       } catch (error) {
@@ -64,42 +53,21 @@ export default function SplitTool() {
   };
 
   const togglePageSelection = (pageId) => {
-    setSelectedPages(prevSelected => {
-      const newSelected = new Set(prevSelected);
-      if (newSelected.has(pageId)) {
-        newSelected.delete(pageId);
-      } else {
-        newSelected.add(pageId);
-      }
-      return newSelected;
-    });
+    setSelectedPages(prev => { const newSelected = new Set(prev); if (newSelected.has(pageId)) { newSelected.delete(pageId); } else { newSelected.add(pageId); } return newSelected; });
   };
   
   const handleSelectAll = () => {
-    if (selectedPages.size === pages.length) {
-      setSelectedPages(new Set());
-    } else {
-      const allPageIds = new Set(pages.map(p => p.id));
-      setSelectedPages(allPageIds);
-    }
+    if (selectedPages.size === pages.length) { setSelectedPages(new Set()); } else { const allPageIds = new Set(pages.map(p => p.id)); setSelectedPages(allPageIds); }
   };
 
   const handleProcess = async (type) => {
-    if (selectedPages.size === 0) {
-      alert("Please select at least one page to proceed.");
-      return;
-    }
+    if (selectedPages.size === 0) { alert("Please select at least one page."); return; }
     setIsProcessing(true);
     setOutputType(type);
-
     try {
         const sourcePdfBytes = await originalFile.arrayBuffer();
         const sourcePdf = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
-        
-        const selectedPageNumbers = pages
-            .filter(p => selectedPages.has(p.id))
-            .map(p => p.originalPageNumber - 1);
-            
+        const selectedPageNumbers = pages.filter(p => selectedPages.has(p.id)).map(p => p.originalPageNumber - 1);
         if (type === 'extract') {
             const newPdf = await PDFDocument.create();
             const copiedPages = await newPdf.copyPages(sourcePdf, selectedPageNumbers);
@@ -109,8 +77,7 @@ export default function SplitTool() {
             saveAs(blob, 'docenclave-extracted-pages.pdf');
         } else if (type === 'split') {
             const zip = new JSZip();
-            for (let i = 0; i < selectedPageNumbers.length; i++) {
-                const pageNumber = selectedPageNumbers[i];
+            for (const pageNumber of selectedPageNumbers) {
                 const newPdf = await PDFDocument.create();
                 const [copiedPage] = await newPdf.copyPages(sourcePdf, [pageNumber]);
                 newPdf.addPage(copiedPage);
@@ -120,11 +87,10 @@ export default function SplitTool() {
             const zipBlob = await zip.generateAsync({ type: "blob" });
             saveAs(zipBlob, "docenclave-split-pages.zip");
         }
-        
         fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
     } catch (error) {
       console.error(`Error during ${type} process:`, error);
-      alert(`A critical error occurred during the ${type} process.`);
+      alert(`A critical error occurred.`);
     } finally {
       setIsProcessing(false);
     }
@@ -132,26 +98,19 @@ export default function SplitTool() {
 
   const handleAutomatedProcess = async (type) => {
     setIsProcessing(true);
-    
     try {
         const sourcePdfBytes = await originalFile.arrayBuffer();
         let pageIndicesToExtract = [];
-
         if (type === 'odd') {
             pageIndicesToExtract = pages.map(p => p.originalPageNumber - 1).filter(n => (n + 1) % 2 !== 0);
         } else if (type === 'even') {
             pageIndicesToExtract = pages.map(p => p.originalPageNumber - 1).filter(n => (n + 1) % 2 === 0);
         }
-
         if (type === 'fixedRange') {
             const zip = new JSZip();
             const totalPages = pages.length;
             const range = parseInt(fixedRange, 10);
-            if (!range || range <= 0) {
-                alert("Page range must be a number greater than 0.");
-                setIsProcessing(false);
-                return;
-            }
+            if (!range || range <= 0) { alert("Page range must be > 0."); setIsProcessing(false); return; }
             for (let i = 0; i < totalPages; i += range) {
                 const sourcePdf = await PDFDocument.load(sourcePdfBytes.slice(0), { ignoreEncryption: true });
                 const newPdf = await PDFDocument.create();
@@ -172,11 +131,10 @@ export default function SplitTool() {
             const blob = new Blob([newPdfBytes], { type: 'application/pdf' });
             saveAs(blob, `docenclave-extracted-${type}-pages.pdf`);
         }
-        
         fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
     } catch (error) {
         console.error(`Error during automated split (${type}):`, error);
-        alert(`A critical error occurred during the automated split process.`);
+        alert(`A critical error occurred.`);
     } finally {
         setIsProcessing(false);
     }
@@ -194,18 +152,18 @@ export default function SplitTool() {
 
   return (
     <div className="w-full max-w-6xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
-      <ToolPageHeader 
+      <ToolPageHeader
         title="Advanced PDF Splitter"
         description="Visually select pages or use automated rules to split by fixed ranges, odd/even pages, and more."
       />
       {originalFile && (
         <div className="flex justify-center mb-8 border-b-2 border-gray-700">
-            <button onClick={() => setSplitMode('visual')} className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'visual' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}>
-                Visual Selection
-            </button>
-            <button onClick={() => setSplitMode('automated')} className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'automated' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}>
-                Automated Splitting
-            </button>
+          <button onClick={() => setSplitMode('visual')} className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'visual' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}>
+            Visual Selection
+          </button>
+          <button onClick={() => setSplitMode('automated')} className={`px-6 py-3 font-semibold transition-colors ${splitMode === 'automated' ? 'text-accent border-b-2 border-accent' : 'text-gray-400 hover:text-white'}`}>
+            Automated Splitting
+          </button>
         </div>
       )}
 
@@ -323,4 +281,10 @@ export default function SplitTool() {
           </div>
           <div>
             <h4 className="text-xl font-semibold">How does this tool guarantee my privacy?</h4>
-            <p>Your privacy is guaranteed because your files never leave your computer. All the processing—whether it's visual selection or automated splitting—happens directly inside your web browser. Nothing is ever uploaded to
+            <p>Your privacy is guaranteed because your files never leave your computer. All the processing—whether it's visual selection or automated splitting—happens directly inside your web browser. Nothing is ever uploaded to a server, making it the most secure solution possible.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
