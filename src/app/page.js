@@ -1,12 +1,31 @@
 // src/app/page.js
 import ImpactCounter from '@/components/ImpactCounter';
 
+// --- UPDATED SECTION ---
+// We've made the tool links more specific to showcase our features.
 const toolCategories = [
-  { name: 'PDF Tools', description: 'Merge, split, compress, and edit PDFs securely on your own device.', href: '/merge-pdf' },
-  { name: 'Image Tools', description: 'Quickly compress, convert, and resize images without uploading them.', href: '#' },
-  { name: 'Word Tools', description: 'View Word documents or convert them to PDF in complete privacy.', href: '#' },
-  { name: 'Excel Tools', description: 'View spreadsheets and export data to CSV, all from your browser.', href: '#' },
+  { 
+    name: 'Merge PDF', 
+    description: 'Combine multiple PDFs and orchestrate every single page with our advanced visual tool.', 
+    href: '/merge-pdf' 
+  },
+  { 
+    name: 'Split PDF', 
+    description: 'Visually select and extract pages from any PDF, or split it into multiple files.', 
+    href: '/split-pdf' 
+  },
+  { 
+    name: 'Image Tools (Coming Soon)', 
+    description: 'Quickly compress, convert, and resize images without uploading them.', 
+    href: '#' 
+  },
+  { 
+    name: 'More Tools (Coming Soon)', 
+    description: 'More advanced PDF, Office, and AI-powered tools are on the way.', 
+    href: '#' 
+  },
 ];
+// --- END OF UPDATED SECTION ---
 
 const uspItems = [
     {
@@ -26,7 +45,6 @@ const uspItems = [
     }
 ];
 
-// *** THIS IS THE CORRECTED FUNCTION ***
 // This async function fetches the stats on the server before rendering
 // It uses a revalidation period to cache the results and keep it fast.
 async function getStats() {
@@ -81,7 +99,7 @@ export default async function HomePage() {
               <a 
                 key={tool.name}
                 href={tool.href}
-                className="bg-card-bg p-6 rounded-lg border border-gray-700 hover:border-accent transition-all duration-200 group"
+                className={`bg-card-bg p-6 rounded-lg border border-gray-700 transition-all duration-200 group ${tool.href === '#' ? 'opacity-50 cursor-not-allowed' : 'hover:border-accent'}`}
               >
                 <h3 className="text-xl font-bold mb-2 group-hover:text-accent">{tool.name}</h3>
                 <p className="text-gray-400">{tool.description}</p>
