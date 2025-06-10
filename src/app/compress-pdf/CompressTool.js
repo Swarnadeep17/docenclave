@@ -22,7 +22,7 @@ export default function CompressTool() {
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  const [previewStatus, setPreviewStatus] = useState('idle'); // 'idle', 'generating', 'success', 'failed'
+  const [previewStatus, setPreviewStatus] = useState('idle');
 
   const previewCanvasRef = useRef(null);
   const analysisData = useRef({ nonImageSize: 0, totalImageSize: 0 });
@@ -48,7 +48,7 @@ export default function CompressTool() {
     });
   }, [file]);
 
-  // *** NEW ROBUST onDrop WITH GRACEFUL DEGRADATION ***
+  // *** THE MOST ROBUST onDrop FUNCTION (v4) ***
   const onDrop = useCallback(async (acceptedFiles) => {
     const uploadedFile = acceptedFiles[0];
     if (!uploadedFile || uploadedFile.type !== 'application/pdf') {
@@ -63,11 +63,14 @@ export default function CompressTool() {
     setSettings(initialSettings);
 
     try {
-        const fileBuffer = await uploadedFile.arrayBuffer();
-        
-        // Attempt to generate preview, but don't fail the whole process if it errors
+        // Use a Blob to create isolated ArrayBuffers for each library
+        const fileBlob = new Blob([uploadedFile]);
+
+        // Attempt to generate preview
         try {
-            const pdfjsDoc = await pdfjs.getDocument({ data: fileBuffer.slice(0) }).promise;
+            // Give pdf.js its own clean ArrayBuffer from the Blob
+            const pdfjsBuffer = await fileBlob.arrayBuffer();
+            const pdfjsDoc = await pdfjs.getDocument({ data: pdfjsBuffer }).promise;
             const page = await pdfjsDoc.getPage(1);
             const viewport = page.getViewport({ scale: 1.0 });
             const canvas = previewCanvasRef.current;
@@ -78,9 +81,10 @@ export default function CompressTool() {
             setPreviewStatus('success');
         } catch (previewError) {
             console.warn("Could not generate PDF preview. Proceeding without it.", previewError);
-            setPreviewStatus('failed'); // Set status to failed
+            setPreviewStatus('failed');
         }
 
+        // Always proceed with analysis and controls
         analysisData.current = {
             totalImageSize: uploadedFile.size, 
             nonImageSize: 0 
@@ -88,7 +92,6 @@ export default function CompressTool() {
         updateEstimates(initialSettings);
 
     } catch (error) {
-        // This outer catch is for catastrophic errors like file reading
         console.error("Fatal error processing file:", error);
         alert("Could not read the uploaded file.");
         setFile(null);
@@ -98,13 +101,29 @@ export default function CompressTool() {
     }
   }, [updateEstimates]);
 
+  useEffect(() => {
+    // This effect is to redraw the canvas for grayscale, it doesn't need to re-read the file
+    if (previewStatus !== 'success' || !previewCanvasRef.current) return;
+    const canvas = previewCanvasRef.current;
+    const context = canvas.getContext('2d');
+    if (settings.isGrayscale) {
+        context.filter = 'grayscale(100%)';
+    } else {
+        context.filter = 'none';
+    }
+    // We need to redraw the image data, not just change the filter
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height); // Clear before redrawing
+    context.putImageData(imageData, 0, 0);
+  }, [settings.isGrayscale, previewStatus]);
+
+
   const handleSettingChange = (setting, value) => {
     const newSettings = { ...settings, [setting]: value };
     setSettings(newSettings);
     updateEstimates(newSettings);
   };
   
-  // *** ROBUST handleCompress function ***
   const handleCompress = async () => {
     if (!file) return;
 
@@ -311,7 +330,7 @@ export default function CompressTool() {
         <h3 className="text-2xl font-bold mt-12 mb-4">Smarter Compression, Total Privacy</h3>
         <p>DocEnclave's compressor is designed to be intelligent. It primarily targets the large images within your PDF for compression, while striving to maintain the crispness of your text. For even greater size savings, you can convert images to grayscale or strip out unnecessary metadata with the flip of a switch. And because this all happens directly in your browser, your sensitive documents are never uploaded to a server. This guarantees 100% privacy and security for your files.</p>
 
-        <h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2>
+        <h2 className="text-3d font-bold mt-16 mb-8">Frequently Asked Questions</h2>
         <div className="space-y-8">
           <div>
             <h4 className="text-xl font-semibold">How do I reduce the size of my PDF?</h4>
