@@ -2,11 +2,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import ToolPageHeader from '@/components/ToolPageHeader'; // <-- IMPORT THE NEW COMPONENT
+import ToolPageHeader from '@/components/ToolPageHeader';
+import SparkMD5 from 'spark-md5';
 
 // Required configuration for pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -16,12 +17,48 @@ export default function MergeTool() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [originalFiles, setOriginalFiles] = useState(new Map());
   const [mergedFile, setMergedFile] = useState(null);
+  const [duplicateCount, setDuplicateCount] = useState(0);
+
+  // This function will now be wrapped in useCallback for performance
+  const detectDuplicates = useCallback(() => {
+    if (pages.length < 2) {
+      setDuplicateCount(0);
+      return;
+    }
+
+    const hashes = new Map();
+    pages.forEach(page => {
+      if (page.hash) {
+        hashes.set(page.hash, (hashes.get(page.hash) || 0) + 1);
+      }
+    });
+
+    const updatedPages = pages.map(page => ({
+      ...page,
+      isDuplicate: page.hash ? hashes.get(page.hash) > 1 : false,
+    }));
+
+    const dupCount = updatedPages.filter(p => p.isDuplicate).length;
+    
+    // Check if an update is actually needed to prevent infinite re-renders
+    if (JSON.stringify(pages) !== JSON.stringify(updatedPages)) {
+        setPages(updatedPages);
+    }
+    setDuplicateCount(dupCount);
+  }, [pages]); // Dependency array
+
+  // useEffect now calls the memoized function
+  useEffect(() => {
+    detectDuplicates();
+  }, [detectDuplicates]);
+
 
   const handleFileChange = async (event) => {
     if (mergedFile) URL.revokeObjectURL(mergedFile.url);
     setMergedFile(null);
     setPages([]);
     setIsProcessing(true);
+    setDuplicateCount(0);
     
     const selectedFiles = Array.from(event.target.files);
     const newOriginalFiles = new Map();
@@ -40,7 +77,7 @@ export default function MergeTool() {
         const pdf = await pdfjs.getDocument({ data: fileBuffer }).promise;
         for (let j = 1; j <= pdf.numPages; j++) {
           const page = await pdf.getPage(j);
-          const viewport = page.getViewport({ scale: 0.5 });
+          const viewport = page.getViewport({ scale: 0.25 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -48,11 +85,16 @@ export default function MergeTool() {
 
           await page.render({ canvasContext: context, viewport: viewport }).promise;
           
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data.toString();
+          const hash = SparkMD5.hash(imageData);
+          
           newPages.push({
             id: `${fileId}-page-${j}`,
             fileId: fileId,
             originalPageNumber: j,
             imgSrc: canvas.toDataURL(),
+            hash: hash,
+            isDuplicate: false,
           });
         }
       } catch (error) {
@@ -60,9 +102,8 @@ export default function MergeTool() {
         alert(`Could not process ${file.name}. It might be corrupted or password-protected.`);
       }
     }
-
     setOriginalFiles(newOriginalFiles);
-    setPages(newPages);
+    setPages(newPages); // This state update will trigger the useEffect
     setIsProcessing(false);
   };
   
@@ -89,7 +130,7 @@ export default function MergeTool() {
       const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       setMergedFile({ url: url, name: 'docenclave-merged-pages.pdf' });
-    } catch (error)      {
+    } catch (error) {
       console.error("Error merging pages:", error);
       alert("A critical error occurred while merging. This can happen with very complex or non-standard PDF files.");
     } finally {
@@ -131,15 +172,11 @@ export default function MergeTool() {
 
   return (
     <div className="w-full max-w-6xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
-      {/* USE THE NEW COMPONENT HERE */}
       <ToolPageHeader 
         title="Advanced PDF Merger"
-        description="Drag & drop pages to reorder, delete unwanted pages, then merge."
+        description="Drag & drop to reorder, delete, and even detect duplicate pages before you merge."
       />
-      
-      {/* Interactive Tool UI */}
       <div className="bg-card-bg border border-gray-700 rounded-lg p-4 sm:p-8">
-        {/* ... The rest of the tool UI is exactly the same ... */}
         {!mergedFile && (
           <label htmlFor="file-upload" className="mb-8 flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:bg-gray-800 hover:border-accent transition-colors">
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -150,11 +187,16 @@ export default function MergeTool() {
             <input id="file-upload" type="file" className="hidden" accept=".pdf" multiple onChange={handleFileChange} />
           </label>
         )}
-        {isProcessing && <p className="text-center text-accent my-8">Processing files, please wait...</p>}
+        {isProcessing && <p className="text-center text-accent my-8">Analyzing pages, please wait...</p>}
         {mergedFile ? (
           <SuccessView />
         ) : !isProcessing && pages.length > 0 && (
           <>
+            {duplicateCount > 0 && (
+              <div className="bg-yellow-900/50 border border-yellow-700 text-yellow-300 px-4 py-3 rounded-lg relative mb-4 text-center" role="alert">
+                <span className="block sm:inline">💡 We found {duplicateCount} duplicate pages. They've been highlighted for your review.</span>
+              </div>
+            )}
             <p className="text-sm text-center mb-4 text-gray-400">Tip: Drag pages to reorder them.</p>
             <DragDropContext onDragEnd={onDragEnd}>
               <Droppable droppableId="pages" direction="horizontal">
@@ -164,7 +206,10 @@ export default function MergeTool() {
                       <Draggable key={page.id} draggableId={page.id} index={index}>
                         {(provided) => (
                           <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="relative group aspect-[7/10]">
-                            <img src={page.imgSrc} alt={`Page ${index + 1}`} className="w-full h-full object-contain border-2 border-gray-600 rounded-md" />
+                            <img src={page.imgSrc} alt={`Page ${index + 1}`} className={`w-full h-full object-contain border-2 rounded-md transition-colors ${page.isDuplicate ? 'border-yellow-500' : 'border-gray-600'}`} />
+                            {page.isDuplicate && (
+                                <div className="absolute top-0 left-0 bg-yellow-500 text-black text-xs font-bold px-1 rounded-br-md" title="This is a potential duplicate page">D</div>
+                            )}
                             <button onClick={() => handleDeletePage(page.id)} className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity z-10" aria-label="Delete page">X</button>
                             <div className="absolute bottom-0 left-0 bg-black/50 text-white text-xs px-1 rounded-tr-md rounded-bl-md">{index + 1}</div>
                           </div>
@@ -182,11 +227,8 @@ export default function MergeTool() {
           </>
         )}
       </div>
-
-      {/* SEO Content Section is exactly the same */}
       <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
         <h2 className="text-3xl font-bold mb-6">A Smarter Way to Combine PDF Documents</h2>
-        {/* ... all the p and h tags ... */}
         <p>Tired of basic PDF mergers that just stitch files together? The DocEnclave PDF Merger is designed for precision and privacy. Unlike other online tools that force you to upload sensitive documents, our tool works entirely within your browser. This means your files stay on your device, secure and confidential.</p><p>But true innovation lies in control. We don't just let you combine files; we give you a complete visual workspace. See every single page, drag them into the perfect order, and delete unwanted pages with a single click before you merge. It's the power of a desktop application, with the convenience of a web tool, and the security of working offline.</p><h3 className="text-2xl font-bold mt-12 mb-4">Total Control Over Your Pages</h3><p>Don't just merge files—orchestrate your document. Our interactive preview lets you see every page from all your uploaded PDFs in one place. Drag a cover page from one file to the front, move an appendix from another to the back, and delete blank or incorrect pages on the fly. This is the level of detail that ensures your final document is perfect.</p><h3 className="text-2xl font-bold mt-12 mb-4">Unyielding Privacy and Security</h3><p>Security isn't a feature; it's our foundation. When you use DocEnclave, there are zero file uploads. The entire merging process, from file selection to the final creation of your new PDF, happens locally on your computer. Your contracts, reports, and personal documents never touch our servers, or anyone else's.</p><h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2><div className="space-y-8"><div><h4 className="text-xl font-semibold">How do I merge PDF files with this tool?</h4><p>It's simple. 1) Click the upload box and select all the PDF files you want to combine. 2) In the preview area, drag and drop individual pages to get the exact order you need. 3) Delete any pages you don't want. 4) Click the "Merge Pages" button to create and download your new, perfectly organized PDF.</p></div><div><h4 className="text-xl font-semibold">Is it truly free to combine PDFs here?</h4><p>Yes, completely. Our client-side tools, including the advanced PDF merger, are 100% free to use with no limits, watermarks, or registration required.</p></div><div><h4 className="text-xl font-semibold">Can I reorder pages from different PDF files?</h4><p>Absolutely! This is what makes our tool unique. You can take page 5 from your first PDF and place it after page 2 of your second PDF. The preview area shows all pages from all files as one single collection for you to arrange.</p></div><div><h4 className="text-xl font-semibold">Are my files safe when I merge them?</h4><p>Your files are as safe as they are on your own computer, because they never leave it. By processing everything in your browser, DocEnclave eliminates the risk associated with uploading documents to third-party servers, offering the highest level of privacy.</p></div></div>
       </div>
     </div>
