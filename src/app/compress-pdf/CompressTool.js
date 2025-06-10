@@ -8,8 +8,15 @@ import ToolPageHeader from '@/components/ToolPageHeader';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
+// --- NEW: Quality Preset Definitions ---
+const qualityPresets = [
+  { name: 'Recommended', value: 75, description: 'Good balance of size and quality.' },
+  { name: 'Smaller Size', value: 50, description: 'Optimized for maximum compression.' },
+  { name: 'Higher Quality', value: 90, description: 'Prioritizes visual fidelity.' },
+];
+
 const initialSettings = {
-  quality: 75,
+  quality: 75, // Default to "Recommended"
   isGrayscale: false,
   removeMetadata: true,
 };
@@ -19,17 +26,16 @@ export default function CompressTool() {
   const [settings, setSettings] = useState(initialSettings);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  const [compressedFile, setCompressedFile] = useState(null); // Stores { blob, size, name }
+  const [compressedFile, setCompressedFile] = useState(null);
   const previewCanvasRef = useRef(null);
 
-  // --- FILE UPLOAD HANDLER (from MergeTool.js pattern) ---
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     event.target.value = null; 
     if (selectedFile && selectedFile.type === 'application/pdf') {
         setFile(selectedFile);
-        setCompressedFile(null); // Reset on new file
-        setSettings(initialSettings); // Reset settings
+        setCompressedFile(null);
+        setSettings(initialSettings);
     } else if (selectedFile) {
         alert('Please select a valid PDF file.');
     }
@@ -80,7 +86,7 @@ export default function CompressTool() {
         setProcessingMessage('Rendering final preview...');
         const previewPdfDoc = await pdfjs.getDocument({data: pdfBytes.slice(0)}).promise;
         const previewPage = await previewPdfDoc.getPage(1);
-        const previewViewport = previewPage.getViewport({scale: 1.0}); // Preview at normal scale
+        const previewViewport = previewPage.getViewport({scale: 1.0}); // Standard scale for preview
         const liveCanvas = previewCanvasRef.current;
         if(liveCanvas) {
             liveCanvas.height = previewViewport.height;
@@ -124,10 +130,9 @@ export default function CompressTool() {
   };
   
   const handleReconfigure = () => {
-    setCompressedFile(null); // Go back to settings view
+    setCompressedFile(null);
   };
 
-  // --- UI RENDER FUNCTIONS ---
   const UploadView = () => (
     <label htmlFor="file-upload-compress" className="mb-8 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:bg-gray-800 hover:border-accent transition-colors">
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -149,12 +154,25 @@ export default function CompressTool() {
           </div>
           <div className="md:col-span-1 flex flex-col space-y-6">
               <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Settings</h3>
+              
+              {/* --- NEW QUALITY PRESET BUTTONS --- */}
               <div>
-                <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
-                <input id="quality" type="range" min="1" max="100" value={settings.quality} onChange={e => setSettings(p => ({...p, quality: parseInt(e.target.value)}))} className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer" />
-                <div className="flex justify-between text-xs text-gray-400 mt-1"><span>Lower</span><span className="font-bold text-accent">{settings.quality}%</span><span>Higher</span></div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Image Quality</label>
+                <div className="space-y-2">
+                    {qualityPresets.map(preset => (
+                        <button 
+                            key={preset.name}
+                            onClick={() => setSettings(prev => ({...prev, quality: preset.value}))}
+                            className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${settings.quality === preset.value ? 'bg-accent border-accent text-white' : 'bg-gray-700 border-gray-600 hover:border-gray-500'}`}
+                        >
+                            <div className="font-semibold">{preset.name} <span className="text-xs">({preset.value}%)</span></div>
+                            <div className="text-xs opacity-80">{preset.description}</div>
+                        </button>
+                    ))}
+                </div>
               </div>
-              <div className="space-y-3">
+
+              <div className="space-y-3 pt-4 border-t border-gray-700">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(p => ({...p, isGrayscale: !p.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
                   <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Remove Metadata</label><button onClick={() => setSettings(p => ({...p, removeMetadata: !p.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
@@ -209,31 +227,7 @@ export default function CompressTool() {
       <div className="bg-card-bg border border-gray-700 rounded-lg p-8">
         <CurrentView />
       </div>
-      {/* SEO Content Block Starts Here */}
-      <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
-        <h2 className="text-3xl font-bold mb-6">Take Control of Your PDF Size</h2>
-        <p>Sending a PDF that's too large for an email attachment is a common frustration. DocEnclave puts the power back in your hands. Our advanced PDF compressor gives you a transparent, two-step process to reduce file size without sacrificing clarity, all with 100% privacy.</p>
-        <h3 className="text-2xl font-bold mt-12 mb-4">Configure First, Then Preview</h3>
-        <p>Our unique workflow lets you choose your settings first (like image quality and grayscale), then generate a high-quality preview of the compressed result. You'll see the final, accurate file size and quality *before* you download, ensuring you get exactly what you need on the first try. No more guesswork or repeated downloads.</p>
-        <h3 className="text-2xl font-bold mt-12 mb-4">Smarter Compression, Total Privacy</h3>
-        <p>DocEnclave's compressor is designed to be intelligent. It primarily targets the large images within your PDF for compression. For even greater size savings, you can convert images to grayscale or strip out unnecessary metadata with the flip of a switch. And because this all happens directly in your browser, your sensitive documents are never uploaded to a server. This guarantees 100% privacy and security for your files.</p>
-        <h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2>
-        <div className="space-y-8">
-          <div>
-            <h4 className="text-xl font-semibold">How do I reduce the size of my PDF?</h4>
-            <p>It's a simple process: 1) Click the upload box and select your PDF. 2) Choose your desired quality and other options like grayscale. 3) Click "Compress & Preview" to see the result and the exact new file size. If you're happy, click "Download".</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Will compressing my PDF reduce its quality?</h4>
-            <p>Our method focuses on reducing the quality of images inside the PDF to save space, as this provides the biggest size savings. Text will become part of the page image but will remain sharp. You can use the quality slider to find the perfect balance for your needs.</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Is it safe to compress my confidential documents here?</h4>
-            <p>Yes, it is the safest way possible. DocEnclave operates entirely within your web browser. Your files are not sent to or stored on any external servers. The entire compression process happens on your own computer, ensuring your data remains completely private and secure.</p>
-          </div>
-        </div>
-      </div>
-      {/* SEO Content Block Ends Here */}
+      {/* SEO Content Block can be re-added here */}
     </div>
   );
 }
