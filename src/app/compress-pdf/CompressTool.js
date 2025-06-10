@@ -12,21 +12,29 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 const initialSettings = {
   quality: 75,
   isGrayscale: false,
-  removeMetadata: true, // Re-added this setting
+};
+
+// --- NEW Non-Linear Quality Modifier Function ---
+// This curve more accurately reflects JPEG compression behavior.
+const getQualityModifier = (quality) => {
+  // A non-linear curve: small changes at high quality, big changes at low quality
+  return Math.pow(quality / 100, 2.5); 
 };
 
 export default function CompressTool() {
   const [file, setFile] = useState(null);
   const [settings, setSettings] = useState(initialSettings);
-  const [displayQuality, setDisplayQuality] = useState(initialSettings.quality);
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [previewImageSrc, setPreviewImageSrc] = useState(null);
-  const analysisData = useRef({ pageCount: 0, samplePageSizeAt100: 0 });
-  const debounceTimeoutRef = useRef(null);
+  
+  const analysisData = useRef({
+    pageCount: 0,
+    samplePageSizeAt100: 0, // The size of page 1 as a 100% quality JPG
+  });
 
-  // --- Effect for Initial File Analysis & First Calculation ---
+  // --- Effect for Initial File Analysis (Runs ONCE per file) ---
   useEffect(() => {
     if (!file) return;
 
@@ -34,7 +42,6 @@ export default function CompressTool() {
       setIsProcessing(true);
       setProcessingMessage('Analyzing PDF...');
       setSettings(initialSettings);
-      setDisplayQuality(initialSettings.quality);
 
       try {
         const fileBlob = new Blob([file]);
@@ -56,14 +63,6 @@ export default function CompressTool() {
         const jpgDataUrl100 = canvas.toDataURL('image/jpeg', 1.0);
         analysisData.current.samplePageSizeAt100 = jpgDataUrl100.length;
 
-        // --- UNIFIED INITIAL CALCULATION ---
-        // This runs immediately after analysis, preventing the "0 Bytes" issue.
-        const originalSize = file.size;
-        let estimatedSize = (analysisData.current.samplePageSizeAt100 * (initialSettings.quality / 100)) * analysisData.current.pageCount;
-        if(initialSettings.isGrayscale) estimatedSize *= 0.7;
-        const reduction = originalSize > 0 ? 100 - (estimatedSize / originalSize) * 100 : 0;
-        setStats({ originalSize, estimatedSize, reduction: Math.max(0, Math.round(reduction)) });
-
       } catch (error) {
         console.error("Fatal error during analysis:", error);
         alert("Could not analyze this PDF. It may be corrupt or have an unsupported format.");
@@ -76,35 +75,50 @@ export default function CompressTool() {
 
     analyzeFile();
   }, [file]);
-  
-  // --- Debounced Effect for Updating LOGICAL settings and stats ---
+
+  // --- UNIFIED Effect for INSTANTLY Updating Preview and Stats ---
   useEffect(() => {
-    if (!file) return;
+    if (!file || !previewImageSrc) return;
 
-    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    // --- Part 1: Instantly redraw preview ---
+    const img = new Image();
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.filter = settings.isGrayscale ? 'grayscale(100%)' : 'none';
+        ctx.drawImage(img, 0, 0);
+        
+        const liveCanvas = document.getElementById('live-preview-canvas');
+        if (liveCanvas) {
+            const liveCtx = liveCanvas.getContext('2d');
+            liveCtx.clearRect(0, 0, liveCanvas.width, liveCanvas.height);
+            liveCanvas.width = canvas.width;
+            liveCanvas.height = canvas.height;
+            liveCtx.drawImage(canvas, 0, 0);
+        }
+    };
+    img.src = previewImageSrc;
 
-    debounceTimeoutRef.current = setTimeout(() => {
-      // Update the "real" settings after the user stops moving the slider
-      setSettings(prev => ({...prev, quality: displayQuality}));
-    }, 250);
-
-    return () => clearTimeout(debounceTimeoutRef.current);
-  }, [displayQuality, file]);
-
-  // This effect now ONLY calculates stats when the "real" settings change
-  useEffect(() => {
-    if (!file) return;
+    // --- Part 2: Instantly calculate new stats ---
     const { pageCount, samplePageSizeAt100 } = analysisData.current;
     if (pageCount > 0 && samplePageSizeAt100 > 0) {
-        let estimatedTotalSize = (samplePageSizeAt100 * (settings.quality / 100)) * pageCount;
-        if (settings.isGrayscale) estimatedTotalSize *= 0.7;
+        const qualityModifier = getQualityModifier(settings.quality);
+        let estimatedTotalSize = (samplePageSizeAt100 * qualityModifier) * pageCount;
+        
+        if (settings.isGrayscale) estimatedTotalSize *= 0.7; // Grayscale factor
         
         const originalSize = file.size;
         const reduction = originalSize > 0 ? 100 - (estimatedTotalSize / originalSize) * 100 : 0;
         
-        setStats({ originalSize, estimatedSize: estimatedTotalSize, reduction: Math.max(0, Math.round(reduction)) });
+        setStats({ 
+            originalSize, 
+            estimatedSize: estimatedTotalSize, 
+            reduction: Math.max(0, Math.round(reduction))
+        });
     }
-  }, [settings, file]);
+  }, [settings, file, previewImageSrc]);
   
   const handleCompress = async () => {
     if (!file) return;
@@ -143,10 +157,8 @@ export default function CompressTool() {
         }
         
         setProcessingMessage('Saving file...');
-        if (settings.removeMetadata) {
-            newPdfDoc.setTitle('');
-            newPdfDoc.setAuthor('');
-        }
+        newPdfDoc.setTitle('');
+        newPdfDoc.setAuthor('');
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, `docenclave-compressed-${file.name}`);
@@ -187,11 +199,7 @@ export default function CompressTool() {
 
   const PreviewArea = () => (
     previewImageSrc ? (
-        <img 
-            src={previewImageSrc} 
-            alt="PDF Preview" 
-            className={`max-w-full max-h-full object-contain transition-all duration-300 ${settings.isGrayscale ? 'grayscale' : ''}`}
-        />
+        <canvas id="live-preview-canvas" className="max-w-full max-h-full object-contain" />
     ) : (
         <p className="text-accent">{processingMessage || "Preview will appear here."}</p>
     )
@@ -230,20 +238,19 @@ export default function CompressTool() {
                 <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
                 <input 
                   id="quality" type="range" min="1" max="100"
-                  value={displayQuality}
-                  onChange={(e) => setDisplayQuality(parseInt(e.target.value))}
+                  value={settings.quality}
+                  onChange={(e) => setSettings(prev => ({...prev, quality: parseInt(e.target.value)}))}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
                     <span>Lower</span>
-                    <span className="font-bold text-accent">{displayQuality}%</span>
+                    <span className="font-bold text-accent">{settings.quality}%</span>
                     <span>Higher</span>
                 </div>
               </div>
               
               <div className="space-y-3">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
-                  <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label><button onClick={() => setSettings(prev => ({...prev, removeMetadata: !prev.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
                <div className="text-xs text-yellow-400/80 bg-yellow-900/30 p-2 rounded-md">Note: Compression makes text non-selectable.</div>
               <div className="pt-4 border-t border-gray-600 space-y-3">
