@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import { useDropzone } from 'react-dropzone';
 import { saveAs } from 'file-saver';
@@ -22,11 +22,10 @@ export default function CompressTool() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [previewImageSrc, setPreviewImageSrc] = useState(null);
-  
+
   const analysisData = useRef({
-    pageCount: 0,
-    sizeAtLowQuality: 0,
-    sizeAtHighQuality: 0,
+    totalImageSize: 0,
+    nonImageSize: 0,
   });
 
   // --- Effect for Initial File Analysis (Runs ONCE per file) ---
@@ -35,16 +34,15 @@ export default function CompressTool() {
 
     const analyzeFile = async () => {
       setIsProcessing(true);
-      setProcessingMessage('Analyzing PDF for estimation...');
+      setProcessingMessage('Analyzing PDF...');
       setSettings(initialSettings);
 
       try {
         const fileBlob = new Blob([file]);
         const pdfjsBuffer = await fileBlob.arrayBuffer();
         const pdfjsDoc = await pdfjs.getDocument({ data: pdfjsBuffer }).promise;
-        
-        analysisData.current.pageCount = pdfjsDoc.numPages;
 
+        // Generate Preview
         const page = await pdfjsDoc.getPage(1);
         const viewport = page.getViewport({ scale: 1.5 });
         const canvas = document.createElement('canvas');
@@ -52,13 +50,35 @@ export default function CompressTool() {
         canvas.height = viewport.height;
         canvas.width = viewport.height;
         await page.render({ canvasContext: ctx, viewport }).promise;
-        
         setPreviewImageSrc(canvas.toDataURL('image/png'));
         
-        const jpgDataUrlLow = canvas.toDataURL('image/jpeg', 0.10); // 10% quality
-        const jpgDataUrlHigh = canvas.toDataURL('image/jpeg', 0.95); // 95% quality
-        analysisData.current.sizeAtLowQuality = jpgDataUrlLow.length;
-        analysisData.current.sizeAtHighQuality = jpgDataUrlHigh.length;
+        // --- ACCURATE ANALYSIS using pdf-lib ---
+        const pdfLibDoc = await PDFDocument.load(pdfjsBuffer.slice(0));
+        let totalImageSize = 0;
+        const imageRefs = new Set();
+        pdfLibDoc.getPages().forEach(page => {
+            try {
+                const resources = page.node.Resources();
+                const xobjects = resources?.lookup(PDFName.of('XObject'));
+                if (xobjects?.isDict()) {
+                    xobjects.entries().forEach(([key, value]) => {
+                        if (value.isIndirect()) {
+                            const xobject = pdfLibDoc.context.lookup(ref);
+                            if (xobject.lookup(PDFName.of('Subtype')) === PDFName.of('Image') && !imageRefs.has(value.toString())) {
+                                imageRefs.add(value.toString());
+                                const image = pdfLibDoc.getImage(ref);
+                                totalImageSize += image.sizeInBytes;
+                            }
+                        }
+                    });
+                }
+            } catch (e) { console.warn("Could not process resources on a page for analysis."); }
+        });
+        
+        analysisData.current = {
+            totalImageSize,
+            nonImageSize: file.size - totalImageSize
+        };
         
       } catch (error) {
         console.error("Fatal error during analysis:", error);
@@ -73,27 +93,31 @@ export default function CompressTool() {
     analyzeFile();
   }, [file]);
 
-  // --- UNIFIED Effect for INSTANTLY Updating Stats (NO DEBOUNCE) ---
+  // --- UNIFIED Effect for INSTANTLY Updating Stats and Preview ---
   useEffect(() => {
     if (!file || !previewImageSrc) return;
 
-    const { pageCount, sizeAtLowQuality, sizeAtHighQuality } = analysisData.current;
-    if (pageCount > 0 && sizeAtHighQuality > 0) {
-      const qualityRatio = Math.max(0, (settings.quality - 10) / (95 - 10)); // Normalize quality from 0 to 1 in our range
-      const compressibleRange = sizeAtHighQuality - sizeAtLowQuality;
-      let estimatedPageSize = sizeAtLowQuality + (compressibleRange * qualityRatio);
-      
-      if (settings.isGrayscale) estimatedPageSize *= 0.7;
-      
-      const estimatedTotalSize = estimatedPageSize * pageCount;
-      const originalSize = file.size;
-      const reduction = originalSize > 0 ? 100 - (estimatedTotalSize / originalSize) * 100 : 0;
-      
-      setStats({ 
-          originalSize, 
-          estimatedSize: estimatedTotalSize, 
-          reduction: Math.max(0, Math.round(reduction))
-      });
+    const { totalImageSize, nonImageSize } = analysisData.current;
+    if (totalImageSize > 0) {
+        let estimatedImageSize = totalImageSize * (settings.quality / 100);
+        if(settings.isGrayscale) estimatedImageSize *= 0.7; // Factor for grayscale
+        
+        const estimatedTotalSize = nonImageSize + estimatedImageSize;
+        const originalSize = file.size;
+        const reduction = originalSize > 0 ? 100 - (estimatedTotalSize / originalSize) * 100 : 0;
+        
+        setStats({ 
+            originalSize, 
+            estimatedSize: estimatedTotalSize, 
+            reduction: Math.max(0, Math.round(reduction))
+        });
+    } else {
+      // If no images, estimate is same as original
+      setStats({
+        originalSize: file.size,
+        estimatedSize: file.size,
+        reduction: 0
+      })
     }
   }, [settings, file, previewImageSrc]);
   
@@ -101,44 +125,63 @@ export default function CompressTool() {
     if (!file) return;
 
     setIsProcessing(true);
-    setProcessingMessage('Reconstructing PDF...');
+    setProcessingMessage('Compressing Images...');
     
     try {
-        const newPdfDoc = await PDFDocument.create();
         const fileBuffer = await file.arrayBuffer();
-        const sourcePdf = await pdfjs.getDocument({ data: fileBuffer }).promise;
+        const pdfDoc = await PDFDocument.load(fileBuffer);
+        const imageRefCache = new Map();
+        
+        const pages = pdfDoc.getPages();
+        for (const [pageIndex, page] of pages.entries()) {
+            setProcessingMessage(`Analyzing page ${pageIndex + 1}/${pages.length}...`);
+            const resources = page.node.Resources();
+            const xobjects = resources?.lookup(PDFName.of('XObject'));
+            if (!xobjects?.isDict()) continue;
 
-        for (let i = 1; i <= sourcePdf.numPages; i++) {
-            setProcessingMessage(`Processing page ${i} of ${sourcePdf.numPages}...`);
-            const page = await sourcePdf.getPage(i);
-            const viewport = page.getViewport({ scale: 2.0 });
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            await page.render({ canvasContext: ctx, viewport }).promise;
-            
-            if (settings.isGrayscale) {
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
-                for (let j = 0; j < data.length; j += 4) {
-                    const avg = (data[j] + data[j + 1] + data[j + 2]) / 3;
-                    data[j] = avg; data[j + 1] = avg; data[j + 2] = avg;
+            for (const [name, ref] of xobjects.entries()) {
+                if (!ref.isIndirect()) continue;
+                
+                const xobject = pdfDoc.context.lookup(ref);
+                if (xobject.lookup(PDFName.of('Subtype')) !== PDFName.of('Image')) continue;
+                
+                const imageRefString = ref.toString();
+                if (imageRefCache.has(imageRefString)) continue;
+
+                const image = pdfDoc.getImage(ref);
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const tempImg = new Image();
+                try {
+                    tempImg.src = await image.toPng(); // Use PNG for better quality before re-compression
+                } catch {
+                    console.warn(`Could not process an image on page ${pageIndex+1}. Skipping it.`);
+                    continue; // Skip this image if it's in a format we can't handle
                 }
-                ctx.putImageData(imageData, 0, 0);
+                await new Promise(resolve => { tempImg.onload = resolve; });
+                
+                canvas.width = tempImg.width;
+                canvas.height = tempImg.height;
+                if (settings.isGrayscale) ctx.filter = 'grayscale(100%)';
+                ctx.drawImage(tempImg, 0, 0);
+                
+                const newImageBytes = await pdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.quality / 100));
+                imageRefCache.set(imageRefString, newImageBytes);
             }
-
-            const jpgImageBytes = await newPdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.quality / 100));
-            const newPage = newPdfDoc.addPage([page.view[2], page.view[3]]);
-            newPage.drawImage(jpgImageBytes, { x: 0, y: 0, width: newPage.getWidth(), height: newPage.getHeight() });
         }
         
-        setProcessingMessage('Saving file...');
-        if (settings.removeMetadata) {
-            newPdfDoc.setTitle('');
-            newPdfDoc.setAuthor('');
+        for (const [originalRefStr, newImage] of imageRefCache.entries()) {
+            const refToReplace = PDFDocument.parse(originalRefStr, false);
+            pdfDoc.context.assign(refToReplace, newImage.ref);
         }
-        const pdfBytes = await newPdfDoc.save();
+
+        if (settings.removeMetadata) {
+            pdfDoc.setTitle('');
+            pdfDoc.setAuthor('');
+        }
+
+        setProcessingMessage('Saving file...');
+        const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, `docenclave-compressed-${file.name}`);
         
@@ -236,7 +279,6 @@ export default function CompressTool() {
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
                   <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label><button onClick={() => setSettings(prev => ({...prev, removeMetadata: !prev.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
-               <div className="text-xs text-yellow-400/80 bg-yellow-900/30 p-2 rounded-md">Note: Compression makes text non-selectable.</div>
               <div className="pt-4 border-t border-gray-600 space-y-3">
                   <button onClick={handleCompress} disabled={isProcessing} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-600">{isProcessing ? processingMessage : 'Compress PDF'}</button>
                   <button onClick={handleStartOver} className="w-full text-sm text-gray-400 hover:text-white hover:underline">Use a different file</button>
