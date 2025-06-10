@@ -21,7 +21,6 @@ export default function CompressTool() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   
-  // State to hold the final compressed file data
   const [compressedFile, setCompressedFile] = useState(null); 
   const previewCanvasRef = useRef(null);
 
@@ -39,7 +38,7 @@ export default function CompressTool() {
         for (let i = 1; i <= sourcePdf.numPages; i++) {
             setProcessingMessage(`Processing page ${i} of ${sourcePdf.numPages}...`);
             const page = await sourcePdf.getPage(i);
-            const viewport = page.getViewport({ scale: 2.0 }); // High quality for reconstruction
+            const viewport = page.getViewport({ scale: 2.0 });
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = viewport.width;
@@ -61,7 +60,7 @@ export default function CompressTool() {
             newPage.drawImage(jpgImageBytes, { x: 0, y: 0, width: newPage.getWidth(), height: newPage.getHeight() });
         }
         
-        setProcessingMessage('Saving file...');
+        setProcessingMessage('Rendering final preview...');
         if (settings.removeMetadata) {
             newPdfDoc.setTitle('');
             newPdfDoc.setAuthor('');
@@ -69,7 +68,6 @@ export default function CompressTool() {
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
 
-        // --- RENDER PREVIEW OF THE FINAL FILE ---
         const previewPdfDoc = await pdfjs.getDocument({data: pdfBytes.slice(0)}).promise;
         const previewPage = await previewPdfDoc.getPage(1);
         const previewViewport = previewPage.getViewport({scale: 1.5});
@@ -98,7 +96,6 @@ export default function CompressTool() {
   const handleDownload = () => {
       if(!compressedFile) return;
       saveAs(compressedFile.blob, compressedFile.name);
-      // Increment download stat
       fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
   };
 
@@ -108,8 +105,7 @@ export default function CompressTool() {
         if (uploadedFile && uploadedFile.type.includes('pdf')) setFile(uploadedFile);
         else alert("Please upload a valid PDF file.");
     }, []),
-    accept: { 'application/pdf': ['.pdf'] },
-    multiple: false,
+    accept: { 'application/pdf': ['.pdf'] }, multiple: false,
   });
 
   const formatBytes = (bytes, decimals = 2) => {
@@ -130,34 +126,37 @@ export default function CompressTool() {
     setCompressedFile(null);
   };
 
-  // --- UI COMPONENTS ---
   const UploadView = () => (
-    <div {...getRootProps()} className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer ${isDragActive ? 'border-accent' : 'border-gray-500'}`}>
-        <input {...getInputProps()} />
-        <p>Drag & drop or click to upload PDF</p>
+    <div {...getRootProps()} className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-accent bg-gray-800' : 'hover:bg-gray-800 hover:border-gray-400'}`}>
+      <input {...getInputProps()} />
+      <svg className="w-8 h-8 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
+      <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{isDragActive ? 'Drop PDF here' : 'Click to upload or drag & drop'}</span></p>
+      <p className="text-xs text-gray-500">Select a single PDF file</p>
     </div>
   );
 
   const SettingsView = () => (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex flex-col items-center justify-center min-h-[400px]">
-              <h3 className="text-2xl font-semibold mb-4">Your file is ready to be compressed.</h3>
-              <p className="text-gray-400">Original Size: {formatBytes(file.size)}</p>
-              <p className="mt-4 text-center">Choose your settings on the right, then click "Compress & Preview".</p>
+              <h3 className="text-2xl font-semibold mb-4 text-gray-200">Your file is ready.</h3>
+              <p className="text-gray-400">Original Size: <span className="font-bold">{formatBytes(file.size)}</span></p>
+              <p className="mt-4 text-center max-w-sm text-gray-500">Choose your desired compression settings on the right, then click the button below to generate a compressed preview.</p>
           </div>
           <div className="md:col-span-1 flex flex-col space-y-6">
-              <h3>Compression Settings</h3>
+              <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Settings</h3>
               <div>
-                  <label>Image Quality</label>
-                  <input type="range" min="1" max="100" value={settings.quality} onChange={e => setSettings(p => ({...p, quality: parseInt(e.target.value)}))} />
-                  <span>{settings.quality}%</span>
+                <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
+                <input id="quality" type="range" min="1" max="100" value={settings.quality} onChange={e => setSettings(p => ({...p, quality: parseInt(e.target.value)}))} className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer" />
+                <div className="flex justify-between text-xs text-gray-400 mt-1"><span>Lower</span><span className="font-bold text-accent">{settings.quality}%</span><span>Higher</span></div>
               </div>
-              <div><label>Convert to Grayscale</label><button onClick={() => setSettings(p => ({...p, isGrayscale: !p.isGrayscale}))}>{settings.isGrayscale ? 'ON' : 'OFF'}</button></div>
-              <div><label>Basic Optimization</label><button onClick={() => setSettings(p => ({...p, removeMetadata: !p.removeMetadata}))}>{settings.removeMetadata ? 'ON' : 'OFF'}</button></div>
-              <div>Note: Compression makes text non-selectable.</div>
-              <div className="pt-4">
-                  <button onClick={handleProcess}>Compress & Preview</button>
-                  <button onClick={handleStartOver}>Use a different file</button>
+              <div className="space-y-3">
+                  <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(p => ({...p, isGrayscale: !p.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
+                  <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Remove Metadata</label><button onClick={() => setSettings(p => ({...p, removeMetadata: !p.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
+              </div>
+              <div className="text-xs text-yellow-400/80 bg-yellow-900/30 p-2 rounded-md">Note: Compression makes text non-selectable.</div>
+              <div className="pt-4 border-t border-gray-600 space-y-3">
+                <button onClick={handleProcess} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors">Compress & Preview</button>
+                <button onClick={handleStartOver} className="w-full text-sm text-gray-400 hover:text-white hover:underline">Use a different file</button>
               </div>
           </div>
       </div>
@@ -171,12 +170,16 @@ export default function CompressTool() {
                   <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain" />
               </div>
               <div className="md:col-span-1 flex flex-col space-y-6">
-                  <h3>Preview & Download</h3>
-                  <div>Original: {formatBytes(file.size)}</div>
-                  <div>New Size: {formatBytes(compressedFile.size)}</div>
-                  <div>Reduction: ~{Math.round(reduction)}%</div>
-                  <button onClick={handleDownload}>Download</button>
-                  <button onClick={handleReconfigure}>Change Settings</button>
+                  <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Preview & Download</h3>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div><p className="text-xs text-gray-400">Original Size</p><p className="font-semibold text-lg line-through">{formatBytes(file.size)}</p></div>
+                    <div><p className="text-xs text-gray-400">New Size</p><p className="font-semibold text-lg text-accent">{formatBytes(compressedFile.size)}</p></div>
+                  </div>
+                  <div className="text-center bg-green-900/40 p-3 rounded-lg"><p className="text-xs text-green-300">Reduction</p><p className="font-bold text-xl text-green-300">~{Math.round(reduction)}%</p></div>
+                  <div className="pt-4 border-t border-gray-600 space-y-3">
+                    <button onClick={handleDownload} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors">Download Compressed PDF</button>
+                    <button onClick={handleReconfigure} className="w-full text-sm text-gray-400 hover:text-white hover:underline">Change Settings</button>
+                  </div>
               </div>
           </div>
       );
