@@ -20,9 +20,10 @@ export default function CompressTool() {
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  const [previewStatus, setPreviewStatus] = useState('idle');
-
-  const previewCanvasRef = useRef(null);
+  
+  // State for the visible preview image
+  const [displayPreviewUrl, setDisplayPreviewUrl] = useState(null);
+  // Ref to store the original, full-color preview data
   const originalPreviewDataUrl = useRef(null);
   const debounceTimeoutRef = useRef(null);
 
@@ -33,41 +34,34 @@ export default function CompressTool() {
     const processFile = async () => {
       setIsProcessing(true);
       setProcessingMessage('Analyzing PDF...');
-      setPreviewStatus('generating');
       setSettings(initialSettings);
 
       try {
         const fileBlob = new Blob([file]);
+        const pdfjsBuffer = await fileBlob.arrayBuffer();
+        const pdfjsDoc = await pdfjs.getDocument({ data: pdfjsBuffer }).promise;
+        const page = await pdfjsDoc.getPage(1);
+        const viewport = page.getViewport({ scale: 1.5 }); // Slightly higher res for a good master copy
+
+        const canvas = document.createElement('canvas');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        const context = canvas.getContext('2d');
+        await page.render({ canvasContext: context, viewport }).promise;
         
-        try {
-          const canvas = previewCanvasRef.current;
-          if (!canvas) throw new Error("Canvas ref is not ready.");
+        // Store the master copy and set the initial display
+        originalPreviewDataUrl.current = canvas.toDataURL();
+        setDisplayPreviewUrl(originalPreviewDataUrl.current);
 
-          const pdfjsBuffer = await fileBlob.arrayBuffer();
-          const pdfjsDoc = await pdfjs.getDocument({ data: pdfjsBuffer }).promise;
-          const page = await pdfjsDoc.getPage(1);
-          const viewport = page.getViewport({ scale: 1.0 });
-
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          const context = canvas.getContext('2d');
-          await page.render({ canvasContext: context, viewport }).promise;
-          
-          originalPreviewDataUrl.current = canvas.toDataURL();
-          setPreviewStatus('success');
-        } catch (previewError) {
-          console.warn("Could not generate PDF preview. Proceeding without it.", previewError);
-          setPreviewStatus('failed');
-        }
-
+        // Calculate initial stats
         const estimatedSize = file.size * (initialSettings.quality / 100);
         const reduction = 100 - (estimatedSize / file.size) * 100;
         setStats({ originalSize: file.size, estimatedSize, reduction: Math.round(reduction) });
 
       } catch (error) {
         console.error("Fatal error processing file:", error);
-        alert("Could not read the uploaded file.");
-        setFile(null);
+        alert("Could not process this PDF. It may be corrupt or have an unsupported format.");
+        handleStartOver();
       } finally {
         setIsProcessing(false);
         setProcessingMessage('');
@@ -79,34 +73,34 @@ export default function CompressTool() {
 
   // --- UNIFIED Effect for Updating Preview and Debouncing Stats ---
   useEffect(() => {
-    // Redraw preview instantly on setting change
-    if (previewStatus === 'success' && previewCanvasRef.current && originalPreviewDataUrl.current) {
-        const canvas = previewCanvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-        img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.filter = settings.isGrayscale ? 'grayscale(100%)' : 'none';
-            ctx.drawImage(img, 0, 0);
-        };
-        img.src = originalPreviewDataUrl.current;
-    }
+    if (!file || !originalPreviewDataUrl.current) return;
 
-    // Debounce the statistics calculation
+    // --- Part 1: Update the visual preview immediately ---
+    const img = new Image();
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.filter = settings.isGrayscale ? 'grayscale(100%)' : 'none';
+        ctx.drawImage(img, 0, 0);
+        // Set the state with the newly generated (and potentially grayscaled) image data
+        setDisplayPreviewUrl(canvas.toDataURL());
+    };
+    img.src = originalPreviewDataUrl.current;
+
+    // --- Part 2: Debounce the statistics calculation for performance ---
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-    if (file) {
-        debounceTimeoutRef.current = setTimeout(() => {
-            const originalSize = file.size;
-            let estimatedSize = originalSize * (settings.quality / 100);
-            if (settings.isGrayscale) estimatedSize *= 0.7; // Apply grayscale factor
-            const reduction = originalSize > 0 ? 100 - (estimatedSize / originalSize) * 100 : 0;
-            setStats({ originalSize, estimatedSize, reduction: Math.round(reduction) });
-        }, 250); // 250ms debounce
-    }
+    debounceTimeoutRef.current = setTimeout(() => {
+        const originalSize = file.size;
+        let estimatedSize = originalSize * (settings.quality / 100);
+        if (settings.isGrayscale) estimatedSize *= 0.7;
+        const reduction = originalSize > 0 ? 100 - (estimatedSize / originalSize) * 100 : 0;
+        setStats({ originalSize, estimatedSize, reduction: Math.round(reduction) });
+    }, 200);
 
     return () => clearTimeout(debounceTimeoutRef.current);
-  }, [settings, file, previewStatus]);
+  }, [settings, file]);
   
   const handleCompress = async () => {
     if (!file) return;
@@ -184,20 +178,16 @@ export default function CompressTool() {
   
   const handleStartOver = () => {
     setFile(null);
-    setPreviewStatus('idle');
+    setDisplayPreviewUrl(null);
     originalPreviewDataUrl.current = null;
   };
 
   const PreviewArea = () => (
-    <>
-        <canvas 
-            ref={previewCanvasRef} 
-            className="max-w-full max-h-full object-contain"
-            style={{ display: previewStatus === 'success' ? 'block' : 'none' }}
-        ></canvas>
-        {previewStatus === 'generating' && <p className="text-accent">Generating Preview...</p>}
-        {previewStatus === 'failed' && <p className="text-yellow-400">Preview not available for this document.</p>}
-    </>
+    displayPreviewUrl ? (
+        <img src={displayPreviewUrl} alt="PDF Preview" className="max-w-full max-h-full object-contain" />
+    ) : (
+        <p className="text-accent">{processingMessage || "Preview will appear here."}</p>
+    )
   );
 
   return (
@@ -214,7 +204,7 @@ export default function CompressTool() {
             <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{isDragActive ? 'Drop it here!' : 'Click to upload or drag & drop'}</span></p>
           </div>
         ) : (
-          isProcessing ? (
+          isProcessing && !displayPreviewUrl ? (
             <div className="text-center py-20 text-accent">{processingMessage}</div>
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -228,6 +218,7 @@ export default function CompressTool() {
                   <div><p className="text-xs text-gray-400">Estimated</p><p className="font-semibold text-lg text-accent">{formatBytes(stats.estimatedSize)}</p></div>
                   <div><p className="text-xs text-gray-400">Reduction</p><p className="font-semibold text-lg text-green-400">~{stats.reduction}%</p></div>
               </div>
+              
               <div>
                 <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
                 <input 
@@ -242,6 +233,7 @@ export default function CompressTool() {
                     <span>Higher</span>
                 </div>
               </div>
+              
               <div className="space-y-3">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
@@ -255,6 +247,7 @@ export default function CompressTool() {
           )
         )}
       </div>
+      {/* SEO Content Block can be added back here */}
     </div>
   );
 }
