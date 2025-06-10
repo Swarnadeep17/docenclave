@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import { useDropzone } from 'react-dropzone';
 import { saveAs } from 'file-saver';
@@ -11,7 +11,7 @@ import ToolPageHeader from '@/components/ToolPageHeader';
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const initialSettings = {
-  imageQuality: 0.75, // Use a 0-1 scale for quality
+  imageQuality: 0.75,
   isGrayscale: false,
   removeMetadata: true,
 };
@@ -22,29 +22,10 @@ export default function CompressTool() {
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
+  const [previewStatus, setPreviewStatus] = useState('idle'); // 'idle', 'generating', 'success', 'failed'
 
-  const originalCanvasData = useRef(null);
   const previewCanvasRef = useRef(null);
   const analysisData = useRef({ nonImageSize: 0, totalImageSize: 0 });
-
-  useEffect(() => {
-    if (!originalCanvasData.current || !previewCanvasRef.current) return;
-
-    const canvas = previewCanvasRef.current;
-    const context = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      if (settings.isGrayscale) {
-        context.filter = 'grayscale(100%)';
-      } else {
-        context.filter = 'none';
-      }
-      context.drawImage(img, 0, 0);
-    };
-    img.src = originalCanvasData.current;
-  }, [settings.isGrayscale, file]);
 
   const updateEstimates = useCallback((newSettings) => {
     const { totalImageSize, nonImageSize } = analysisData.current;
@@ -67,6 +48,7 @@ export default function CompressTool() {
     });
   }, [file]);
 
+  // *** NEW ROBUST onDrop WITH GRACEFUL DEGRADATION ***
   const onDrop = useCallback(async (acceptedFiles) => {
     const uploadedFile = acceptedFiles[0];
     if (!uploadedFile || uploadedFile.type !== 'application/pdf') {
@@ -76,31 +58,39 @@ export default function CompressTool() {
 
     setProcessingMessage('Analyzing PDF...');
     setIsProcessing(true);
+    setPreviewStatus('generating');
     setFile(uploadedFile);
     setSettings(initialSettings);
 
     try {
         const fileBuffer = await uploadedFile.arrayBuffer();
-        const pdfjsDoc = await pdfjs.getDocument({ data: fileBuffer.slice(0) }).promise;
-        const page = await pdfjsDoc.getPage(1);
-        const viewport = page.getViewport({ scale: 1.0 });
-        const canvas = previewCanvasRef.current;
-        const context = canvas.getContext('2d');
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-        await page.render({ canvasContext: context, viewport }).promise;
-        originalCanvasData.current = canvas.toDataURL('image/png');
         
+        // Attempt to generate preview, but don't fail the whole process if it errors
+        try {
+            const pdfjsDoc = await pdfjs.getDocument({ data: fileBuffer.slice(0) }).promise;
+            const page = await pdfjsDoc.getPage(1);
+            const viewport = page.getViewport({ scale: 1.0 });
+            const canvas = previewCanvasRef.current;
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+            await page.render({ canvasContext: context, viewport }).promise;
+            setPreviewStatus('success');
+        } catch (previewError) {
+            console.warn("Could not generate PDF preview. Proceeding without it.", previewError);
+            setPreviewStatus('failed'); // Set status to failed
+        }
+
         analysisData.current = {
             totalImageSize: uploadedFile.size, 
             nonImageSize: 0 
         };
-        
         updateEstimates(initialSettings);
 
     } catch (error) {
-        console.error("Error processing PDF:", error);
-        alert("Could not process this PDF. It might be a very complex file or have an unusual format.");
+        // This outer catch is for catastrophic errors like file reading
+        console.error("Fatal error processing file:", error);
+        alert("Could not read the uploaded file.");
         setFile(null);
     } finally {
         setIsProcessing(false);
@@ -114,7 +104,7 @@ export default function CompressTool() {
     updateEstimates(newSettings);
   };
   
-  // *** NEW, ROBUST HANDLECOMPRESS FUNCTION ***
+  // *** ROBUST handleCompress function ***
   const handleCompress = async () => {
     if (!file) return;
 
@@ -126,7 +116,6 @@ export default function CompressTool() {
         const pdfDoc = await PDFDocument.load(fileBuffer);
         const imageRefs = new Set();
         
-        // Step 1: Find all unique image references in the document
         pdfDoc.getPages().forEach(page => {
             try {
                 const resources = page.node.Resources();
@@ -141,34 +130,29 @@ export default function CompressTool() {
             } catch (e) { console.warn("Could not process resources on a page."); }
         });
 
-        // Step 2: Create compressed versions of each unique image
         const compressedImageMap = new Map();
         for (const ref of imageRefs) {
             const image = pdfDoc.getImage(pdfDoc.context.lookup(ref));
             if (!image) continue;
 
-            // Use a temporary canvas to apply grayscale if needed
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            canvas.width = image.width;
-            canvas.height = image.height;
-            
-            // Draw the original image data onto the canvas
             const tempImg = new Image();
             tempImg.src = await image.toDataUrl();
             await new Promise(resolve => { tempImg.onload = resolve });
 
+            canvas.width = tempImg.width;
+            canvas.height = tempImg.height;
+            
             if (settings.isGrayscale) {
                 ctx.filter = 'grayscale(100%)';
             }
             ctx.drawImage(tempImg, 0, 0);
 
-            // Get the (potentially grayscaled) image data and embed as a new JPG
             const compressedJpgBytes = await pdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.imageQuality));
             compressedImageMap.set(ref, compressedJpgBytes.ref);
         }
 
-        // Step 3: Replace the image references in the document's structure
         pdfDoc.getPages().forEach(page => {
             try {
                 const resources = page.node.Resources();
@@ -183,21 +167,15 @@ export default function CompressTool() {
             } catch (e) { console.warn("Could not replace image reference on a page."); }
         });
         
-        // Step 4: Remove metadata if requested
         if (settings.removeMetadata) {
             pdfDoc.setTitle('');
             pdfDoc.setAuthor('');
-            pdfDoc.setSubject('');
-            pdfDoc.setCreator('');
-            pdfDoc.setProducer('');
         }
 
-        // Step 5: Save the modified document
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, `docenclave-compressed-${file.name}`);
         
-        // Step 6: Increment download stat
         fetch('/api/stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -228,7 +206,20 @@ export default function CompressTool() {
   
   const handleStartOver = () => {
     setFile(null);
-    originalCanvasData.current = null;
+    setPreviewStatus('idle');
+  };
+  
+  const PreviewArea = () => {
+    switch (previewStatus) {
+        case 'generating':
+            return <p className="text-accent">Generating Preview...</p>;
+        case 'failed':
+            return <p className="text-yellow-400">Preview not available for this document.</p>;
+        case 'success':
+            return <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain"></canvas>;
+        default:
+            return null;
+    }
   };
 
   return (
@@ -237,7 +228,6 @@ export default function CompressTool() {
         title="Advanced PDF Compressor"
         description="Fine-tune compression settings with a real-time preview of quality and file size."
       />
-
       <div className="bg-card-bg border border-gray-700 rounded-lg p-4 sm:p-8">
         {!file ? (
           <div {...getRootProps()} className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer transition-colors ${isDragActive ? 'border-accent bg-gray-800' : 'hover:bg-gray-800 hover:border-gray-400'}`}>
@@ -251,7 +241,7 @@ export default function CompressTool() {
           ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
-              <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain"></canvas>
+              <PreviewArea />
             </div>
             <div className="md:col-span-1 flex flex-col space-y-6">
               <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Settings</h3>
