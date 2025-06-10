@@ -10,7 +10,7 @@ import ToolPageHeader from '@/components/ToolPageHeader';
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const initialSettings = {
-  quality: 75, // Now a 1-100 scale
+  quality: 75,
   isGrayscale: false,
 };
 
@@ -26,7 +26,7 @@ export default function CompressTool() {
   const originalPreviewDataUrl = useRef(null);
   const debounceTimeoutRef = useRef(null);
 
-  // --- SINGLE, UNIFIED useEffect FOR ALL POST-UPLOAD PROCESSING ---
+  // --- Effect for Initial File Processing ---
   useEffect(() => {
     if (!file) return;
 
@@ -77,11 +77,9 @@ export default function CompressTool() {
     processFile();
   }, [file]);
 
-  // --- SINGLE, UNIFIED useEffect FOR UPDATING PREVIEW AND STATS ---
+  // --- UNIFIED Effect for Updating Preview and Debouncing Stats ---
   useEffect(() => {
-    if (!file) return;
-
-    // Redraw the preview canvas immediately when settings change
+    // Redraw preview instantly on setting change
     if (previewStatus === 'success' && previewCanvasRef.current && originalPreviewDataUrl.current) {
         const canvas = previewCanvasRef.current;
         const ctx = canvas.getContext('2d');
@@ -95,17 +93,17 @@ export default function CompressTool() {
         img.src = originalPreviewDataUrl.current;
     }
 
-    // Debounce the statistics calculation for performance
+    // Debounce the statistics calculation
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-    debounceTimeoutRef.current = setTimeout(() => {
-      setStats(prevStats => {
-        const originalSize = prevStats.originalSize;
-        let estimatedSize = originalSize * (settings.quality / 100);
-        if (settings.isGrayscale) estimatedSize *= 0.7;
-        const reduction = originalSize > 0 ? 100 - (estimatedSize / originalSize) * 100 : 0;
-        return { originalSize, estimatedSize, reduction: Math.round(reduction) };
-      });
-    }, 150);
+    if (file) {
+        debounceTimeoutRef.current = setTimeout(() => {
+            const originalSize = file.size;
+            let estimatedSize = originalSize * (settings.quality / 100);
+            if (settings.isGrayscale) estimatedSize *= 0.7; // Apply grayscale factor
+            const reduction = originalSize > 0 ? 100 - (estimatedSize / originalSize) * 100 : 0;
+            setStats({ originalSize, estimatedSize, reduction: Math.round(reduction) });
+        }, 250); // 250ms debounce
+    }
 
     return () => clearTimeout(debounceTimeoutRef.current);
   }, [settings, file, previewStatus]);
@@ -162,13 +160,6 @@ export default function CompressTool() {
     } finally {
         setIsProcessing(false);
         setProcessingMessage('');
-    }
-  };
-
-  const handleQualityInputChange = (e) => {
-    const value = e.target.value;
-    if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 100)) {
-        setSettings(prev => ({...prev, quality: value === '' ? '' : parseInt(value)}));
     }
   };
 
@@ -237,7 +228,6 @@ export default function CompressTool() {
                   <div><p className="text-xs text-gray-400">Estimated</p><p className="font-semibold text-lg text-accent">{formatBytes(stats.estimatedSize)}</p></div>
                   <div><p className="text-xs text-gray-400">Reduction</p><p className="font-semibold text-lg text-green-400">~{stats.reduction}%</p></div>
               </div>
-              
               <div>
                 <label htmlFor="quality" className="block text-sm font-medium text-gray-300 mb-1">Image Quality</label>
                 <input 
@@ -252,7 +242,6 @@ export default function CompressTool() {
                     <span>Higher</span>
                 </div>
               </div>
-              
               <div className="space-y-3">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
