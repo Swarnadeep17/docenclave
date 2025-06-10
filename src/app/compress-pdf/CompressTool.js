@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PDFDocument, PDFName } from 'pdf-lib';
+import { PDFDocument, PDFName, a } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import { useDropzone } from 'react-dropzone';
 import { saveAs } from 'file-saver';
 import ToolPageHeader from '@/components/ToolPageHeader';
 
-// Configure the worker at the top level
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const initialSettings = {
@@ -25,7 +24,9 @@ export default function CompressTool() {
   const [previewStatus, setPreviewStatus] = useState('idle');
 
   const previewCanvasRef = useRef(null);
-  
+  const originalPreviewDataUrl = useRef(null); // Store the original full-color preview
+  const debounceTimeoutRef = useRef(null);
+
   // --- STATE-DRIVEN FILE PROCESSING ---
   useEffect(() => {
     if (!file) return;
@@ -48,10 +49,12 @@ export default function CompressTool() {
           const page = await pdfjsDoc.getPage(1);
           const viewport = page.getViewport({ scale: 1.0 });
 
-          const context = canvas.getContext('2d');
           canvas.height = viewport.height;
           canvas.width = viewport.width;
+          const context = canvas.getContext('2d');
           await page.render({ canvasContext: context, viewport }).promise;
+          
+          originalPreviewDataUrl.current = canvas.toDataURL(); // Store the original preview
           setPreviewStatus('success');
 
         } catch (previewError) {
@@ -61,11 +64,7 @@ export default function CompressTool() {
 
         const estimatedSize = file.size * initialSettings.imageQuality;
         const reduction = 100 - (estimatedSize / file.size) * 100;
-        setStats({
-          originalSize: file.size,
-          estimatedSize: estimatedSize,
-          reduction: Math.round(reduction),
-        });
+        setStats({ originalSize: file.size, estimatedSize, reduction: Math.round(reduction) });
 
       } catch (error) {
         console.error("Fatal error processing file:", error);
@@ -80,39 +79,48 @@ export default function CompressTool() {
     processFile();
   }, [file]);
 
-  // --- DEBOUNCED SETTINGS UPDATE LOGIC ---
-  const debounceTimeoutRef = useRef(null);
-  const handleSettingChange = useCallback((setting, value) => {
-    // Immediately update the visual state
-    setSettings(prev => ({ ...prev, [setting]: value }));
+  // --- EFFECT FOR REDRAWING PREVIEW ON SETTINGS CHANGE ---
+  useEffect(() => {
+    if (previewStatus !== 'success' || !previewCanvasRef.current || !originalPreviewDataUrl.current) return;
     
-    // Clear any pending timeout
+    const canvas = previewCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.filter = settings.isGrayscale ? 'grayscale(100%)' : 'none';
+        ctx.drawImage(img, 0, 0);
+    };
+    
+    img.src = originalPreviewDataUrl.current;
+  }, [settings.isGrayscale, previewStatus]);
+
+  // --- DEBOUNCED EFFECT FOR UPDATING ESTIMATES ---
+  useEffect(() => {
+    if (!file) return;
+
     if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
     }
-    
-    // Set a new timeout to run the expensive calculation
-    debounceTimeoutRef.current = setTimeout(() => {
-        const currentSize = file ? file.size : 0;
-        if (!currentSize) return;
 
-        // Use the latest settings from state
-        setSettings(latestSettings => {
-            let estimatedSize = currentSize * latestSettings.imageQuality;
-            if (latestSettings.isGrayscale) {
-              estimatedSize *= 0.7;
-            }
-            const reduction = 100 - (estimatedSize / currentSize) * 100;
-            setStats({
-              originalSize: currentSize,
-              estimatedSize: estimatedSize,
-              reduction: Math.round(reduction),
-            });
-            return latestSettings;
-        });
-    }, 150); // 150ms debounce delay
-  }, [file]);
+    debounceTimeoutRef.current = setTimeout(() => {
+        const originalSize = file.size;
+        let estimatedSize = originalSize * settings.imageQuality;
+        if (settings.isGrayscale) {
+            estimatedSize *= 0.7;
+        }
+        const reduction = 100 - (estimatedSize / originalSize) * 100;
+        setStats({ originalSize, estimatedSize, reduction: Math.round(reduction) });
+    }, 200); // 200ms debounce
+
+    return () => {
+        clearTimeout(debounceTimeoutRef.current);
+    };
+  }, [settings, file]);
   
+  // --- NEW, MOST ROBUST HANDLECOMPRESS FUNCTION ---
   const handleCompress = async () => {
     if (!file) return;
 
@@ -122,59 +130,65 @@ export default function CompressTool() {
     try {
         const fileBuffer = await file.arrayBuffer();
         const pdfDoc = await PDFDocument.load(fileBuffer);
-        const imageRefs = new Set();
-        
-        pdfDoc.getPages().forEach(page => {
-            try {
-                const resources = page.node.Resources();
-                const xobjects = resources?.lookup(PDFName.of('XObject'));
-                if (xobjects?.isDict()) {
-                    xobjects.entries().forEach(([key, value]) => {
-                        if (value.isIndirect() && pdfDoc.context.lookup(value).lookup(PDFName.of('Subtype')) === PDFName.of('Image')) {
-                            imageRefs.add(value.toString());
-                        }
-                    });
+        const imageRefCache = new Map();
+
+        // Step 1: Create compressed versions of all unique images
+        const pages = pdfDoc.getPages();
+        for (const page of pages) {
+            const imageNames = page.node.Resources().get(PDFName.of('XObject'))?.keys() ?? [];
+            for (const imageName of imageNames) {
+                const image = page.images.get(imageName.decodeText());
+                if (!image || imageRefCache.has(image.ref.toString())) continue;
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const tempImg = new Image();
+                tempImg.src = await image.toPng();
+                await new Promise(resolve => { tempImg.onload = resolve; });
+
+                canvas.width = tempImg.width;
+                canvas.height = tempImg.height;
+                if (settings.isGrayscale) {
+                    ctx.filter = 'grayscale(100%)';
                 }
-            } catch (e) { console.warn("Could not process resources on a page."); }
-        });
-
-        const compressedImageMap = new Map();
-        for (const ref of imageRefs) {
-            const image = pdfDoc.getImage(pdfDoc.context.lookup(ref));
-            if (!image) continue;
-
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const tempImg = new Image();
-            tempImg.src = await image.toPng();
-            await new Promise(resolve => { tempImg.onload = resolve });
-
-            canvas.width = tempImg.width;
-            canvas.height = tempImg.height;
-            
-            if (settings.isGrayscale) {
-                ctx.filter = 'grayscale(100%)';
+                ctx.drawImage(tempImg, 0, 0);
+                
+                const newImageBytes = await pdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.imageQuality));
+                imageRefCache.set(image.ref.toString(), newImageBytes);
             }
-            ctx.drawImage(tempImg, 0, 0);
+        }
+        
+        // Step 2: Replace image references in the PDF content streams
+        for (const page of pages) {
+            const contentStream = page.getContentStream();
+            const operators = contentStream.getOperators();
+            let modified = false;
+            for (const op of operators) {
+                if (op.name === 'Do') {
+                    const imageName = op.args[0].decodeText();
+                    const image = page.images.get(imageName);
+                    if (image && imageRefCache.has(image.ref.toString())) {
+                        const newImage = imageRefCache.get(image.ref.toString());
+                        const newImageName = page.node.Resources().get(PDFName.of('XObject')).keys().find(key => 
+                            page.images.get(key.decodeText()).ref === newImage.ref
+                        );
 
-            const compressedJpgBytes = await pdfDoc.embedJpg(canvas.toDataURL('image/jpeg', settings.imageQuality));
-            compressedImageMap.set(ref, compressedJpgBytes.ref);
+                        if (!newImageName) {
+                            const newName = page.node.Resources().get(PDFName.of('XObject')).uniqueName('Im');
+                            page.node.Resources().get(PDFName.of('XObject')).set(newName, newImage.ref);
+                            op.args[0] = newName;
+                        } else {
+                           op.args[0] = newImageName;
+                        }
+                        modified = true;
+                    }
+                }
+            }
+            if(modified) {
+                page.node.set(PDFName.of('Contents'), contentStream);
+            }
         }
 
-        pdfDoc.getPages().forEach(page => {
-            try {
-                const resources = page.node.Resources();
-                const xobjects = resources?.lookup(PDFName.of('XObject'));
-                 if (xobjects?.isDict()) {
-                    xobjects.entries().forEach(([key, value]) => {
-                        if (value.isIndirect() && compressedImageMap.has(value.toString())) {
-                            xobjects.set(key, compressedImageMap.get(value.toString()));
-                        }
-                    });
-                }
-            } catch (e) { console.warn("Could not replace image reference on a page."); }
-        });
-        
         if (settings.removeMetadata) {
             pdfDoc.setTitle('');
             pdfDoc.setAuthor('');
@@ -184,15 +198,10 @@ export default function CompressTool() {
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, `docenclave-compressed-${file.name}`);
         
-        fetch('/api/stats', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ statToIncrement: 'downloads' }),
-        }).catch(err => console.error("Failed to increment download count:", err));
-
+        fetch('/api/stats', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ statToIncrement: 'downloads' }) });
     } catch (error) {
         console.error("Failed to compress PDF:", error);
-        alert("An error occurred during compression. The PDF might be too complex or use a format that is not yet supported by this tool.");
+        alert("An error occurred during compression. The PDF might be too complex for this tool.");
     } finally {
         setIsProcessing(false);
         setProcessingMessage('');
@@ -202,12 +211,9 @@ export default function CompressTool() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: useCallback(acceptedFiles => {
         const uploadedFile = acceptedFiles[0];
-        if (uploadedFile && uploadedFile.type.includes('pdf')) {
-          setFile(uploadedFile);
-        } else {
-          alert("Please upload a valid PDF file.");
-        }
-      }, []),
+        if (uploadedFile && uploadedFile.type.includes('pdf')) setFile(uploadedFile);
+        else alert("Please upload a valid PDF file.");
+    }, []),
     accept: { 'application/pdf': ['.pdf'] },
     multiple: false,
   });
@@ -225,10 +231,9 @@ export default function CompressTool() {
     setFile(null);
     setPreviewStatus('idle');
   };
-  
+
   const PreviewArea = () => (
     <>
-        {/* The canvas is now always in the DOM but hidden until success. This fixes the ref bug. */}
         <canvas 
             ref={previewCanvasRef} 
             className="max-w-full max-h-full object-contain"
@@ -272,7 +277,7 @@ export default function CompressTool() {
                 <input 
                   id="quality" type="range" min="0.1" max="1" step="0.01"
                   value={settings.imageQuality}
-                  onChange={(e) => handleSettingChange('imageQuality', parseFloat(e.target.value))}
+                  onChange={(e) => setSettings(prev => ({...prev, imageQuality: parseFloat(e.target.value)}))}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-gray-400 mt-1">
@@ -282,8 +287,8 @@ export default function CompressTool() {
                 </div>
               </div>
               <div className="space-y-3">
-                  <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => handleSettingChange('isGrayscale', !settings.isGrayscale)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
-                  <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label><button onClick={() => handleSettingChange('removeMetadata', !settings.removeMetadata)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
+                  <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
+                  <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label><button onClick={() => setSettings(prev => ({...prev, removeMetadata: !prev.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
               <div className="pt-4 border-t border-gray-600 space-y-3">
                   <button onClick={handleCompress} disabled={isProcessing} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-600">{isProcessing ? processingMessage : 'Compress PDF'}</button>
