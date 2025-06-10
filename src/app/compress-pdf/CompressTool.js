@@ -14,11 +14,12 @@ const initialSettings = {
   isGrayscale: false,
 };
 
-// --- NEW Non-Linear Quality Modifier Function ---
-// This curve more accurately reflects JPEG compression behavior.
+// This function now models the non-linear nature of JPEG compression for better accuracy.
 const getQualityModifier = (quality) => {
-  // A non-linear curve: small changes at high quality, big changes at low quality
-  return Math.pow(quality / 100, 2.5); 
+  if (quality >= 95) return 1.0;
+  if (quality <= 10) return 0.1;
+  // A curve that drops off slowly then more rapidly
+  return Math.pow(quality / 100, 2);
 };
 
 export default function CompressTool() {
@@ -31,8 +32,9 @@ export default function CompressTool() {
   
   const analysisData = useRef({
     pageCount: 0,
-    samplePageSizeAt100: 0, // The size of page 1 as a 100% quality JPG
+    baseSize: 0, // The estimated size of the document if it were all images at 100% quality
   });
+  const debounceTimeoutRef = useRef(null);
 
   // --- Effect for Initial File Analysis (Runs ONCE per file) ---
   useEffect(() => {
@@ -58,11 +60,12 @@ export default function CompressTool() {
         canvas.width = viewport.height;
         await page.render({ canvasContext: ctx, viewport }).promise;
         
+        // This is now our stable, unchanging preview image
         setPreviewImageSrc(canvas.toDataURL('image/png'));
         
         const jpgDataUrl100 = canvas.toDataURL('image/jpeg', 1.0);
-        analysisData.current.samplePageSizeAt100 = jpgDataUrl100.length;
-
+        analysisData.current.baseSize = jpgDataUrl100.length * pdfjsDoc.numPages;
+        
       } catch (error) {
         console.error("Fatal error during analysis:", error);
         alert("Could not analyze this PDF. It may be corrupt or have an unsupported format.");
@@ -76,36 +79,15 @@ export default function CompressTool() {
     analyzeFile();
   }, [file]);
 
-  // --- UNIFIED Effect for INSTANTLY Updating Preview and Stats ---
+  // --- UNIFIED Effect for INSTANTLY Updating Stats ---
+  // NO Debounce needed as the calculation is now instant.
   useEffect(() => {
     if (!file || !previewImageSrc) return;
 
-    // --- Part 1: Instantly redraw preview ---
-    const img = new Image();
-    img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.filter = settings.isGrayscale ? 'grayscale(100%)' : 'none';
-        ctx.drawImage(img, 0, 0);
-        
-        const liveCanvas = document.getElementById('live-preview-canvas');
-        if (liveCanvas) {
-            const liveCtx = liveCanvas.getContext('2d');
-            liveCtx.clearRect(0, 0, liveCanvas.width, liveCanvas.height);
-            liveCanvas.width = canvas.width;
-            liveCanvas.height = canvas.height;
-            liveCtx.drawImage(canvas, 0, 0);
-        }
-    };
-    img.src = previewImageSrc;
-
-    // --- Part 2: Instantly calculate new stats ---
-    const { pageCount, samplePageSizeAt100 } = analysisData.current;
-    if (pageCount > 0 && samplePageSizeAt100 > 0) {
+    const { baseSize } = analysisData.current;
+    if (baseSize > 0) {
         const qualityModifier = getQualityModifier(settings.quality);
-        let estimatedTotalSize = (samplePageSizeAt100 * qualityModifier) * pageCount;
+        let estimatedTotalSize = baseSize * qualityModifier;
         
         if (settings.isGrayscale) estimatedTotalSize *= 0.7; // Grayscale factor
         
@@ -199,7 +181,11 @@ export default function CompressTool() {
 
   const PreviewArea = () => (
     previewImageSrc ? (
-        <canvas id="live-preview-canvas" className="max-w-full max-h-full object-contain" />
+        <img 
+            src={previewImageSrc} 
+            alt="PDF Preview" 
+            className={`max-w-full max-h-full object-contain transition-filter duration-300 ${settings.isGrayscale ? 'grayscale' : 'grayscale-0'}`}
+        />
     ) : (
         <p className="text-accent">{processingMessage || "Preview will appear here."}</p>
     )
