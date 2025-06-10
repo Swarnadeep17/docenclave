@@ -7,7 +7,6 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import ToolPageHeader from '@/components/ToolPageHeader';
 import SparkMD5 from 'spark-md5';
 
-// Required configuration for pdf.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 export default function MergeTool() {
@@ -18,7 +17,6 @@ export default function MergeTool() {
   const [duplicateCount, setDuplicateCount] = useState(0);
 
   const handleFileChange = async (event) => {
-    // Clear any existing merged file to prevent memory leaks and reset state
     if (mergedFile) URL.revokeObjectURL(mergedFile.url);
     setMergedFile(null);
     setPages([]);
@@ -26,7 +24,7 @@ export default function MergeTool() {
     setDuplicateCount(0);
     
     const selectedFiles = Array.from(event.target.files);
-    event.target.value = null; // Reset file input to allow re-uploading the same file
+    event.target.value = null;
 
     const newOriginalFiles = new Map();
     let tempPages = [];
@@ -41,7 +39,6 @@ export default function MergeTool() {
 
       try {
         const fileBuffer = await file.arrayBuffer();
-        // Use a slice of the buffer for pdf.js to avoid potential transfer issues
         const pdf = await pdfjs.getDocument({ data: fileBuffer.slice(0) }).promise;
         
         for (let j = 1; j <= pdf.numPages; j++) {
@@ -52,7 +49,6 @@ export default function MergeTool() {
           canvas.height = viewport.height;
           canvas.width = viewport.width;
           await page.render({ canvasContext: context, viewport: viewport }).promise;
-          // Hash the visual data of the page to detect duplicates
           const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data.toString();
           const hash = SparkMD5.hash(imageData);
           
@@ -71,7 +67,6 @@ export default function MergeTool() {
       }
     }
 
-    // Identify and flag duplicate pages after all pages have been processed
     if (tempPages.length > 0) {
         const hashes = new Map();
         tempPages.forEach(p => hashes.set(p.hash, (hashes.get(p.hash) || 0) + 1));
@@ -98,58 +93,42 @@ export default function MergeTool() {
     setPages(items);
   };
   
-  // *** THIS IS THE CORRECTED MERGE FUNCTION ***
   const handleMerge = async () => {
-    if (pages.length === 0) {
-      alert("There are no pages to merge.");
-      return;
-    }
+    if (pages.length === 0) return;
     setIsProcessing(true);
     setMergedFile(null);
 
-    // This map will act as a cache for loaded PDF documents to prevent re-loading.
     const loadedDocsCache = new Map();
 
     try {
       const mergedPdf = await PDFDocument.create();
-
       for (const page of pages) {
         let sourcePdf;
-
-        // Check if we have already loaded this PDF file.
         if (loadedDocsCache.has(page.fileId)) {
-          // If yes, use the cached version.
           sourcePdf = loadedDocsCache.get(page.fileId);
         } else {
-          // If no, get the original file...
           const sourceFile = originalFiles.get(page.fileId);
           if (sourceFile) {
-            // ...load it into a pdf-lib document...
             const sourcePdfBytes = await sourceFile.arrayBuffer();
             sourcePdf = await PDFDocument.load(sourcePdfBytes, { ignoreEncryption: true });
-            // ...and cache it for the next time we see a page from this file.
             loadedDocsCache.set(page.fileId, sourcePdf);
           }
         }
-        
-        // Now, copy the page from the (potentially cached) source document.
         if (sourcePdf) {
           const [copiedPage] = await mergedPdf.copyPages(sourcePdf, [page.originalPageNumber - 1]);
           mergedPdf.addPage(copiedPage);
         }
       }
-
       const mergedPdfBytes = await mergedPdf.save();
       const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       setMergedFile({ url: url, name: 'docenclave-merged-pages.pdf' });
-
     } catch (error) {
       console.error("Error merging pages:", error);
-      alert("A critical error occurred while merging. This can happen with very complex or non-standard PDF files.");
+      alert("A critical error occurred while merging.");
     } finally {
       setIsProcessing(false);
-      loadedDocsCache.clear(); // Clean up the cache
+      loadedDocsCache.clear();
     }
   };
 
@@ -167,17 +146,35 @@ export default function MergeTool() {
     if (fileInput) fileInput.value = '';
   };
 
+  // *** NEW Function to handle download clicks and increment stats ***
+  const handleDownloadClick = () => {
+    fetch('/api/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ statToIncrement: 'downloads' }),
+    }).catch(err => console.error("Failed to increment download count:", err));
+  };
+
   const SuccessView = () => (
     <div className="text-center py-8">
       <h3 className="text-2xl font-semibold mb-4 text-green-400">Merge Successful!</h3>
       <p className="text-gray-400 mb-6">Your file with {pages.length} pages is ready.</p>
       <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-        <a href={mergedFile.url} download={mergedFile.name} className="w-full sm:w-auto bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors">Download</a>
+        <a 
+          href={mergedFile.url} 
+          download={mergedFile.name} 
+          onClick={handleDownloadClick} // Attach the new handler here
+          className="w-full sm:w-auto bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Download
+        </a>
         <button onClick={handleStartOver} className="w-full sm:w-auto bg-gray-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-gray-500 transition-colors">Merge More Files</button>
       </div>
     </div>
   );
 
+  // ... The rest of your return statement JSX remains the same as your current code.
+  // I am re-pasting it here for completeness.
   return (
     <div className="w-full max-w-6xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
       <ToolPageHeader 
