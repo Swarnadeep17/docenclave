@@ -12,23 +12,21 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/$
 const initialSettings = {
   quality: 75,
   isGrayscale: false,
+  removeMetadata: true, // Re-added this setting
 };
 
 export default function CompressTool() {
   const [file, setFile] = useState(null);
   const [settings, setSettings] = useState(initialSettings);
-  // Separate state for the slider's visual display to ensure it feels instant
   const [displayQuality, setDisplayQuality] = useState(initialSettings.quality);
   const [stats, setStats] = useState({ originalSize: 0, estimatedSize: 0, reduction: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  
-  // State for the preview image source URL
   const [previewImageSrc, setPreviewImageSrc] = useState(null);
   const analysisData = useRef({ pageCount: 0, samplePageSizeAt100: 0 });
   const debounceTimeoutRef = useRef(null);
 
-  // --- Effect for Initial File Analysis (Runs ONCE per file) ---
+  // --- Effect for Initial File Analysis & First Calculation ---
   useEffect(() => {
     if (!file) return;
 
@@ -53,10 +51,18 @@ export default function CompressTool() {
         canvas.width = viewport.height;
         await page.render({ canvasContext: ctx, viewport }).promise;
         
-        setPreviewImageSrc(canvas.toDataURL('image/png')); // Set the preview image source
+        setPreviewImageSrc(canvas.toDataURL('image/png'));
         
         const jpgDataUrl100 = canvas.toDataURL('image/jpeg', 1.0);
         analysisData.current.samplePageSizeAt100 = jpgDataUrl100.length;
+
+        // --- UNIFIED INITIAL CALCULATION ---
+        // This runs immediately after analysis, preventing the "0 Bytes" issue.
+        const originalSize = file.size;
+        let estimatedSize = (analysisData.current.samplePageSizeAt100 * (initialSettings.quality / 100)) * analysisData.current.pageCount;
+        if(initialSettings.isGrayscale) estimatedSize *= 0.7;
+        const reduction = originalSize > 0 ? 100 - (estimatedSize / originalSize) * 100 : 0;
+        setStats({ originalSize, estimatedSize, reduction: Math.max(0, Math.round(reduction)) });
 
       } catch (error) {
         console.error("Fatal error during analysis:", error);
@@ -80,27 +86,26 @@ export default function CompressTool() {
     debounceTimeoutRef.current = setTimeout(() => {
       // Update the "real" settings after the user stops moving the slider
       setSettings(prev => ({...prev, quality: displayQuality}));
+    }, 250);
 
-      // Calculate stats based on the latest quality
-      const { pageCount, samplePageSizeAt100 } = analysisData.current;
-      if (pageCount > 0 && samplePageSizeAt100 > 0) {
-        let estimatedTotalSize = (samplePageSizeAt100 * (displayQuality / 100)) * pageCount;
-        if (settings.isGrayscale) estimatedTotalSize *= 0.7; // Grayscale factor
+    return () => clearTimeout(debounceTimeoutRef.current);
+  }, [displayQuality, file]);
+
+  // This effect now ONLY calculates stats when the "real" settings change
+  useEffect(() => {
+    if (!file) return;
+    const { pageCount, samplePageSizeAt100 } = analysisData.current;
+    if (pageCount > 0 && samplePageSizeAt100 > 0) {
+        let estimatedTotalSize = (samplePageSizeAt100 * (settings.quality / 100)) * pageCount;
+        if (settings.isGrayscale) estimatedTotalSize *= 0.7;
         
         const originalSize = file.size;
         const reduction = originalSize > 0 ? 100 - (estimatedTotalSize / originalSize) * 100 : 0;
         
-        setStats({ 
-            originalSize, 
-            estimatedSize: estimatedTotalSize, 
-            reduction: Math.max(0, Math.round(reduction))
-        });
-      }
-    }, 250); // 250ms debounce delay
-
-    return () => clearTimeout(debounceTimeoutRef.current);
-  }, [displayQuality, settings.isGrayscale, file]);
-
+        setStats({ originalSize, estimatedSize: estimatedTotalSize, reduction: Math.max(0, Math.round(reduction)) });
+    }
+  }, [settings, file]);
+  
   const handleCompress = async () => {
     if (!file) return;
 
@@ -138,8 +143,10 @@ export default function CompressTool() {
         }
         
         setProcessingMessage('Saving file...');
-        newPdfDoc.setTitle('');
-        newPdfDoc.setAuthor('');
+        if (settings.removeMetadata) {
+            newPdfDoc.setTitle('');
+            newPdfDoc.setAuthor('');
+        }
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(blob, `docenclave-compressed-${file.name}`);
@@ -176,7 +183,6 @@ export default function CompressTool() {
   const handleStartOver = () => {
     setFile(null);
     setPreviewImageSrc(null);
-    originalPreviewDataUrl.current = null;
   };
 
   const PreviewArea = () => (
@@ -237,6 +243,7 @@ export default function CompressTool() {
               
               <div className="space-y-3">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(prev => ({...prev, isGrayscale: !prev.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
+                  <div className="flex items-center justify-between"><label htmlFor="metadata" className="text-sm text-gray-300">Basic Optimization</label><button onClick={() => setSettings(prev => ({...prev, removeMetadata: !prev.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
               </div>
                <div className="text-xs text-yellow-400/80 bg-yellow-900/30 p-2 rounded-md">Note: Compression makes text non-selectable.</div>
               <div className="pt-4 border-t border-gray-600 space-y-3">
