@@ -1,5 +1,5 @@
 // src/app/merge-pdf/page.js
-
+'use client';
 export default function MergePdfPage() {
   return (
     <div className="w-full max-w-4xl mx-auto py-24 px-4 sm:px-6 lg:px-8">
