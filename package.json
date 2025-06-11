@@ -15,17 +15,17 @@
     "jszip": "^3.10.1",
     "next": "14.2.4",
     "pdf-lib": "^1.17.1",
-    "pdfjs-dist": "^4.7.432", // Updated
-    "react": "^18.3.1", // Pinned
+    "pdfjs-dist": "^4.7.432",
+    "react": "^18.3.1",
     "react-beautiful-dnd": "^13.1.1",
     "react-countup": "^6.5.3",
-    "react-dom": "^18.3.1", // Pinned
-    "react-dropzone": "^14.2.9", // Updated
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^14.2.9",
     "spark-md5": "^3.0.2"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.20", // Updated
-    "postcss": "^8.4.47", // Updated
-    "tailwindcss": "^3.4.13" // Updated
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.13"
   }
 }
