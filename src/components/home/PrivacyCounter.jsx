@@ -33,13 +33,13 @@ const PrivacyMetric = ({ value, label, icon, delay = 0 }) => {
 
   return (
     <div className={`text-center transition-all duration-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-      <div className="flex items-center justify-center mb-2">
-        <span className="text-2xl mr-2">{icon}</span>
-        <span className="text-3xl md:text-5xl font-bold text-black font-mono">
+      <div className="flex items-center justify-center mb-4">
+        <span className="text-3xl mr-3">{icon}</span>
+        <span className="text-4xl md:text-6xl font-bold text-dark-text-primary font-mono">
           {displayValue.toLocaleString()}
         </span>
       </div>
-      <div className="text-gray-600 text-sm md:text-base font-medium">
+      <div className="text-dark-text-secondary text-sm md:text-lg font-medium">
         {label}
       </div>
     </div>
@@ -47,10 +47,10 @@ const PrivacyMetric = ({ value, label, icon, delay = 0 }) => {
 }
 
 const LiveIndicator = () => (
-  <div className="flex items-center justify-center mb-6">
-    <div className="flex items-center bg-gray-100 px-3 py-1 rounded-full">
-      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
-      <span className="text-xs text-gray-600 font-medium">LIVE PRIVACY STATS</span>
+  <div className="flex items-center justify-center mb-8">
+    <div className="flex items-center bg-dark-secondary px-4 py-2 rounded-full border border-dark-border">
+      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-3"></div>
+      <span className="text-xs text-dark-text-secondary font-medium tracking-wider">LIVE PRIVACY STATS</span>
     </div>
   </div>
 )
@@ -75,32 +75,39 @@ const PrivacyCounter = () => {
 
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <div className="animate-pulse">
-          <div className="h-12 bg-gray-200 rounded w-48 mx-auto mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-32 mx-auto"></div>
+      <section className="bg-dark-secondary border-y border-dark-border py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <div className="animate-pulse">
+              <div className="h-16 bg-dark-tertiary rounded w-64 mx-auto mb-6"></div>
+              <div className="h-6 bg-dark-tertiary rounded w-48 mx-auto"></div>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     )
   }
 
   // Calculate privacy impact metrics
   const documentsProcessed = stats.downloads
-  const filesProtected = stats.visitors * 2.3 // Avg 2.3 files per visitor session
+  const filesProtected = Math.floor(stats.visitors * 2.3) // Avg 2.3 files per visitor session
   
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-white py-12 border-t border-b border-gray-100">
+    <section className="bg-dark-secondary border-y border-dark-border py-20">
       <div className="container mx-auto px-4">
         <LiveIndicator />
         
-        <div className="max-w-4xl mx-auto">
-          <h3 className="text-xl md:text-2xl font-semibold text-center text-gray-800 mb-8">
+        <div className="max-w-5xl mx-auto">
+          <h3 className="text-2xl md:text-3xl font-bold text-center text-dark-text-primary mb-4">
             Your Privacy is Our Priority
           </h3>
+          <p className="text-center text-dark-text-secondary mb-12 max-w-2xl mx-auto">
+            Real-time impact of our client-side processing approach
+          </p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
             <PrivacyMetric 
-              value={Math.floor(filesProtected)}
+              value={filesProtected}
               label="Files Kept Off Cloud Servers"
               icon="🔒"
               delay={300}
@@ -113,15 +120,15 @@ const PrivacyCounter = () => {
             />
           </div>
           
-          <div className="text-center mt-8">
-            <p className="text-sm text-gray-500 max-w-2xl mx-auto">
+          <div className="text-center mt-12">
+            <p className="text-sm text-dark-text-muted max-w-3xl mx-auto leading-relaxed">
               Every file you process with DocEnclave stays on your device. 
-              No uploads, no cloud storage, no privacy concerns.
+              No uploads, no cloud storage, no privacy concerns. Join thousands who trust us with their document privacy.
             </p>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
 
