@@ -123,7 +123,7 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </footer>
+      </section>
     </>
   )
 }
