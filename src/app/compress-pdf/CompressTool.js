@@ -3,26 +3,26 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
+import { useDropzone } from 'react-dropzone'; // Ensure this is imported
 import { saveAs } from 'file-saver';
 import ToolPageHeader from '@/components/ToolPageHeader';
-// Assuming JSZip is installed: npm install jszip
-// If not, you'll need to install it.
+// Assuming JSZip is installed for batch download: npm install jszip
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 const initialSettings = {
-  compressionLevel: 75, // 10-100, maps to scaling
-  imageQuality: 80,     // 10-100, influences internal optimizations
+  compressionLevel: 75, 
+  imageQuality: 80,     
   removeMetadata: true,
 };
 
 export default function CompressTool() {
-  const [files, setFiles] = useState([]); // Array of file objects { id, file, name, size, status, originalSize, compressedSize, downloadUrl, previewUrl, error }
+  const [files, setFiles] = useState([]); 
   const [settings, setSettings] = useState(initialSettings);
   const [isProcessingGlobal, setIsProcessingGlobal] = useState(false);
   const [globalProcessingMessage, setGlobalProcessingMessage] = useState('');
-  const [dragActive, setDragActive] = useState(false);
-  const fileInputRef = useRef(null);
+  const [dragActive, setDragActive] = useState(false); // For manual drag state if not using all of useDropzone's UI
+  const fileInputRef = useRef(null); // For the button-triggered file input
 
   const formatFileSize = (bytes) => {
     if (bytes === 0 || !bytes) return '0 B';
@@ -38,8 +38,8 @@ export default function CompressTool() {
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
       if (pdf.numPages > 0) {
-        const page = await pdf.getPage(1); // Preview first page
-        const viewport = page.getViewport({ scale: 0.5 }); // Scale for thumbnail
+        const page = await pdf.getPage(1);
+        const viewport = page.getViewport({ scale: 0.5 });
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         canvas.height = viewport.height;
@@ -50,11 +50,12 @@ export default function CompressTool() {
     } catch (e) {
       console.error("Error generating preview for", fileObject.name, e);
     }
-    return null; // Return null if preview generation fails
+    return null;
   };
 
-  const handleFileSelect = useCallback(async (selectedFilesArray) => {
-    const newFilesPromises = Array.from(selectedFilesArray).map(async (file) => {
+  // --- onDrop for react-dropzone ---
+  const onDrop = useCallback(async (acceptedFiles) => {
+    const newFilesPromises = acceptedFiles.map(async (file) => {
       let error = null;
       if (file.type !== 'application/pdf') error = 'Only PDF files are allowed';
       if (file.size > 50 * 1024 * 1024) error = 'File size must be less than 50MB';
@@ -76,24 +77,26 @@ export default function CompressTool() {
     });
 
     const newFiles = await Promise.all(newFilesPromises);
-    setFiles(prev => [...prev, ...newFiles.filter(f => !prev.some(pf => pf.name === f.name && pf.size === f.size))]); // Avoid adding exact duplicates
+    setFiles(prev => {
+        const allFiles = [...prev, ...newFiles];
+        // Filter out exact duplicates by name and size to prevent re-adding
+        const uniqueFiles = allFiles.filter((file, index, self) =>
+            index === self.findIndex((f) => (
+                f.name === file.name && f.size === file.size
+            ))
+        );
+        return uniqueFiles;
+    });
+    setDragActive(false); // Reset drag active state after drop
   }, []);
 
-  const handleDrag = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
-    else if (e.type === 'dragleave') setDragActive(false);
-  }, []);
+  // --- Correctly call useDropzone ---
+  const { getRootProps, getInputProps, isDragActive: dropzoneIsDragActive } = useDropzone({
+    onDrop,
+    accept: { 'application/pdf': ['.pdf'] },
+    multiple: true, // Allow multiple for batch processing
+  });
 
-  const handleDrop = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFileSelect(e.dataTransfer.files);
-    }
-  }, [handleFileSelect]);
 
   const removeFile = (id) => {
     setFiles(prev => prev.filter(file => {
@@ -116,24 +119,19 @@ export default function CompressTool() {
         pdfDoc.setTitle(''); pdfDoc.setAuthor(''); pdfDoc.setSubject('');
         pdfDoc.setKeywords([]); pdfDoc.setProducer('DocEnclave');
         pdfDoc.setCreator('DocEnclave'); 
-        try { // These can sometimes cause issues with certain PDF versions
+        try { 
             pdfDoc.setCreationDate(new Date()); 
             pdfDoc.setModificationDate(new Date());
         } catch (metaError){
             console.warn("Could not set date metadata:", metaError);
         }
       }
-
-      const pages = pdfDoc.getPages();
-      for (let i = 0; i < pages.length; i++) {
-        // pdf-lib's direct image re-compression is not its forte.
-        // The primary size reduction comes from structural optimization during save()
-        // and potentially by how it handles scaled content if we were to use page.scaleContent()
-        // For now, we rely on pdfDoc.save()'s internal optimizations.
-        // More advanced image re-compression would need 'sharp' or similar, server-side.
-      }
       
-      // The useObjectStreams option is crucial for pdf-lib's internal compression
+      // Here, pdf-lib's save with useObjectStreams will do most of the work.
+      // More advanced image-specific compression (like JPEG re-encoding) would require
+      // iterating through images, extracting, re-compressing (e.g. with a canvas), and re-embedding.
+      // This is complex and often better suited for server-side.
+      // For client-side, relying on pdf-lib's structural optimization is more robust.
       const compressedBytes = await pdfDoc.save({ useObjectStreams: true });
       const compressedSize = compressedBytes.length;
       const blob = new Blob([compressedBytes], { type: 'application/pdf' });
@@ -153,10 +151,12 @@ export default function CompressTool() {
 
     for (let i = 0; i < files.length; i++) {
         const currentFile = files[i];
-        if (currentFile.status === 'ready' || currentFile.status === 'error') { // Allow re-processing errors
+        if (currentFile.status === 'ready' || currentFile.status === 'error') {
             setGlobalProcessingMessage(`Compressing ${currentFile.name} (${i+1} of ${files.length})...`);
             setFiles(prev => prev.map(f => f.id === currentFile.id ? { ...f, status: 'processing' } : f));
             try {
+                // Add a small delay to allow UI to update before heavy processing
+                await new Promise(resolve => setTimeout(resolve, 50));
                 const result = await compressSinglePDF(currentFile);
                 setFiles(prev => prev.map(f => f.id === currentFile.id ? {
                     ...f, status: 'completed',
@@ -179,7 +179,7 @@ export default function CompressTool() {
   };
 
   const downloadAllAsZip = async () => {
-    const JSZip = (await import('jszip')).default; // Dynamic import for JSZip
+    const JSZip = (await import('jszip')).default;
     const zip = new JSZip();
     const completedFiles = files.filter(f => f.status === 'completed' && f.downloadUrl);
     if (completedFiles.length === 0) {
@@ -191,13 +191,23 @@ export default function CompressTool() {
     setIsProcessingGlobal(true);
 
     for (const file of completedFiles) {
-      const response = await fetch(file.downloadUrl); // Fetch the blob from its ObjectURL
-      const blob = await response.blob();
-      zip.file(file.name.replace('.pdf', '_compressed.pdf'), blob);
+      try {
+          const response = await fetch(file.downloadUrl);
+          const blob = await response.blob();
+          zip.file(file.name.replace('.pdf', '_compressed.pdf'), blob);
+      } catch (zipError) {
+          console.error("Error adding file to ZIP:", file.name, zipError);
+          alert(`Could not add ${file.name} to the ZIP. It might have an issue with its download URL.`);
+      }
     }
 
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    saveAs(zipBlob, "docenclave-compressed-files.zip");
+    try {
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        saveAs(zipBlob, "docenclave-compressed-files.zip");
+    } catch (zipGenError) {
+        console.error("Error generating ZIP file:", zipGenError);
+        alert("Could not generate the ZIP file.");
+    }
     setIsProcessingGlobal(false);
     setGlobalProcessingMessage('');
   };
@@ -215,13 +225,11 @@ export default function CompressTool() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
             <div>
               <label htmlFor="compressionLevel" className="block text-sm font-medium text-gray-300 mb-1">
-                Optimization Level (Affects internal structures)
+                Optimization Level
               </label>
               <input id="compressionLevel" type="range" min="10" max="100" value={settings.compressionLevel} onChange={(e) => setSettings(p => ({...p, compressionLevel: parseInt(e.target.value)}))} className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer"/>
-              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>Lower</span><span className="font-bold text-accent">{settings.compressionLevel}%</span><span>Higher</span></div>
+              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>Basic</span><span className="font-bold text-accent">{settings.compressionLevel}%</span><span>Aggressive</span></div>
             </div>
-            {/* Image Quality and Grayscale are less directly controllable with this pdf-lib method for general compression */}
-            {/* We keep them for future enhancements if we use a different image processing step */}
             <div className="flex items-center justify-between pt-2">
                 <label htmlFor="metadata" className="text-sm text-gray-300">Remove Metadata</label>
                 <button onClick={() => setSettings(p => ({...p, removeMetadata: !p.removeMetadata}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.removeMetadata ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.removeMetadata ? 'translate-x-6' : 'translate-x-1'}`} /></button>
@@ -229,20 +237,17 @@ export default function CompressTool() {
           </div>
         </div>
 
-        {/* Drop Zone */}
+        {/* Drop Zone - Uses react-dropzone */}
         <div
-          {...getRootProps()} // Spread props here for react-dropzone
-          className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${dragActive ? 'border-accent bg-gray-800' : 'border-gray-500 hover:bg-gray-800 hover:border-gray-400'}`}
-          onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}
+          {...getRootProps()}
+          className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${dropzoneIsDragActive ? 'border-accent bg-gray-800' : 'border-gray-500 hover:bg-gray-800 hover:border-gray-400'}`}
         >
-          <input {...getInputProps()} ref={fileInputRef} className="hidden" /> {/* And here */}
+          <input {...getInputProps()} />
           <svg className="w-8 h-8 mb-4 text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16"><path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/></svg>
-          <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{dragActive ? 'Drop PDFs here' : 'Click to upload or drag & drop'}</span></p>
+          <p className="mb-2 text-sm text-gray-400"><span className="font-semibold text-accent">{dropzoneIsDragActive ? 'Drop PDFs here' : 'Click to upload or drag & drop'}</span></p>
           <p className="text-xs text-gray-500">Select multiple PDF files</p>
-           <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-4 px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-500">Select Files</button>
         </div>
 
-        {/* File List & Actions */}
         {files.length > 0 && (
           <div>
             <div className="flex justify-between items-center mb-4">
@@ -260,15 +265,15 @@ export default function CompressTool() {
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
               {files.map((fileItem) => (
                 <div key={fileItem.id} className="bg-gray-700/50 p-3 rounded-lg flex items-center justify-between space-x-3">
-                  {fileItem.previewUrl && <img src={fileItem.previewUrl} alt="preview" className="w-10 h-10 object-contain rounded border border-gray-600"/>}
-                  {!fileItem.previewUrl && fileItem.status !== 'error' && <div className="w-10 h-10 bg-gray-600 rounded flex items-center justify-center text-xs text-gray-400">N/A</div>}
-                  {fileItem.status === 'error' && <div className="w-10 h-10 bg-red-900/50 rounded flex items-center justify-center text-red-400 text-2xl font-bold">!</div>}
+                  {fileItem.previewUrl && <img src={fileItem.previewUrl} alt="preview" className="w-10 h-12 object-contain rounded border border-gray-600 bg-white"/>}
+                  {!fileItem.previewUrl && fileItem.status !== 'error' && <div className="w-10 h-12 bg-gray-600 rounded flex items-center justify-center text-xs text-gray-400">No Preview</div>}
+                  {fileItem.status === 'error' && <div className="w-10 h-12 bg-red-900/50 rounded flex items-center justify-center text-red-400 text-2xl font-bold">!</div>}
 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-200 truncate">{fileItem.name}</p>
                     <div className="text-xs text-gray-400">
                       {formatFileSize(fileItem.originalSize)}
-                      {fileItem.status === 'completed' && fileItem.compressedSize && (
+                      {fileItem.status === 'completed' && fileItem.compressedSize != null && (
                         <span className="text-green-400 ml-2">→ {formatFileSize(fileItem.compressedSize)} (~{Math.round(100 - (fileItem.compressedSize / fileItem.originalSize) * 100)}% saved)</span>
                       )}
                     </div>
@@ -297,7 +302,7 @@ export default function CompressTool() {
         <p>We understand the importance of document security. All compression and processing happens directly on your computer. No data leaves your device, giving you peace of mind when handling sensitive information. This client-side approach means you get the benefits of powerful PDF optimization without compromising your privacy.</p>
         <h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2>
         <div className="space-y-8">
-          <div><h4 className="text-xl font-semibold">How does this tool compress PDFs?</h4><p>Our compressor primarily uses `pdf-lib`'s internal optimization features, which include techniques like removing redundant data and optimizing the PDF structure. While we don't re-encode every image to a specific JPEG quality like some other tools (which would make text non-selectable), this method provides good compression while maintaining document integrity and text selectability.</p></div>
+          <div><h4 className="text-xl font-semibold">How does this tool compress PDFs?</h4><p>Our compressor primarily uses `pdf-lib`'s internal optimization features, which include techniques like removing redundant data and optimizing the PDF structure. The "Optimization Level" setting influences how aggressively these techniques are applied. This method provides good compression while maintaining document integrity and text selectability.</p></div>
           <div><h4 className="text-xl font-semibold">Can I process multiple files at once?</h4><p>Yes! You can upload several PDF files simultaneously. The tool will process each one according to your selected settings, and you can then download them individually or all together in a ZIP file.</p></div>
           <div><h4 className="text-xl font-semibold">Is text still selectable after compression?</h4><p>Yes. Because we use a method that optimizes the existing PDF structure rather than converting pages to images, your text remains fully selectable and searchable in the compressed PDF.</p></div>
         </div>
