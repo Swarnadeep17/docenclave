@@ -9,12 +9,17 @@ const Layout = ({ children }) => {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-dark-text-primary">
-                DocEnclave
-              </h1>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-dark-text-primary">
+                  DocEnclave
+                </h1>
+                <p className="text-dark-text-muted text-sm md:text-base">
+                  Secure Document Processing
+                </p>
+              </div>
             </Link>
             <div className="hidden md:flex items-center space-x-6">
-              <Link to="/tools" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors">
+              <Link to="/tools/pdf/merge" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm">
                 Tools
               </Link>
               <span className="text-dark-text-secondary text-sm">About</span>
@@ -35,6 +40,15 @@ const Layout = ({ children }) => {
           <div className="text-center">
             <h4 className="text-xl font-bold text-dark-text-primary mb-2">DocEnclave</h4>
             <p className="text-dark-text-muted mb-6">Privacy-first document processing</p>
+            
+            <div className="flex justify-center space-x-8 mb-8">
+              <Link to="/tools/pdf/merge" className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors">
+                Tools
+              </Link>
+              <span className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors">Privacy</span>
+              <span className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors">Support</span>
+            </div>
+            
             <p className="text-dark-text-muted text-sm">
               &copy; 2024 DocEnclave. Privacy-first document processing.
             </p>
