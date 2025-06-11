@@ -3,10 +3,13 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist'; // Keep consistent alias
+import { useDropzone } from 'react-dropzone'; // <--- ENSURE THIS LINE IS PRESENT AND CORRECT
 import { saveAs } from 'file-saver';
 import ToolPageHeader from '@/components/ToolPageHeader';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+
+// ... rest of your component code
 
 const initialSettings = {
   quality: 75,
