@@ -5,6 +5,7 @@ import { trackVisitor, hasTrackedThisSession, markVisitorTracked } from '../util
 
 const Home = () => {
   useEffect(() => {
+    // Track visitor on page load (only once per session)
     if (!hasTrackedThisSession()) {
       trackVisitor()
       markVisitorTracked()
@@ -25,17 +26,19 @@ const Home = () => {
             No uploads, no tracking, no compromises.
           </p>
           
+          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Link to="/tools/pdf/merge" className="bg-dark-text-primary text-dark-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-text-secondary transition-colors">
               Start Processing
             </Link>
-            <Link to="/tools" className="border border-dark-border text-dark-text-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-tertiary transition-colors">
-              View All Tools
+            <Link to="/tools/pdf/merge" className="border border-dark-border text-dark-text-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-tertiary transition-colors">
+              View Tools
             </Link>
           </div>
         </div>
       </section>
 
+      {/* Privacy Counter */}
       <PrivacyCounter />
 
       {/* Tools Section */}
@@ -120,7 +123,7 @@ const Home = () => {
             </div>
           </div>
         </div>
-      </section>
+      </footer>
     </>
   )
 }
