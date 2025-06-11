@@ -441,8 +441,8 @@ const PDFMerge = () => {
           </div>
         )}
 
-        {/* File Upload Zone */}
-        {(!previewMode || files.length === 0) && (
+        {/* File Upload Zone - Show when no files or in simple mode */}
+        {files.length === 0 && (
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${
@@ -465,7 +465,60 @@ const PDFMerge = () => {
           </div>
         )}
 
-        {/* File Previews */}
+        {/* Simple File List View (when previewMode is false but files exist) */}
+        {!previewMode && files.length > 0 && (
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-dark-text-primary">
+                Selected Files ({files.length})
+              </h3>
+              <div className="flex space-x-3">
+                <div {...getRootProps()}>
+                  <input {...getInputProps()} />
+                  <button className="bg-dark-tertiary text-dark-text-primary px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                    Add More Files
+                  </button>
+                </div>
+                <button
+                  onClick={() => setPreviewMode(true)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Advanced Preview
+                </button>
+              </div>
+            </div>
+            
+            {/* Simple file list */}
+            <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border">
+              <div className="space-y-3">
+                {files.map((file, index) => (
+                  <div key={file.id} className="flex items-center justify-between bg-dark-tertiary p-4 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-2xl">📄</span>
+                      <div>
+                        <p className="text-dark-text-primary font-medium">{file.name}</p>
+                        <p className="text-dark-text-muted text-sm">
+                          {formatFileSize(file.size)} • {file.pages.length} pages
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-dark-text-secondary text-sm">#{index + 1}</span>
+                      <button
+                        onClick={() => removeFile(file.id)}
+                        className="text-red-400 hover:text-red-300 p-2"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Advanced File Previews (when previewMode is true) */}
         {previewMode && files.length > 0 && (
           <div className="space-y-6 mb-6">
             <div className="flex items-center justify-between">
@@ -473,12 +526,12 @@ const PDFMerge = () => {
                 Page Preview & Selection
               </h3>
               <div className="flex space-x-3">
-                <button
-                  {...getRootProps()}
-                  className="bg-dark-tertiary text-dark-text-primary px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Add More Files
-                </button>
+                <div {...getRootProps()}>
+                  <input {...getInputProps()} />
+                  <button className="bg-dark-tertiary text-dark-text-primary px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                    Add More Files
+                  </button>
+                </div>
                 <button
                   onClick={() => setPreviewMode(false)}
                   className="border border-dark-border text-dark-text-primary px-4 py-2 rounded-lg hover:bg-dark-tertiary transition-colors"
