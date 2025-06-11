@@ -55,37 +55,50 @@ export default function CompressTool() {
    */
     // --- EFFECT TO RENDER PREVIEW OF COMPRESSED FILE ---
   useEffect(() => {
-    if (compressedFile && compressedFile.blob && previewCanvasRef.current) {
+    if (compressedFile && compressedFile.blob) { // Removed previewCanvasRef.current from outer if
+        setHasPreviewRendered(false); // Reset before attempting to render
         const renderPreview = async () => {
             setProcessingMessage('Rendering final preview...');
             try {
+                const canvas = previewCanvasRef.current; // Get the current ref value here
+                if (!canvas) { // Explicitly check if canvas element is available
+                    console.warn("Preview canvas element not found, deferring render.");
+                    // You might want to set a flag here to retry or show a specific message
+                    return; // Exit if canvas is not ready
+                }
+
                 const arrayBuffer = await compressedFile.blob.arrayBuffer();
                 const pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
                 const page = await pdfDoc.getPage(1);
-                const viewport = page.getViewport({ scale: 1.0 }); // Keep scale 1.0 for decent preview
-                const canvas = previewCanvasRef.current;
+                const viewport = page.getViewport({ scale: 1.0 });
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
                 await page.render({ canvasContext: context, viewport }).promise;
+                setHasPreviewRendered(true);
             } catch (e) {
                 console.error("Error rendering compressed preview:", e);
-                // Log the full error object for detailed debugging
                 console.error("PDF.js rendering error details:", JSON.stringify(e, Object.getOwnPropertyNames(e)));
-                alert("Could not render preview of the compressed file. You can still try to download it.");
+                setHasPreviewRendered(false);
             } finally {
                 setProcessingMessage('');
             }
         };
-        renderPreview();
+        // Add a small delay to ensure the DOM has updated and the canvas element is available
+        // This is a common workaround for ref-related race conditions in React
+        const timeoutId = setTimeout(renderPreview, 50); // Small delay, e.g., 50ms
+
+        return () => clearTimeout(timeoutId); // Cleanup timeout if component unmounts or deps change
     } else if (!compressedFile && file) {
         const canvas = previewCanvasRef.current;
         if (canvas) {
             const context = canvas.getContext('2d');
             context.clearRect(0, 0, canvas.width, canvas.height);
         }
+        setHasPreviewRendered(false);
     }
-  }, [compressedFile, file]); // Dependencies for the effect
+  }, [compressedFile, file]); // No change to dependencies
+ // Dependencies for the effect
 
   /**
    * Handles the compression and preview generation process.
