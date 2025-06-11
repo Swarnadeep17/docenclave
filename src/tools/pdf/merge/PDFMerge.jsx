@@ -357,44 +357,44 @@ const PDFMerge = () => {
           </p>
         </div>
 
-        {/* 4 Neon USP Cards in 2x2 Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16 max-w-4xl mx-auto">
-          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-xl p-6 shadow-lg shadow-blue-500/20">
-            <div className="flex items-center mb-3">
-              <span className="text-3xl mr-3">👁️</span>
-              <h3 className="text-xl font-semibold text-blue-400">Page Preview</h3>
+        {/* 4 USP Cards - 2 per row */}
+        <div className="grid grid-cols-2 gap-4 mb-12 max-w-3xl mx-auto">
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">👁️</span>
+              <h3 className="text-lg font-semibold text-blue-400">Page Preview</h3>
             </div>
-            <p className="text-dark-text-secondary">
+            <p className="text-dark-text-secondary text-sm">
               See every page before merging. Select, reorder, and delete pages with visual thumbnails.
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/30 rounded-xl p-6 shadow-lg shadow-green-500/20">
-            <div className="flex items-center mb-3">
-              <span className="text-3xl mr-3">🔒</span>
-              <h3 className="text-xl font-semibold text-green-400">100% Private</h3>
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/30 rounded-lg p-4 shadow-lg shadow-green-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">🔒</span>
+              <h3 className="text-lg font-semibold text-green-400">100% Private</h3>
             </div>
-            <p className="text-dark-text-secondary">
+            <p className="text-dark-text-secondary text-sm">
               Your PDFs never leave your device. All processing happens locally in your browser.
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-xl p-6 shadow-lg shadow-purple-500/20">
-            <div className="flex items-center mb-3">
-              <span className="text-3xl mr-3">⚡</span>
-              <h3 className="text-xl font-semibold text-purple-400">Instant Processing</h3>
+          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-lg p-4 shadow-lg shadow-purple-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">⚡</span>
+              <h3 className="text-lg font-semibold text-purple-400">Instant Processing</h3>
             </div>
-            <p className="text-dark-text-secondary">
+            <p className="text-dark-text-secondary text-sm">
               No uploads, no waiting. Merge PDFs instantly without server delays.
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/30 rounded-xl p-6 shadow-lg shadow-yellow-500/20">
-            <div className="flex items-center mb-3">
-              <span className="text-3xl mr-3">🎯</span>
-              <h3 className="text-xl font-semibold text-yellow-400">Smart Detection</h3>
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/30 rounded-lg p-4 shadow-lg shadow-yellow-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">🎯</span>
+              <h3 className="text-lg font-semibold text-yellow-400">Smart Detection</h3>
             </div>
-            <p className="text-dark-text-secondary">
+            <p className="text-dark-text-secondary text-sm">
               Automatically highlights duplicate pages and provides bulk selection tools.
             </p>
           </div>
@@ -560,7 +560,7 @@ const PDFMerge = () => {
         <section className="mb-16">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-dark-text-primary mb-8">
-              The Complete Guide to PDF Merging in 2024
+              The Complete Guide to PDF Merging
             </h2>
             
             <div className="space-y-8">
