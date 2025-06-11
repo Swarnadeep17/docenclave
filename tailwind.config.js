@@ -7,17 +7,16 @@ export default {
   theme: {
     extend: {
       colors: {
-        gray: {
-          50: '#fafafa',
-          100: '#f5f5f5',
-          200: '#e5e5e5',
-          300: '#d4d4d4',
-          400: '#a3a3a3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          800: '#262626',
-          900: '#171717',
+        dark: {
+          primary: '#0a0a0a',    // Main background
+          secondary: '#1a1a1a',  // Cards/sections
+          tertiary: '#2a2a2a',   // Hover states
+          border: '#333333',     // Borders
+          text: {
+            primary: '#ffffff',   // Headings
+            secondary: '#e5e5e5', // Body text
+            muted: '#a3a3a3',    // Muted text
+          }
         }
       }
     },
