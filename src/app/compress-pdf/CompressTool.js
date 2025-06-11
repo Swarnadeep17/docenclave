@@ -1,196 +1,209 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react'; import { PDFDocument } from 'pdf-lib'; import * as pdfjsLib from 'pdfjs-dist/build/pdf'; import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry'; import { useDropzone } from 'react-dropzone'; import { saveAs } from 'file-saver'; import ToolPageHeader from '@/components/ToolPageHeader';
+import React, { useState, useEffect } from 'react';
+import { PDFDocument } from 'pdf-lib';
+import { saveAs } from 'file-saver';
+import * as pdfjsLib from 'pdfjs-dist';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
-const qualityPresets = [ { name: 'Recommended', value: 75, description: 'Good balance of size and quality.' }, { name: 'Strong Compression', value: 50, description: 'Smaller file, noticeable quality reduction.' }, { name: 'Extreme Compression', value: 25, description: 'Smallest file, significant quality reduction.' }, ];
+const CompressTool = () => {
+  const [file, setFile] = useState(null);
+  const [originalPdf, setOriginalPdf] = useState(null);
+  const [compressedPdf, setCompressedPdf] = useState(null);
+  const [previews, setPreviews] = useState([]);
+  const [settings, setSettings] = useState({ isGrayscale: false, quality: 0.7 });
+  const [metadata, setMetadata] = useState({});
+  const [view, setView] = useState('preview'); // 'preview' or 'metadata'
+  const [isProcessing, setIsProcessing] = useState(false);
 
-const initialSettings = { quality: 75, isGrayscale: false, removeMetadata: true, };
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFile(file);
 
-export default function CompressTool() { const [file, setFile] = useState(null); const [settings, setSettings] = useState(initialSettings); const [view, setView] = useState('preview'); const [isProcessing, setIsProcessing] = useState(false); const [processingMessage, setProcessingMessage] = useState(''); const [previewPages, setPreviewPages] = useState([]); const [metadata, setMetadata] = useState(null);
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfDoc = await PDFDocument.load(arrayBuffer);
+    setOriginalPdf(pdfDoc);
 
-// Generate multi-page preview & metadata on file or grayscale change useEffect(() => { if (!file) { setPreviewPages([]); setMetadata(null); return; }
+    generatePreviewsAndMetadata(arrayBuffer);
+  };
 
-const generatePreviewsAndMetadata = async () => {
-  setIsProcessing(true);
-  setProcessingMessage('Loading PDF...');
+  const generatePreviewsAndMetadata = async (arrayBuffer) => {
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
 
-  const arrayBuffer = await file.arrayBuffer();
+    const previews = [];
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale: 1 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
 
-  // Extract metadata via pdf-lib
-  try {
-    const metaDoc = await PDFDocument.load(arrayBuffer);
-    setMetadata({
-      title: metaDoc.getTitle(),
-      author: metaDoc.getAuthor(),
-      subject: metaDoc.getSubject(),
-      keywords: metaDoc.getKeywords(),
-      creator: metaDoc.getCreator(),
-      producer: metaDoc.getProducer(),
-      creationDate: metaDoc.getCreationDate(),
-      modificationDate: metaDoc.getModificationDate(),
-    });
-  } catch {
-    setMetadata(null);
-  }
+      await page.render({ canvasContext: context, viewport }).promise;
+      previews.push(canvas.toDataURL());
+    }
+    setPreviews(previews);
 
-  // Render each page via pdfjs
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-  const pdf = await loadingTask.promise;
-  const pageCount = pdf.numPages;
-  const previews = [];
+    const meta = {
+      title: pdf._pdfInfo.info?.Title || 'N/A',
+      author: pdf._pdfInfo.info?.Author || 'N/A',
+      pageCount: numPages,
+      creationDate: pdf._pdfInfo.info?.CreationDate || 'N/A',
+      modDate: pdf._pdfInfo.info?.ModDate || 'N/A',
+    };
+    setMetadata(meta);
+  };
 
-  for (let i = 1; i <= pageCount; i++) {
-    setProcessingMessage(`Rendering page ${i}/${pageCount}...`);
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 1.0 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
+  const handleCompress = async () => {
+    if (!file) return;
+    setIsProcessing(true);
 
-    await page.render({ canvasContext: ctx, viewport }).promise;
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages;
 
-    // Apply grayscale preview if set
-    if (settings.isGrayscale) {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let j = 0; j < imgData.data.length; j += 4) {
-        const avg = (imgData.data[j] + imgData.data[j + 1] + imgData.data[j + 2]) / 3;
-        imgData.data[j] = imgData.data[j + 1] = imgData.data[j + 2] = avg;
+    const newPdfDoc = await PDFDocument.create();
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1.5 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      let imgData = canvas.toDataURL('image/jpeg', settings.quality);
+
+      if (settings.isGrayscale) {
+        const grayCanvas = document.createElement('canvas');
+        grayCanvas.width = canvas.width;
+        grayCanvas.height = canvas.height;
+        const ctx = grayCanvas.getContext('2d');
+        const img = new Image();
+        img.src = imgData;
+
+        await new Promise((res) => (img.onload = res));
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, grayCanvas.width, grayCanvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+          data[i] = data[i + 1] = data[i + 2] = avg;
+        }
+        ctx.putImageData(imageData, 0, 0);
+        imgData = grayCanvas.toDataURL('image/jpeg', settings.quality);
       }
-      ctx.putImageData(imgData, 0, 0);
+
+      const imageBytes = await fetch(imgData).then((res) => res.arrayBuffer());
+      const image = await newPdfDoc.embedJpg(imageBytes);
+      const pageDims = image.scale(1);
+
+      const newPage = newPdfDoc.addPage([pageDims.width, pageDims.height]);
+      newPage.drawImage(image, { x: 0, y: 0, width: pageDims.width, height: pageDims.height });
     }
 
-    previews.push(canvas.toDataURL('image/png'));
-  }
+    const compressedPdfBytes = await newPdfDoc.save();
+    const blob = new Blob([compressedPdfBytes], { type: 'application/pdf' });
+    setCompressedPdf(blob);
+    setIsProcessing(false);
+  };
 
-  setPreviewPages(previews);
-  setIsProcessing(false);
-  setProcessingMessage('');
-};
-
-generatePreviewsAndMetadata();
-
-}, [file, settings.isGrayscale]);
-
-// Compression via page rasterization const handleCompress = async () => { if (!file) return; setIsProcessing(true);
-
-try {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const newPdf = await PDFDocument.create();
-  const pageCount = pdf.numPages;
-
-  for (let i = 1; i <= pageCount; i++) {
-    setProcessingMessage(`Compressing page ${i}/${pageCount}...`);
-    const page = await pdf.getPage(i);
-    const viewport = page.getViewport({ scale: 2.0 });
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    const ctx = canvas.getContext('2d');
-
-    await page.render({ canvasContext: ctx, viewport }).promise;
-
-    if (settings.isGrayscale) {
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let j = 0; j < imgData.data.length; j += 4) {
-        const avg = (imgData.data[j] + imgData.data[j + 1] + imgData.data[j + 2]) / 3;
-        imgData.data[j] = imgData.data[j + 1] = imgData.data[j + 2] = avg;
-      }
-      ctx.putImageData(imgData, 0, 0);
+  const handleDownload = () => {
+    if (compressedPdf) {
+      saveAs(compressedPdf, 'compressed.pdf');
     }
+  };
 
-    const dataUrl = canvas.toDataURL('image/jpeg', settings.quality / 100);
-    const imgBytes = await fetch(dataUrl).then(res => res.arrayBuffer());
-    const embedded = await newPdf.embedJpg(imgBytes);
-    newPdf.addPage([viewport.width, viewport.height]).drawImage(embedded, {
-      x: 0,
-      y: 0,
-      width: viewport.width,
-      height: viewport.height,
-    });
-  }
+  return (
+    <div className="p-4 max-w-xl mx-auto">
+      <h2 className="text-xl font-semibold mb-4">PDF Compressor</h2>
+      <input type="file" accept="application/pdf" onChange={handleFileChange} className="mb-4" />
 
-  if (settings.removeMetadata) {
-    newPdf.setTitle('');
-    newPdf.setAuthor('');
-    newPdf.setSubject('');
-    newPdf.setProducer('');
-    newPdf.setCreator('');
-  }
-
-  setProcessingMessage('Saving compressed PDF...');
-  const pdfBytes = await newPdf.save();
-  saveAs(new Blob([pdfBytes], { type: 'application/pdf' }), `compressed-${file.name}`);
-
-  fetch('/api/stats', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ statToIncrement: 'downloads' }),
-  });
-} catch (err) {
-  console.error('Compression failed:', err);
-  alert('An error occurred. The PDF might be too complex.');
-} finally {
-  setIsProcessing(false);
-  setProcessingMessage('');
-}
-
-};
-
-const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop: useCallback((accepted) => { const f = accepted[0]; if (f && f.type === 'application/pdf') setFile(f); else alert('Please upload a PDF.'); }, []), accept: { 'application/pdf': ['.pdf'] }, multiple: false, });
-
-return ( <div className="w-full max-w-6xl mx-auto py-24 px-4"> <ToolPageHeader title="PDF Compressor" description="Optimize your PDF: preview, metadata & compression." /> <div className="bg-card-bg border border-gray-700 rounded-lg p-8"> {!file ? ( <div {...getRootProps()} className={flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer ${ isDragActive ? 'border-accent bg-gray-800' : 'hover:bg-gray-800 hover:border-gray-400' }} > <input {...getInputProps()} /> <p className="text-accent">{isDragActive ? 'Drop PDF here' : 'Click or drag PDF here'}</p> </div> ) : ( <div className="space-y-6"> <div className="flex space-x-4"> <button onClick={() => setView('preview')} className="px-4 py-2 bg-gray-700 rounded"> Preview </button> <button onClick={() => setView('metadata')} className="px-4 py-2 bg-gray-700 rounded"> Metadata </button> </div> {view === 'preview' ? ( <div className="grid gap-4"> {previewPages.map((src, idx) => ( <img key={idx} src={src} alt={Page ${idx + 1}} className="border rounded" /> ))} </div> ) : ( metadata && ( <div className="bg-gray-900 p-4 rounded grid gap-2"> {Object.entries(metadata).map(([k, v]) => ( <div key={k} className="text-gray-300"> <strong>{k}:</strong> {v ? v.toString() : 'N/A'} </div> ))} </div> ) )}
-
-<div className="pt-6 border-t border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <p className="text-sm text-gray-400">
-              Choose quality and options, then compress & download.
-            </p>
-          </div>
-          <div className="md:col-span-1 space-y-4">
-            {qualityPresets.map((p) => (
-              <button
-                key={p.name}
-                onClick={() => setSettings((s) => ({ ...s, quality: p.value }))}
-                className={`w-full p-3 rounded border ${
-                  settings.quality === p.value ? 'bg-accent border-accent' : 'border-gray-600'
-                }`}
-              >
-                {p.name}
-              </button>
-            ))}
-            <div className="flex justify-between">
-              <span>Grayscale</span>
-              <input
-                type="checkbox"
-                checked={settings.isGrayscale}
-                onChange={() => setSettings((s) => ({ ...s, isGrayscale: !s.isGrayscale }))}
-              />
-            </div>
-            <div className="flex justify-between">
-              <span>Remove Metadata</span>
-              <input
-                type="checkbox"
-                checked={settings.removeMetadata}
-                onChange={() => setSettings((s) => ({ ...s, removeMetadata: !s.removeMetadata }))}
-              />
-            </div>
-            <button
-              onClick={handleCompress}
-              disabled={isProcessing}
-              className="w-full py-2 bg-accent rounded text-white disabled:bg-gray-600"
-            >
-              {isProcessing ? processingMessage : 'Compress & Download'}
-            </button>
-          </div>
-        </div>
+      <div className="mb-4">
+        <label className="mr-2">
+          <input
+            type="checkbox"
+            checked={settings.isGrayscale}
+            onChange={(e) => setSettings({ ...settings, isGrayscale: e.target.checked })}
+          />
+          <span className="ml-1">Convert to Grayscale</span>
+        </label>
       </div>
-    )}
-  </div>
-</div>
 
-); }
+      <div className="mb-4">
+        <label className="block">Image Quality: {Math.round(settings.quality * 100)}%</label>
+        <input
+          type="range"
+          min="0.1"
+          max="1"
+          step="0.1"
+          value={settings.quality}
+          onChange={(e) => setSettings({ ...settings, quality: parseFloat(e.target.value) })}
+          className="w-full"
+        />
+      </div>
 
+      <button
+        onClick={handleCompress}
+        className="bg-blue-600 text-white px-4 py-2 rounded mb-4"
+        disabled={isProcessing || !file}
+      >
+        {isProcessing ? 'Compressing...' : 'Compress PDF'}
+      </button>
+
+      {compressedPdf && (
+        <button
+          onClick={handleDownload}
+          className="bg-green-600 text-white px-4 py-2 rounded mb-4 ml-2"
+        >
+          Download
+        </button>
+      )}
+
+      {file && (
+        <div className="mb-4">
+          <button
+            onClick={() => setView('preview')}
+            className={`mr-2 px-3 py-1 rounded ${view === 'preview' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
+          >
+            Preview
+          </button>
+          <button
+            onClick={() => setView('metadata')}
+            className={`px-3 py-1 rounded ${view === 'metadata' ? 'bg-gray-800 text-white' : 'bg-gray-200'}`}
+          >
+            Metadata
+          </button>
+        </div>
+      )}
+
+      {view === 'preview' && previews.length > 0 && (
+        <div className="space-y-4">
+          {previews.map((src, idx) => (
+            <img key={idx} src={src} alt={`Page ${idx + 1}`} className="w-full border" />
+          ))}
+        </div>
+      )}
+
+      {view === 'metadata' && (
+        <div className="bg-gray-100 p-4 rounded">
+          <h3 className="text-lg font-semibold mb-2">PDF Metadata</h3>
+          <ul>
+            {Object.entries(metadata).map(([key, value]) => (
+              <li key={key}><strong>{key}:</strong> {value}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CompressTool;
