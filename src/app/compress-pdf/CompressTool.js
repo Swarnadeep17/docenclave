@@ -25,12 +25,12 @@ export default function CompressTool() {
   const [settings, setSettings] = useState(initialSettings);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
-  const [compressedFile, setCompressedFile] = useState(null); 
+  const [compressedFile, setCompressedFile] = useState(null);
   const previewCanvasRef = useRef(null);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
-    event.target.value = null; 
+    event.target.value = null;
     if (selectedFile && selectedFile.type === 'application/pdf') {
         setFile(selectedFile);
         setCompressedFile(null); // Reset compressed file state
@@ -44,8 +44,7 @@ export default function CompressTool() {
   useEffect(() => {
     if (compressedFile && compressedFile.blob && previewCanvasRef.current) {
         const renderPreview = async () => {
-            // We don't need to set isProcessing here as handleProcessAndPreview manages it
-            setProcessingMessage('Rendering final preview...'); 
+            setProcessingMessage('Rendering final preview...'); // This message is fine to show *during* preview render
             try {
                 const arrayBuffer = await compressedFile.blob.arrayBuffer();
                 const pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
@@ -60,9 +59,10 @@ export default function CompressTool() {
                 console.error("Error rendering compressed preview:", e);
                 alert("Could not render preview of the compressed file. You can still try to download it.");
             } finally {
-                // Only set isProcessing to false AFTER preview attempt
-                setIsProcessing(false); 
-                setProcessingMessage('');
+                // The main compression is done. This signals that the preview is attempting to render.
+                // We don't want to show "Processing..." anymore, but the preview itself.
+                // The `CurrentView` logic will handle showing PreviewView.
+                setProcessingMessage(''); // Clear message after preview render attempt
             }
         };
         renderPreview();
@@ -77,11 +77,10 @@ export default function CompressTool() {
 
   const handleProcessAndPreview = async () => {
     if (!file) return;
-    
-    setIsProcessing(true); 
+
+    setIsProcessing(true);
     setProcessingMessage('Initializing compression...');
 
-    // Ensure a timeout for the entire operation
     let operationCompleted = false;
     const operationTimeout = setTimeout(() => {
         if (!operationCompleted) {
@@ -99,7 +98,7 @@ export default function CompressTool() {
 
         for (let i = 1; i <= sourcePdf.numPages; i++) {
             setProcessingMessage(`Processing page ${i} of ${sourcePdf.numPages}...`);
-            await new Promise(resolve => setTimeout(resolve, 0)); 
+            await new Promise(resolve => setTimeout(resolve, 0));
 
             const page = await sourcePdf.getPage(i);
             const viewport = page.getViewport({ scale: 2.0 });
@@ -108,7 +107,7 @@ export default function CompressTool() {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
             await page.render({ canvasContext: ctx, viewport }).promise;
-            
+
             if (settings.isGrayscale) {
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 const data = imageData.data;
@@ -123,34 +122,38 @@ export default function CompressTool() {
             const newPage = newPdfDoc.addPage([page.view[2], page.view[3]]);
             newPage.drawImage(jpgImageBytes, { x: 0, y: 0, width: newPage.getWidth(), height: newPage.getHeight() });
         }
-        
+
         if (settings.removeMetadata) {
             newPdfDoc.setTitle('');
             newPdfDoc.setAuthor('');
         }
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        
-        operationCompleted = true; // Mark operation as completed before setting state
+
+        operationCompleted = true; // Mark operation as completed
         clearTimeout(operationTimeout);
 
-        setCompressedFile({ // This will trigger the useEffect for preview
+        // Crucial Change: Set isProcessing to false *here*, before setting compressedFile.
+        // This ensures the CurrentView can immediately switch to PreviewView.
+        setIsProcessing(false);
+        setProcessingMessage(''); // Clear any remaining processing message
+
+        setCompressedFile({ // This will now trigger the useEffect for preview, but CurrentView won't be stuck on 'Processing'
             blob: blob,
             size: blob.size,
             name: `docenclave-compressed-${file.name}`
         });
-        // isProcessing and processingMessage will be reset by the preview useEffect
-        
+
     } catch (error) {
         operationCompleted = true;
         clearTimeout(operationTimeout);
         console.error("Failed to compress PDF:", error);
         alert("An error occurred during compression. The PDF might be too complex for this tool.");
-        setIsProcessing(false); 
+        setIsProcessing(false);
         setProcessingMessage('');
     }
   };
-  
+
   const handleDownload = () => {
       if(!compressedFile) return;
       saveAs(compressedFile.blob, compressedFile.name);
@@ -165,14 +168,16 @@ export default function CompressTool() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
   };
-  
+
   const handleStartOver = () => {
     setFile(null);
     setCompressedFile(null);
+    setSettings(initialSettings); // Ensure settings are reset on start over
   };
-  
+
   const handleReconfigure = () => {
     setCompressedFile(null); // This will take us back to the SettingsView
+    // file and settings are preserved
   };
 
   const UploadView = () => (
@@ -198,7 +203,7 @@ export default function CompressTool() {
               <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Compression Level</h3>
                 <div className="space-y-2">
                     {qualityPresets.map(preset => (
-                        <button 
+                        <button
                             key={preset.name}
                             onClick={() => setSettings(prev => ({...prev, quality: preset.value}))}
                             className={`w-full text-left p-3 rounded-lg border-2 transition-colors ${settings.quality === preset.value ? 'bg-accent border-accent text-white' : 'bg-gray-700 border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white'}`}
@@ -208,7 +213,7 @@ export default function CompressTool() {
                         </button>
                     ))}
                 </div>
-              
+
               <h3 className="text-xl font-bold border-b border-gray-600 pb-2 pt-4">Advanced Options</h3>
               <div className="space-y-3">
                   <div className="flex items-center justify-between"><label htmlFor="grayscale" className="text-sm text-gray-300">Convert to Grayscale</label><button onClick={() => setSettings(p => ({...p, isGrayscale: !p.isGrayscale}))} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.isGrayscale ? 'bg-accent' : 'bg-gray-600'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.isGrayscale ? 'translate-x-6' : 'translate-x-1'}`} /></button></div>
@@ -216,7 +221,7 @@ export default function CompressTool() {
               </div>
               <div className="text-xs text-yellow-400/80 bg-yellow-900/30 p-2 rounded-md">Note: Compression makes text non-selectable.</div>
               <div className="pt-4 border-t border-gray-600 space-y-3">
-                <button onClick={handleProcessAndPreview} className="w-full bg-accent text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors">Compress & Preview</button>
+                <button onClick={handleProcessAndPreview} disabled={isProcessing} className={`w-full bg-accent text-white font-bold py-3 px-8 rounded-lg transition-colors ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-600'}`}>Compress & Preview</button>
                 <button onClick={handleStartOver} className="w-full text-sm text-gray-400 hover:text-white hover:underline">Use a different file</button>
               </div>
           </div>
@@ -228,7 +233,11 @@ export default function CompressTool() {
       return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
-                  <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain" />
+                  {processingMessage === 'Rendering final preview...' ? ( // Show a specific message for preview rendering
+                    <div className="text-center text-accent">{processingMessage}</div>
+                  ) : (
+                    <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain" />
+                  )}
               </div>
               <div className="md:col-span-1 flex flex-col space-y-6">
                   <h3 className="text-2xl font-bold border-b border-gray-600 pb-2">Preview & Download</h3>
@@ -245,17 +254,22 @@ export default function CompressTool() {
           </div>
       );
   };
-  
+
   const CurrentView = () => {
-    if (isProcessing) {
-        return <div className="text-center py-20 text-accent">{processingMessage}</div>;
-    }
+    // If compressedFile is available, always show PreviewView,
+    // and let the useEffect handle the *rendering* of the preview.
     if (compressedFile) {
         return <PreviewView />;
     }
+    // If we are currently compressing but compressedFile is not yet set
+    if (isProcessing) {
+        return <div className="text-center py-20 text-accent">{processingMessage}</div>;
+    }
+    // If a file is selected but not yet compressed, show SettingsView
     if (file) {
         return <SettingsView />;
     }
+    // Otherwise, show UploadView
     return <UploadView />;
   }
 
@@ -265,7 +279,70 @@ export default function CompressTool() {
       <div className="bg-card-bg border border-gray-700 rounded-lg p-8">
         <CurrentView />
       </div>
-      {/* SEO Content Block will be added back here once this is perfect */}
-    </div>
-  );
-}
+      <div className="mt-12 text-gray-300">
+        <h2 className="text-3xl font-bold mb-6 text-white">Take Control of Your PDF Size</h2>
+        <p className="mb-4 text-gray-400">
+          Large PDF files can be a hassle, slowing down uploads, downloads, and email attachments.
+          DocEnclave's PDF Compressor offers a powerful yet simple solution to reduce your PDF file sizes
+          significantly without compromising privacy. Unlike other online tools, your documents
+          never leave your browser, ensuring complete confidentiality.
+        </p>
+        <p className="mb-6 text-gray-400">
+          Whether you need to compress a large report for emailing or optimize a document for web
+          upload, our tool provides the flexibility and control you need to achieve the perfect balance
+          between file size and document quality.
+        </p>
+
+        <h3 className="text-2xl font-bold mb-4 text-white">Configure First, Then Preview</h3>
+        <p className="mb-6 text-gray-400">
+          Our unique "Process First, Preview Second" architecture ensures you have full control over
+          the compression process. You select your desired compression level and advanced options
+          like converting to grayscale or removing metadata upfront. Once processed, you get an
+          instant preview of the compressed PDF, allowing you to visually confirm the output and
+          decide if it meets your needs before downloading. This iterative approach saves you time
+          and ensures satisfaction.
+        </p>
+
+        <h3 className="text-2xl font-bold mb-4 text-white">Smarter Compression, Total Privacy</h3>
+        <p className="mb-6 text-gray-400">
+          DocEnclave PDF Compressor operates 100% client-side, meaning all compression logic is
+          executed directly within your web browser. Your sensitive PDF files are never uploaded to
+          our servers, ensuring absolute privacy and security. We reconstruct your PDF page by page
+          as optimized JPEG images, giving you control over image quality and enabling significant
+          file size reduction.
+        </p>
+
+        <h2 className="text-2xl font-bold mb-4 text-white">Frequently Asked Questions (FAQ)</h2>
+        <div className="space-y-4">
+          <h4 className="text-xl font-semibold text-white">How does PDF compression work?</h4>
+          <p className="text-gray-400">
+            Our tool works by "reconstructing" your PDF. Each page of your original PDF is rendered as a high-quality image.
+            These images are then compressed using JPEG compression (with a quality setting you control), and a new PDF
+            document is created from these compressed images. This method is highly effective for reducing file sizes,
+            especially for PDFs with many images or complex layouts.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">Will compressing my PDF affect its quality?</h4>
+          <p className="text-gray-400">
+            Yes, some quality reduction is inherent in the compression process, especially with "Strong" or "Extreme" settings.
+            Because we convert pages to JPEG images, text within the PDF will no longer be selectable. However, our "Recommended"
+            setting provides a good balance, and you can always preview the result before downloading to ensure it meets your
+            quality expectations.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">Is my PDF secure and private?</h4>
+          <p className="text-gray-400">
+            Absolutely. DocEnclave PDF Compressor is designed with privacy as its top priority. All processing happens
+            directly in your browser. Your PDF files are never sent to our servers, ensuring your data remains completely
+            private and secure.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">What is "Remove Metadata"?</h4>
+          <p className="text-gray-400">
+            PDFs often contain hidden metadata like author, creation date, and software used to create the document.
+            The "Remove Metadata" option strips this information from your compressed PDF, providing a cleaner and
+            potentially slightly smaller file.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">Why is text not selectable after compression?</h4>
+          <p className
