@@ -1,5 +1,6 @@
 'use client';
 
+import { useDropzone } from 'react-dropzone';
 import { useState, useCallback, useRef, useEffect } from 'react';
 // We will add Firebase imports later when we wire up the backend
 // import { getStorage, ref, uploadBytesResumable } from 'firebase/storage';
