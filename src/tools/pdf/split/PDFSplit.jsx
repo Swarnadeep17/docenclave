@@ -1,8 +1,7 @@
-import { PLAN_LIMITS, formatFileSize, validateFile, validatePDFForSplit, validatePageSelection } from '../../../utils/constants.js'
 import React, { useState, useEffect } from 'react'
 import { PDFDocument } from 'pdf-lib'
 import { useDropzone } from 'react-dropzone'
-import { PLAN_LIMITS, formatFileSize, validateFile } from '../../../utils/constants.js'
+import { PLAN_LIMITS, formatFileSize, validateFile, validatePDFForSplit, validatePageSelection } from '../../../utils/constants.js'
 import { trackDownload, trackToolUsage } from '../../../utils/analytics.js'
 
 // SEO Head component
