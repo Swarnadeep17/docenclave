@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjs from 'pdfjs-dist';
 import { saveAs } from 'file-saver';
@@ -26,7 +26,7 @@ export default function CompressTool() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [compressedFile, setCompressedFile] = useState(null); 
-  const previewCanvasRef = useRef(null);
+  const previewCanvasRef = useRef(null); // This ref is for the canvas in PreviewView
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
@@ -39,6 +39,35 @@ export default function CompressTool() {
         alert('Please select a valid PDF file.');
     }
   };
+
+  // --- EFFECT TO RENDER PREVIEW OF COMPRESSED FILE ---
+  // This runs ONLY when 'compressedFile' (which contains the blob) updates.
+  useEffect(() => {
+    if (compressedFile && compressedFile.blob && previewCanvasRef.current) {
+        const renderPreview = async () => {
+            setProcessingMessage('Rendering final preview...'); // Let user know
+            setIsProcessing(true);
+            try {
+                const arrayBuffer = await compressedFile.blob.arrayBuffer();
+                const pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+                const page = await pdfDoc.getPage(1);
+                const viewport = page.getViewport({ scale: 1.0 }); // Standard scale
+                const canvas = previewCanvasRef.current;
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                await page.render({ canvasContext: context, viewport }).promise;
+            } catch (e) {
+                console.error("Error rendering compressed preview:", e);
+                // If preview fails, we still have the compressedFile object for download
+            } finally {
+                setIsProcessing(false);
+                setProcessingMessage('');
+            }
+        };
+        renderPreview();
+    }
+  }, [compressedFile]); 
 
   const handleProcessAndPreview = async () => {
     if (!file) return;
@@ -81,18 +110,8 @@ export default function CompressTool() {
         }
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-
-        setProcessingMessage('Rendering final preview...');
-        const previewPdfDoc = await pdfjs.getDocument({data: pdfBytes.slice(0)}).promise;
-        const previewPage = await previewPdfDoc.getPage(1);
-        const previewViewport = previewPage.getViewport({scale: 1.0});
-        const liveCanvas = previewCanvasRef.current;
-        if(liveCanvas) {
-            liveCanvas.height = previewViewport.height;
-            liveCanvas.width = previewViewport.width;
-            await previewPage.render({canvasContext: liveCanvas.getContext('2d'), viewport: previewViewport}).promise;
-        }
-
+        
+        // This will trigger the useEffect above to render the preview
         setCompressedFile({
             blob: blob,
             size: blob.size,
@@ -102,10 +121,10 @@ export default function CompressTool() {
     } catch (error) {
         console.error("Failed to compress PDF:", error);
         alert("An error occurred during compression. The PDF might be too complex for this tool.");
-    } finally {
-        setIsProcessing(false);
+        setIsProcessing(false); // Ensure processing is false on error
         setProcessingMessage('');
     }
+    // No longer need setIsProcessing(false) here as the useEffect for preview will handle it
   };
   
   const handleDownload = () => {
@@ -132,7 +151,6 @@ export default function CompressTool() {
     setCompressedFile(null);
   };
 
-  // --- UI RENDER FUNCTIONS (Styled Consistently) ---
   const UploadView = () => (
     <label htmlFor="file-upload-compress" className="mb-8 flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-500 rounded-lg cursor-pointer hover:bg-gray-800 hover:border-accent transition-colors">
         <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -186,6 +204,7 @@ export default function CompressTool() {
       return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
+                  {/* This canvas will now be drawn by the new useEffect hook */}
                   <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain" />
               </div>
               <div className="md:col-span-1 flex flex-col space-y-6">
