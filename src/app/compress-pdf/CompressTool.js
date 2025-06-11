@@ -53,15 +53,16 @@ export default function CompressTool() {
    * Effect hook to render the preview of the compressed PDF onto the canvas.
    * This runs whenever `compressedFile` or `file` state changes.
    */
+    // --- EFFECT TO RENDER PREVIEW OF COMPRESSED FILE ---
   useEffect(() => {
     if (compressedFile && compressedFile.blob && previewCanvasRef.current) {
         const renderPreview = async () => {
-            setProcessingMessage('Rendering final preview...'); // Inform user about preview rendering
+            setProcessingMessage('Rendering final preview...');
             try {
                 const arrayBuffer = await compressedFile.blob.arrayBuffer();
                 const pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-                const page = await pdfDoc.getPage(1); // Get the first page for preview
-                const viewport = page.getViewport({ scale: 1.0 });
+                const page = await pdfDoc.getPage(1);
+                const viewport = page.getViewport({ scale: 1.0 }); // Keep scale 1.0 for decent preview
                 const canvas = previewCanvasRef.current;
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
@@ -69,14 +70,15 @@ export default function CompressTool() {
                 await page.render({ canvasContext: context, viewport }).promise;
             } catch (e) {
                 console.error("Error rendering compressed preview:", e);
+                // Log the full error object for detailed debugging
+                console.error("PDF.js rendering error details:", JSON.stringify(e, Object.getOwnPropertyNames(e)));
                 alert("Could not render preview of the compressed file. You can still try to download it.");
             } finally {
-                setProcessingMessage(''); // Clear message after preview rendering attempt
+                setProcessingMessage('');
             }
         };
         renderPreview();
     } else if (!compressedFile && file) {
-        // If we transition back to settings or upload, clear the canvas
         const canvas = previewCanvasRef.current;
         if (canvas) {
             const context = canvas.getContext('2d');
