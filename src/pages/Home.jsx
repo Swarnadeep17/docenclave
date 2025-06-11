@@ -99,7 +99,7 @@ const Home = () => {
           name: 'PDF Split',
           description: 'Extract pages or split into multiple files',
           path: '/tools/pdf/split',
-          available: false
+          available: true  // ← Changed from false to true
         },
         {
           name: 'PDF Compress',
