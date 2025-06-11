@@ -1,3 +1,4 @@
+import { PLAN_LIMITS, formatFileSize, validateFile, validatePDFForSplit, validatePageSelection } from '../../../utils/constants.js'
 import React, { useState, useEffect } from 'react'
 import { PDFDocument } from 'pdf-lib'
 import { useDropzone } from 'react-dropzone'
@@ -192,10 +193,11 @@ const PDFSplit = () => {
       const pageCount = pdfDoc.getPageCount()
       
       // Check page limit for free users
-      if (currentPlan === 'FREE' && pageCount > 50) {
-        setShowUpgradeModal(true)
-        return
-      }
+const pageValidation = validatePDFForSplit(pageCount, currentPlan)
+if (!pageValidation.valid) {
+  setShowUpgradeModal(true)
+  return
+}
 
       const pagesArray = Array.from({ length: pageCount }, (_, index) => ({
         pageIndex: index,
@@ -232,10 +234,11 @@ const PDFSplit = () => {
         return prev.filter(p => p !== pageIndex)
       } else {
         // Check free plan limits
-        if (currentPlan === 'FREE' && prev.length >= 20) {
-          setShowUpgradeModal(true)
-          return prev
-        }
+const selectionValidation = validatePageSelection(prev.length + 1, currentPlan)
+if (!selectionValidation.valid) {
+  setShowUpgradeModal(true)
+  return prev
+}
         return [...prev, pageIndex]
       }
     })
