@@ -753,4 +753,4 @@ const PDFMerge = () => {
   )
 }
 
-export default PDFM
+export default PDFMerge
