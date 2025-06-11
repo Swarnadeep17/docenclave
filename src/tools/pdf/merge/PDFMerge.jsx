@@ -3,6 +3,8 @@ import { PDFDocument } from 'pdf-lib'
 import { useDropzone } from 'react-dropzone'
 import { PLAN_LIMITS, formatFileSize, validateFile } from '../../../utils/constants.js'
 import { trackDownload, trackToolUsage } from '../../../utils/analytics.js'
+import PDFPageRenderer from '../../../components/shared/PDFPageRenderer.jsx'
+import * as pdfjsLib from 'pdfjs-dist/webpack'
 
 // SEO Head component
 const SEOHead = () => {
@@ -15,8 +17,23 @@ const SEOHead = () => {
   return null
 }
 
-// PDF Page Preview Component
-const PDFPagePreview = ({ pageData, pageNumber, isSelected, isDuplicate, onToggleSelect, onDelete, globalPageIndex }) => {
+// Update the PDFPagePreview component
+const PDFPagePreview = ({ file, pageData, pageNumber, isSelected, isDuplicate, onToggleSelect, onDelete, globalPageIndex }) => {
+  const [pdfDoc, setPdfDoc] = useState(null)
+
+  useEffect(() => {
+    const loadPdf = async () => {
+      try {
+        const arrayBuffer = await file.file.arrayBuffer()
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+        setPdfDoc(pdf)
+      } catch (err) {
+        console.error('Error loading PDF for preview:', err)
+      }
+    }
+    loadPdf()
+  }, [file])
+
   return (
     <div className={`relative bg-dark-tertiary rounded-lg p-3 border-2 transition-all ${
       isDuplicate ? 'border-yellow-500 shadow-yellow-500/20' : 
@@ -36,14 +53,14 @@ const PDFPagePreview = ({ pageData, pageNumber, isSelected, isDuplicate, onToggl
       )}
 
       <div onClick={onToggleSelect} className="cursor-pointer">
-        <div className="w-20 h-28 bg-white rounded border flex items-center justify-center mb-2">
-          <div className="text-gray-400 text-xs text-center">
-            <div className="text-lg mb-1">📄</div>
-            <div>PDF</div>
-          </div>
-        </div>
+        <PDFPageRenderer 
+          pdfDoc={pdfDoc}
+          pageNumber={pageNumber}
+          width={80}
+          height={112}
+        />
 
-        <div className="text-center">
+        <div className="text-center mt-2">
           <div className="text-dark-text-primary text-xs font-medium mb-1">
             Global #{globalPageIndex + 1}
           </div>
