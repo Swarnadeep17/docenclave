@@ -3,6 +3,7 @@ import { PDFDocument } from 'pdf-lib'
 import { useDropzone } from 'react-dropzone'
 import { PLAN_LIMITS, formatFileSize, validateFile, validatePDFForSplit, validatePageSelection } from '../../../utils/constants.js'
 import { trackDownload, trackToolUsage } from '../../../utils/analytics.js'
+import PDFPageRenderer from '../../../components/shared/PDFPageRenderer.jsx'
 
 // SEO Head component
 const SEOHead = () => {
@@ -15,21 +16,21 @@ const SEOHead = () => {
   return null
 }
 
-// PDF Page Preview Component for Split
-const PDFPagePreview = ({ pageData, pageNumber, isSelected, onToggleSelect }) => {
+// Update the PDFPagePreview component
+const PDFPagePreview = ({ pdfDoc, pageData, pageNumber, isSelected, onToggleSelect }) => {
   return (
     <div className={`relative bg-dark-tertiary rounded-lg p-3 border-2 transition-all cursor-pointer ${
       isSelected ? 'border-blue-500 shadow-blue-500/20' : 'border-dark-border hover:border-gray-500'
     }`}>
       <div onClick={onToggleSelect}>
-        <div className="w-20 h-28 bg-white rounded border flex items-center justify-center mb-2">
-          <div className="text-gray-400 text-xs text-center">
-            <div className="text-lg mb-1">📄</div>
-            <div>PDF</div>
-          </div>
-        </div>
+        <PDFPageRenderer 
+          pdfDoc={pdfDoc}
+          pageNumber={pageNumber}
+          width={80}
+          height={112}
+        />
 
-        <div className="text-center">
+        <div className="text-center mt-2">
           <div className="text-dark-text-primary text-xs font-medium mb-1">
             Page {pageNumber}
           </div>
@@ -45,7 +46,6 @@ const PDFPagePreview = ({ pageData, pageNumber, isSelected, onToggleSelect }) =>
         </div>
       </div>
 
-      {/* Selection indicator */}
       {isSelected && (
         <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold z-10">
           ✓
