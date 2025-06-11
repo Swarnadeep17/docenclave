@@ -26,32 +26,31 @@ export default function CompressTool() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingMessage, setProcessingMessage] = useState('');
   const [compressedFile, setCompressedFile] = useState(null); 
-  const previewCanvasRef = useRef(null); // This ref is for the canvas in PreviewView
+  const previewCanvasRef = useRef(null);
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
     event.target.value = null; 
     if (selectedFile && selectedFile.type === 'application/pdf') {
         setFile(selectedFile);
-        setCompressedFile(null);
-        setSettings(initialSettings);
+        setCompressedFile(null); // Reset compressed file state
+        setSettings(initialSettings); // Reset settings
     } else if (selectedFile) {
         alert('Please select a valid PDF file.');
     }
   };
 
   // --- EFFECT TO RENDER PREVIEW OF COMPRESSED FILE ---
-  // This runs ONLY when 'compressedFile' (which contains the blob) updates.
   useEffect(() => {
     if (compressedFile && compressedFile.blob && previewCanvasRef.current) {
         const renderPreview = async () => {
-            setProcessingMessage('Rendering final preview...'); // Let user know
-            setIsProcessing(true);
+            // We don't need to set isProcessing here as handleProcessAndPreview manages it
+            setProcessingMessage('Rendering final preview...'); 
             try {
                 const arrayBuffer = await compressedFile.blob.arrayBuffer();
                 const pdfDoc = await pdfjs.getDocument({ data: arrayBuffer }).promise;
                 const page = await pdfDoc.getPage(1);
-                const viewport = page.getViewport({ scale: 1.0 }); // Standard scale
+                const viewport = page.getViewport({ scale: 1.0 });
                 const canvas = previewCanvasRef.current;
                 const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
@@ -59,21 +58,40 @@ export default function CompressTool() {
                 await page.render({ canvasContext: context, viewport }).promise;
             } catch (e) {
                 console.error("Error rendering compressed preview:", e);
-                // If preview fails, we still have the compressedFile object for download
+                alert("Could not render preview of the compressed file. You can still try to download it.");
             } finally {
-                setIsProcessing(false);
+                // Only set isProcessing to false AFTER preview attempt
+                setIsProcessing(false); 
                 setProcessingMessage('');
             }
         };
         renderPreview();
+    } else if (!compressedFile && file) { // If we go back to settings, clear canvas
+        const canvas = previewCanvasRef.current;
+        if (canvas) {
+            const context = canvas.getContext('2d');
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        }
     }
-  }, [compressedFile]); 
+  }, [compressedFile, file]); // Add 'file' as dependency to clear canvas on new upload
 
   const handleProcessAndPreview = async () => {
     if (!file) return;
-    setIsProcessing(true);
-    setProcessingMessage('Reconstructing PDF...');
     
+    setIsProcessing(true); 
+    setProcessingMessage('Initializing compression...');
+
+    // Ensure a timeout for the entire operation
+    let operationCompleted = false;
+    const operationTimeout = setTimeout(() => {
+        if (!operationCompleted) {
+            console.error("Compression operation timed out.");
+            alert("The compression process took too long and was stopped. The PDF might be too large or complex.");
+            setIsProcessing(false);
+            setProcessingMessage('');
+        }
+    }, 60000); // 60 seconds timeout
+
     try {
         const newPdfDoc = await PDFDocument.create();
         const fileBuffer = await file.arrayBuffer();
@@ -81,6 +99,8 @@ export default function CompressTool() {
 
         for (let i = 1; i <= sourcePdf.numPages; i++) {
             setProcessingMessage(`Processing page ${i} of ${sourcePdf.numPages}...`);
+            await new Promise(resolve => setTimeout(resolve, 0)); 
+
             const page = await sourcePdf.getPage(i);
             const viewport = page.getViewport({ scale: 2.0 });
             const canvas = document.createElement('canvas');
@@ -111,20 +131,24 @@ export default function CompressTool() {
         const pdfBytes = await newPdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         
-        // This will trigger the useEffect above to render the preview
-        setCompressedFile({
+        operationCompleted = true; // Mark operation as completed before setting state
+        clearTimeout(operationTimeout);
+
+        setCompressedFile({ // This will trigger the useEffect for preview
             blob: blob,
             size: blob.size,
             name: `docenclave-compressed-${file.name}`
         });
+        // isProcessing and processingMessage will be reset by the preview useEffect
         
     } catch (error) {
+        operationCompleted = true;
+        clearTimeout(operationTimeout);
         console.error("Failed to compress PDF:", error);
         alert("An error occurred during compression. The PDF might be too complex for this tool.");
-        setIsProcessing(false); // Ensure processing is false on error
+        setIsProcessing(false); 
         setProcessingMessage('');
     }
-    // No longer need setIsProcessing(false) here as the useEffect for preview will handle it
   };
   
   const handleDownload = () => {
@@ -148,7 +172,7 @@ export default function CompressTool() {
   };
   
   const handleReconfigure = () => {
-    setCompressedFile(null);
+    setCompressedFile(null); // This will take us back to the SettingsView
   };
 
   const UploadView = () => (
@@ -204,7 +228,6 @@ export default function CompressTool() {
       return (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2 bg-gray-900/50 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
-                  {/* This canvas will now be drawn by the new useEffect hook */}
                   <canvas ref={previewCanvasRef} className="max-w-full max-h-full object-contain" />
               </div>
               <div className="md:col-span-1 flex flex-col space-y-6">
@@ -242,31 +265,7 @@ export default function CompressTool() {
       <div className="bg-card-bg border border-gray-700 rounded-lg p-8">
         <CurrentView />
       </div>
-      {/* SEO Content Block Starts Here */}
-      <div className="mt-20 text-gray-300 prose prose-invert max-w-none prose-p:text-gray-300 prose-h2:text-gray-100 prose-h3:text-gray-200 prose-h4:text-gray-200">
-        <h2 className="text-3xl font-bold mb-6">Take Control of Your PDF Size</h2>
-        <p>Sending a PDF that's too large for an email attachment is a common frustration. DocEnclave puts the power back in your hands. Our advanced PDF compressor gives you a transparent, two-step process to reduce file size without sacrificing clarity, all with 100% privacy.</p>
-        <h3 className="text-2xl font-bold mt-12 mb-4">Configure First, Then Preview</h3>
-        <p>Our unique workflow lets you choose your settings first (like image quality and grayscale), then generate a high-quality preview of the compressed result. You'll see the final, accurate file size and quality *before* you download, ensuring you get exactly what you need on the first try. No more guesswork or repeated downloads.</p>
-        <h3 className="text-2xl font-bold mt-12 mb-4">Smarter Compression, Total Privacy</h3>
-        <p>DocEnclave's compressor is designed to be intelligent. It primarily targets the large images within your PDF for compression. For even greater size savings, you can convert images to grayscale or strip out unnecessary metadata with the flip of a switch. And because this all happens directly in your browser, your sensitive documents are never uploaded to a server. This guarantees 100% privacy and security for your files.</p>
-        <h2 className="text-3xl font-bold mt-16 mb-8">Frequently Asked Questions</h2>
-        <div className="space-y-8">
-          <div>
-            <h4 className="text-xl font-semibold">How do I reduce the size of my PDF?</h4>
-            <p>It's a simple process: 1) Click the upload box and select your PDF. 2) Choose your desired quality and other options like grayscale. 3) Click "Compress & Preview" to see the result and the exact new file size. If you're happy, click "Download".</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Will compressing my PDF reduce its quality?</h4>
-            <p>Our method focuses on reducing the quality of images inside the PDF to save space, as this provides the biggest size savings. Text will become part of the page image but will remain sharp. You can use the quality presets to find the perfect balance for your needs.</p>
-          </div>
-          <div>
-            <h4 className="text-xl font-semibold">Is it safe to compress my confidential documents here?</h4>
-            <p>Yes, it is the safest way possible. DocEnclave operates entirely within your web browser. Your files are not sent to or stored on any external servers. The entire compression process happens on your own computer, ensuring your data remains completely private and secure.</p>
-          </div>
-        </div>
-      </div>
-      {/* SEO Content Block Ends Here */}
+      {/* SEO Content Block will be added back here once this is perfect */}
     </div>
   );
 }
