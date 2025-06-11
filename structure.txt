@@ -1,0 +1,50 @@
+Create a new repository named docenclave on GitHub, then set up this structure:
+
+docenclave/
+├── .gitignore
+├── README.md
+├── package.json
+├── firebase.json
+├── .firebaserc
+├── public/
+│   ├── index.html
+│   ├── favicon.ico
+│   └── manifest.json
+├── src/
+│   ├── index.js
+│   ├── App.js
+│   ├── index.css
+│   ├── components/
+│   │   ├── common/
+│   │   │   ├── Header.js
+│   │   │   ├── Footer.js
+│   │   │   └── Loading.js
+│   │   ├── home/
+│   │   │   ├── Hero.js
+│   │   │   ├── ToolCategories.js
+│   │   │   └── Features.js
+│   │   └── ui/
+│   │       ├── Button.js
+│   │       ├── Card.js
+│   │       └── Modal.js
+│   ├── tools/
+│   │   ├── pdf/
+│   │   │   ├── merge/
+│   │   │   │   ├── PDFMerge.js
+│   │   │   │   ├── MergeLogic.js
+│   │   │   │   └── merge.css
+│   │   │   ├── split/
+│   │   │   ├── compress/
+│   │   │   └── index.js
+│   │   ├── image/
+│   │   └── index.js
+│   ├── utils/
+│   │   ├── fileValidation.js
+│   │   ├── constants.js
+│   │   └── helpers.js
+│   └── styles/
+│       └── globals.css
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+└── tailwind.config.js
