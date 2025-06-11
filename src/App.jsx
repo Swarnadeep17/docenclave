@@ -1,6 +1,17 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import StatsCounter from './components/home/StatsCounter.jsx'
+import { trackVisitor } from './utils/analytics.js'
 
 function App() {
+  useEffect(() => {
+    // Track visitor on page load (only once per session)
+    const hasTracked = sessionStorage.getItem('visitor_tracked')
+    if (!hasTracked) {
+      trackVisitor()
+      sessionStorage.setItem('visitor_tracked', 'true')
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-white">
       <header className="bg-black text-white py-4">
@@ -37,6 +48,8 @@ function App() {
           </div>
         </div>
       </main>
+
+      <StatsCounter />
       
       <footer className="bg-black text-white py-8 mt-16">
         <div className="container mx-auto px-4 text-center">
