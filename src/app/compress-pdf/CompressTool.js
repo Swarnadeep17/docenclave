@@ -373,6 +373,65 @@ export default function CompressTool() {
           between file size and document quality.
         </p>
 
-        <h3 className="text-2xl font-bold mb-4 text-white">Configure First, Then Preview</h3>
+<h3 className="text-2xl font-bold mb-4 text-white">Configure First, Then Preview</h3>
         <p className="mb-6 text-gray-400">
-          Our unique "Process F
+          Our unique "Process First, Preview Second" architecture ensures you have full control over
+          the compression process. You select your desired compression level and advanced options
+          like converting to grayscale or removing metadata upfront. Once processed, you get an
+          instant preview of the compressed PDF, allowing you to visually confirm the output and
+          decide if it meets your needs before downloading. This iterative approach saves you time
+          and ensures satisfaction.
+        </p>
+
+        <h3 className="text-2xl font-bold mb-4 text-white">Smarter Compression, Total Privacy</h3>
+        <p className="mb-6 text-gray-400">
+          DocEnclave PDF Compressor operates 100% client-side, meaning all compression logic is
+          executed directly within your web browser. Your sensitive PDF files are never uploaded to
+          our servers, ensuring absolute privacy and security. We reconstruct your PDF page by page
+          as optimized JPEG images, giving you control over image quality and enabling significant
+          file size reduction.
+        </p>
+
+        <h2 className="text-2xl font-bold mb-4 text-white">Frequently Asked Questions (FAQ)</h2>
+        <div className="space-y-4">
+          <h4 className="text-xl font-semibold text-white">How does PDF compression work?</h4>
+          <p className="text-gray-400">
+            Our tool works by "reconstructing" your PDF. Each page of your original PDF is rendered as a high-quality image.
+            These images are then compressed using JPEG compression (with a quality setting you control), and a new PDF
+            document is created from these compressed images. This method is highly effective for reducing file sizes,
+            especially for PDFs with many images or complex layouts.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">Will compressing my PDF affect its quality?</h4>
+          <p className="text-gray-400">
+            Yes, some quality reduction is inherent in the compression process, especially with "Strong" or "Extreme" settings.
+            Because we convert pages to JPEG images, text within the PDF will no longer be selectable. However, our "Recommended"
+            setting provides a good balance, and you can always preview the result before downloading to ensure it meets your
+            quality expectations.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">Is my PDF secure and private?</h4>
+          <p className="text-gray-400">
+            Absolutely. DocEnclave PDF Compressor is designed with privacy as its top priority. All processing happens
+            directly in your browser. Your PDF files are never sent to our servers, ensuring your data remains completely
+            private and secure.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">What is "Remove Metadata"?</h4>
+          <p className="text-gray-400">
+            PDFs often contain hidden metadata like author, creation date, and software used to create the document.
+            The "Remove Metadata" option strips this information from your compressed PDF, providing a cleaner and
+            potentially slightly smaller file.
+          </p>
+
+          <h4 className="text-xl font-semibold text-white">Why is text not selectable after compression?</h4>
+          <p className="text-gray-400">
+            Since our compression method involves converting each PDF page into an image (JPEG), the text is no longer
+            recognized as editable or selectable text within the PDF. It becomes part of the image, similar to a scanned document.
+            This is a trade-off for achieving significant file size reduction.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
