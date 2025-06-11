@@ -55,35 +55,43 @@ const PDFPagePreview = ({ pageData, pageNumber, isSelected, onToggleSelect }) =>
   )
 }
 
-// Range Input Component
+// Fixed Range Input Component
 const RangeSelector = ({ totalPages, selectedPages, onRangeChange }) => {
   const [rangeInput, setRangeInput] = useState('')
   const [rangeError, setRangeError] = useState('')
 
   const applyRange = () => {
     setRangeError('')
-    const ranges = rangeInput.split(',').map(r => r.trim())
+    
+    // Don't process empty input
+    if (!rangeInput.trim()) {
+      setRangeError('Please enter page numbers or ranges')
+      return
+    }
+
+    const ranges = rangeInput.split(',').map(r => r.trim()).filter(r => r.length > 0)
     const newSelection = new Set()
 
     try {
       for (const range of ranges) {
         if (range.includes('-')) {
           const [start, end] = range.split('-').map(n => parseInt(n.trim()))
-          if (start < 1 || end > totalPages || start > end) {
-            throw new Error(`Invalid range: ${range}`)
+          if (isNaN(start) || isNaN(end) || start < 1 || end > totalPages || start > end) {
+            throw new Error(`Invalid range: ${range}. Use format like 1-5`)
           }
           for (let i = start; i <= end; i++) {
             newSelection.add(i - 1) // Convert to 0-indexed
           }
         } else {
-          const page = parseInt(range)
-          if (page < 1 || page > totalPages) {
-            throw new Error(`Invalid page: ${page}`)
+          const page = parseInt(range.trim())
+          if (isNaN(page) || page < 1 || page > totalPages) {
+            throw new Error(`Invalid page: ${range}. Must be between 1 and ${totalPages}`)
           }
           newSelection.add(page - 1) // Convert to 0-indexed
         }
       }
       onRangeChange(Array.from(newSelection))
+      setRangeInput('') // Clear input after successful application
     } catch (error) {
       setRangeError(error.message)
     }
@@ -117,6 +125,18 @@ const RangeSelector = ({ totalPages, selectedPages, onRangeChange }) => {
           className="text-xs bg-dark-tertiary text-dark-text-secondary px-3 py-1 rounded hover:bg-gray-600 transition-colors"
         >
           Even Pages
+        </button>
+        <button
+          onClick={() => onRangeChange(Array.from({length: Math.min(5, totalPages)}, (_, i) => i))}
+          className="text-xs bg-dark-tertiary text-dark-text-secondary px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+        >
+          First 5
+        </button>
+        <button
+          onClick={() => onRangeChange(Array.from({length: Math.min(5, totalPages)}, (_, i) => totalPages - 5 + i).filter(i => i >= 0))}
+          className="text-xs bg-dark-tertiary text-dark-text-secondary px-3 py-1 rounded hover:bg-gray-600 transition-colors"
+        >
+          Last 5
         </button>
       </div>
 
@@ -192,11 +212,11 @@ const PDFSplit = () => {
       const pageCount = pdfDoc.getPageCount()
       
       // Check page limit for free users
-const pageValidation = validatePDFForSplit(pageCount, currentPlan)
-if (!pageValidation.valid) {
-  setShowUpgradeModal(true)
-  return
-}
+      const pageValidation = validatePDFForSplit(pageCount, currentPlan)
+      if (!pageValidation.valid) {
+        setShowUpgradeModal(true)
+        return
+      }
 
       const pagesArray = Array.from({ length: pageCount }, (_, index) => ({
         pageIndex: index,
@@ -214,6 +234,7 @@ if (!pageValidation.valid) {
       setPreviewMode(true)
 
     } catch (err) {
+      console.error('PDF load error:', err)
       setError(`Failed to load PDF: ${droppedFile.name}. Please ensure it's a valid PDF file.`)
     }
   }
@@ -233,11 +254,11 @@ if (!pageValidation.valid) {
         return prev.filter(p => p !== pageIndex)
       } else {
         // Check free plan limits
-const selectionValidation = validatePageSelection(prev.length + 1, currentPlan)
-if (!selectionValidation.valid) {
-  setShowUpgradeModal(true)
-  return prev
-}
+        const selectionValidation = validatePageSelection(prev.length + 1, currentPlan)
+        if (!selectionValidation.valid) {
+          setShowUpgradeModal(true)
+          return prev
+        }
         return [...prev, pageIndex]
       }
     })
@@ -245,7 +266,8 @@ if (!selectionValidation.valid) {
 
   const handleRangeSelection = (newSelection) => {
     // Check free plan limits
-    if (currentPlan === 'FREE' && newSelection.length > 20) {
+    const selectionValidation = validatePageSelection(newSelection.length, currentPlan)
+    if (!selectionValidation.valid) {
       setShowUpgradeModal(true)
       return
     }
@@ -258,6 +280,18 @@ if (!selectionValidation.valid) {
       return
     }
 
+    // Validate selected pages are within bounds
+    const validPages = selectedPages.filter(pageIndex => pageIndex >= 0 && pageIndex < pages.length)
+    if (validPages.length === 0) {
+      setError('No valid pages selected')
+      return
+    }
+
+    if (validPages.length !== selectedPages.length) {
+      setError('Some selected pages are invalid. Please reselect pages.')
+      return
+    }
+
     setIsProcessing(true)
     setProgress(0)
     setError('')
@@ -265,11 +299,11 @@ if (!selectionValidation.valid) {
     try {
       if (exportOption === 'separate') {
         // Create separate PDF for each selected page
-        for (let i = 0; i < selectedPages.length; i++) {
-          setProgress((i / selectedPages.length) * 90)
+        for (let i = 0; i < validPages.length; i++) {
+          setProgress((i / validPages.length) * 90)
           
           const newPdf = await PDFDocument.create()
-          const [copiedPage] = await newPdf.copyPages(file.pdfDoc, [selectedPages[i]])
+          const [copiedPage] = await newPdf.copyPages(file.pdfDoc, [validPages[i]])
           newPdf.addPage(copiedPage)
           
           const pdfBytes = await newPdf.save()
@@ -277,18 +311,21 @@ if (!selectionValidation.valid) {
           const url = URL.createObjectURL(blob)
           const link = document.createElement('a')
           link.href = url
-          link.download = `${file.name.replace('.pdf', '')}_page_${selectedPages[i] + 1}.pdf`
+          link.download = `${file.name.replace('.pdf', '')}_page_${validPages[i] + 1}.pdf`
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
           URL.revokeObjectURL(url)
+          
+          // Small delay to prevent browser blocking multiple downloads
+          await new Promise(resolve => setTimeout(resolve, 100))
         }
       } else if (exportOption === 'combined') {
         // Create single PDF with selected pages
         setProgress(50)
         
         const newPdf = await PDFDocument.create()
-        const sortedPages = [...selectedPages].sort((a, b) => a - b)
+        const sortedPages = [...validPages].sort((a, b) => a - b)
         const copiedPages = await newPdf.copyPages(file.pdfDoc, sortedPages)
         copiedPages.forEach(page => newPdf.addPage(page))
         
@@ -314,7 +351,7 @@ if (!selectionValidation.valid) {
 
     } catch (err) {
       console.error('PDF split error:', err)
-      setError('Failed to split PDF. Please try again.')
+      setError('Failed to split PDF. Please ensure all selected pages are valid.')
       setIsProcessing(false)
       setProgress(0)
     }
@@ -453,7 +490,7 @@ if (!selectionValidation.valid) {
           </div>
         )}
 
-        {/* File Info and Controls */}
+        {/* File Info and Controls - Simple view */}
         {file && !previewMode && (
           <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -471,7 +508,7 @@ if (!selectionValidation.valid) {
                   onClick={() => setPreviewMode(true)}
                   className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
                 >
-                  Preview Pages
+                  Preview & Select Pages
                 </button>
                 <button
                   onClick={resetTool}
@@ -489,7 +526,7 @@ if (!selectionValidation.valid) {
           <div className="space-y-6 mb-6">
             <div className="flex items-center justify-between">
               <h3 className="text-xl font-semibold text-dark-text-primary">
-                Select Pages to Extract
+                Select Pages to Extract ({selectedPages.length} selected)
               </h3>
               <div className="flex space-x-3">
                 <button
@@ -497,6 +534,12 @@ if (!selectionValidation.valid) {
                   className="bg-dark-tertiary text-dark-text-primary px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors"
                 >
                   Choose Different File
+                </button>
+                <button
+                  onClick={() => setPreviewMode(false)}
+                  className="border border-dark-border text-dark-text-primary px-4 py-2 rounded-lg hover:bg-dark-tertiary transition-colors"
+                >
+                  Simple View
                 </button>
               </div>
             </div>
@@ -511,34 +554,46 @@ if (!selectionValidation.valid) {
             {/* Export Options */}
             <div className="bg-dark-secondary rounded-lg p-4 border border-dark-border">
               <h4 className="text-dark-text-primary font-medium mb-3">Export Options</h4>
-              <div className="flex flex-wrap gap-3">
-                <label className="flex items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center p-3 bg-dark-tertiary rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
                   <input
                     type="radio"
                     name="exportOption"
                     value="separate"
                     checked={exportOption === 'separate'}
                     onChange={(e) => setExportOption(e.target.value)}
-                    className="mr-2"
+                    className="mr-3"
                   />
-                  <span className="text-dark-text-secondary text-sm">Separate files (one PDF per page)</span>
+                  <div>
+                    <span className="text-dark-text-primary font-medium block">Separate Files</span>
+                    <span className="text-dark-text-muted text-xs">One PDF per page</span>
+                  </div>
                 </label>
-                <label className="flex items-center">
+                <label className="flex items-center p-3 bg-dark-tertiary rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
                   <input
                     type="radio"
                     name="exportOption"
                     value="combined"
                     checked={exportOption === 'combined'}
                     onChange={(e) => setExportOption(e.target.value)}
-                    className="mr-2"
+                    className="mr-3"
                   />
-                  <span className="text-dark-text-secondary text-sm">Combined file (all pages in one PDF)</span>
+                  <div>
+                    <span className="text-dark-text-primary font-medium block">Combined File</span>
+                    <span className="text-dark-text-muted text-xs">All pages in one PDF</span>
+                  </div>
                 </label>
               </div>
             </div>
 
             {/* Page Grid */}
             <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-dark-text-primary font-medium">Pages ({pages.length} total)</h4>
+                <div className="text-dark-text-muted text-sm">
+                  Click pages to select/deselect
+                </div>
+              </div>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
                 {pages.map((page, pageIndex) => (
                   <PDFPagePreview
@@ -554,9 +609,24 @@ if (!selectionValidation.valid) {
           </div>
         )}
 
-        {/* Split Controls */}
+        {/* Split Controls - Always show if file exists and pages selected */}
         {file && selectedPages.length > 0 && (
           <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border mb-16">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-dark-text-primary font-medium">Ready to Extract</h4>
+                <p className="text-dark-text-muted text-sm">
+                  {selectedPages.length} page{selectedPages.length !== 1 ? 's' : ''} selected
+                  {exportOption === 'separate' ? ` (${selectedPages.length} files will be downloaded)` : ' (1 file will be downloaded)'}
+                </p>
+              </div>
+              {selectedPages.length > 5 && exportOption === 'separate' && (
+                <div className="text-yellow-400 text-xs">
+                  ⚠️ Multiple downloads - allow popups if blocked
+                </div>
+              )}
+            </div>
+            
             <button
               onClick={splitPDF}
               disabled={selectedPages.length === 0 || isProcessing}
@@ -569,6 +639,16 @@ if (!selectionValidation.valid) {
           </div>
         )}
 
+        {/* Help message when no pages selected */}
+        {file && selectedPages.length === 0 && previewMode && (
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6 mb-16 text-center">
+            <div className="text-blue-400 text-4xl mb-4">👆</div>
+            <h4 className="text-blue-400 font-medium mb-2">Select Pages to Extract</h4>
+            <p className="text-blue-300 text-sm">
+              Click on individual pages above or use the quick selection buttons to choose which pages to extract.
+            </p>
+          </div>
+        )}
         {/* How to Use Section */}
         <section className="mb-16">
           <h2 className="text-2xl font-bold text-dark-text-primary text-center mb-8">
@@ -715,7 +795,7 @@ if (!selectionValidation.valid) {
               <ul className="space-y-2 mb-6">
                 <li className="text-dark-text-secondary">✅ Extract unlimited pages</li>
                 <li className="text-dark-text-secondary">✅ 500MB file capacity</li>
-                <li className="text-dark-text-secondary">✅ Batch processing</li>
+                <li className="text-dark-text-secondary">✅ Process larger PDFs</li>
                 <li className="text-dark-text-secondary">✅ Advanced export options</li>
               </ul>
               <div className="flex space-x-3">
