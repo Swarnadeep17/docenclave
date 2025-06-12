@@ -1,25 +1,31 @@
 // src/pages/Home.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import Particles from 'react-particles-js';
-import Layout from '../components/layout/Layout';
-import { FiCheck, FiX } from 'react-icons/fi';
+import Particles from "react-tsparticles";
+import { loadFull } from "tsparticles";
 import PDFPageRenderer from '../components/shared/PDFPageRenderer';
 import StatsCounter from '../components/home/StatsCounter';
-import { logEvent } from '../utils/analytics';
+import { FiCheck, FiX } from 'react-icons/fi';
 
 const Home = () => {
-  const [files, setFiles] = useState([]);
   const [documentsSecured, setDocumentsSecured] = useState(58724);
   const [activeTab, setActiveTab] = useState('all');
   
   useEffect(() => {
-    // Initialize with random activity updates
     const interval = setInterval(() => {
       setDocumentsSecured(prev => prev + Math.floor(Math.random() * 5));
     }, 3000);
     
     return () => clearInterval(interval);
+  }, []);
+
+  // Initialize particles
+  const particlesInit = useCallback(async engine => {
+    await loadFull(engine);
+  }, []);
+
+  const particlesLoaded = useCallback(async container => {
+    return;
   }, []);
 
   const countries = ['US', 'DE', 'UK', 'IN', 'CA', 'JP', 'BR', 'FR', 'AU', 'SG'];
@@ -77,12 +83,15 @@ const Home = () => {
   ];
 
   return (
-    <Layout>
+    <>
       {/* Hero Section */}
       <section className="relative py-20 md:py-28 overflow-hidden bg-gradient-to-tr from-[#0c0e11] via-[#111827] to-[#090e19]">
         <Particles
+          id="tsparticles"
           className="absolute inset-0 z-0"
-          params={{
+          init={particlesInit}
+          loaded={particlesLoaded}
+          options={{
             particles: {
               number: { value: 30, density: { enable: true, value_area: 800 } },
               color: { value: "#6366F1" },
@@ -215,7 +224,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800 hover:border-cyan-500/30 transition-colors">
               <div className="w-14 h-14 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-cyan-400" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 text- cyan-400" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M12,3L1,9L5,11.18V17.18L12,21L19,17.18V11.18L21,10.09V17H23V9L12,3M18.82,9L12,12.72L5.18,9L12,5.28L18.82,9M17,16L12,18.72L7,16V12.27L12,15L17,12.27V16Z"/>
                 </svg>
               </div>
@@ -228,7 +237,7 @@ const Home = () => {
             <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800 hover:border-cyan-500/30 transition-colors">
               <div className="w-14 h-14 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-cyan-400" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M12,12A3,3 0 0,0 9,9A3,3 0 0,0 12,12A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,2C11,7 7,11 2,12C7,13 11,17 12,22C13,17 17,13 22,12C17,11 13,7 12,2Z"/>
+                  <path fill="currentColor" d="M12,12A3,3 0 0,0 9,9A3,极 0 0,0 12,12A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,2C11,7 7,11 2,12C7,13 11,17 12,22C13,17 17,13 22,12C17,11 13,7 12,2Z"/>
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-2 text-gray-100">No Data Retention</h3>
@@ -259,7 +268,7 @@ const Home = () => {
             <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-500">
               Secure Document Tools
             </h2>
-            <p className="text-gray-400 mt-4">
+            <极 className="text-gray-400 mt-4">
               All privacy features. Zero compromises. Totally free.
             </p>
           </div>
@@ -307,25 +316,9 @@ const Home = () => {
                 </div>
               </a>
             ))}
-            
-            {/* Additional Tool Cards (repeat structure as needed) */}
-          </div>
-          
-          {/* View All Button */}
-          <div className="text-center mt-10">
-            <a 
-              href="/tools" 
-              className="inline-flex items-center px-6 py-3 rounded-lg font-medium bg-gray-800 hover:bg-gray-700 transition-colors text-gray-200"
-            >
-              <span>View All Tools</span>
-              <svg className="ml-2 w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z"/>
-              </svg>
-            </a>
           </div>
         </div>
       </section>
-
       {/* Testimonials Section */}
       <section className="py-16 bg-gradient-to-b from-black to-[#0c0e11]">
         <div className="container mx-auto px-4 max-w-5xl">
@@ -344,7 +337,7 @@ const Home = () => {
               <div className="flex items-center mb-4">
                 <div className="w-3 h-3 rounded-full bg-cyan-400 mr-2"></div>
                 <div className="w-3 h-3 rounded-full bg-purple-400 mr-2"></div>
-                <div className="w-3 h-3 rounded-full bg-pink-400 mr-2"></div>
+                <div className="极3 h-3 rounded-full bg-pink-400 mr-2"></div>
               </div>
               <p className="text-gray-300 italic mb-6">
                 "As a legal professional handling NDAs daily, I no longer worry about accidental data leaks. My documents stay safe."
@@ -405,11 +398,12 @@ const Home = () => {
                   <h4 className="font-bold text-gray-200">Julia D.</h4>
                   <p className="text-gray-500 text-sm">Healthcare Admin</p>
                 </div>
-              </div>
+              </极>
             </div>
           </div>
         </div>
       </section>
+
       {/* Comparison Table */}
       <section id="comparison" className="py-16 bg-gradient-to-b from-[#0c0e11] to-black border-y border-gray-800">
         <div className="container mx-auto px-4">
@@ -493,123 +487,7 @@ const Home = () => {
           </div>
         </div>
       </section>
-      
-      {/* Footer */}
-      <footer className="pt-16 pb-8 bg-black">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="md:col-span-1">
-              <div className="flex items-center">
-                <div className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">
-                  DocEnclave
-                </div>
-              </div>
-              <p className="mt-4 text-gray-500 text-sm max-w-xs">
-                Privacy-first document processing tools that keep your sensitive content protected.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-gray-300 text-lg font-semibold mb-4">Products</h4>
-              <ul className="space-y-3">
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    PDF Anonymizer
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    Secure Redaction
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    Metadata Scrubber
-                  </a>
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-gray-300 text-lg font-semibold mb-4">Resources</h4>
-              <ul className="space-y-3">
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    Privacy Guide
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    Developer API
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    Documentation
-                  </a>
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="text-gray-300 text-lg font-semibold mb-4">Company</h4>
-              <ul className="space-y-3">
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    About Us
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="#" 
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm"
-                  >
-                    Security
-                  </a>
-                </li>
-                <li>
-                  <a 
-                    href="#tools"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      document.getElementById('tools').scrollIntoView({behavior: 'smooth'});
-                    }}
-                    className="text-gray-500 hover:text-cyan-400 transition-colors text-sm cursor-pointer"
-                  >
-                    Tools
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-900 mt-12 pt-8 text-center text-sm text-gray-600">
-            <div>© {new Date().getFullYear()} DocEnclave. All rights reserved.</div>
-          </div>
-        </div>
-      </footer>
-    </Layout>
+    </>
   );
 };
 
