@@ -112,18 +112,10 @@ const RangeSelector = ({ totalPages, onRangeChange }) => {
 
 const USPBar = () => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center text-sm mb-6">
-      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg">
-        <span>👁️</span> <span className="text-dark-text-secondary">Page Preview</span>
-      </div>
-      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg">
-        <span>🔒</span> <span className="text-dark-text-secondary">100% Private</span>
-      </div>
-      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg">
-        <span>📐</span> <span className="text-dark-text-secondary">Range Selection</span>
-      </div>
-      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg">
-        <span>📤</span> <span className="text-dark-text-secondary">Smart Export</span>
-      </div>
+      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg"><span>👁️</span> <span className="text-dark-text-secondary">Page Preview</span></div>
+      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg"><span>🔒</span> <span className="text-dark-text-secondary">100% Private</span></div>
+      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg"><span>📐</span> <span className="text-dark-text-secondary">Range Selection</span></div>
+      <div className="flex items-center justify-center gap-2 p-2 bg-dark-tertiary rounded-lg"><span>📤</span> <span className="text-dark-text-secondary">Smart Export</span></div>
     </div>
 );
 
@@ -322,7 +314,7 @@ const PDFSplit = () => {
             <section className="mt-16"><div className="max-w-4xl mx-auto"><h2 className="text-3xl font-bold text-dark-text-primary mb-8">The Complete Guide to PDF Splitting</h2><div className="space-y-8"><p className="text-dark-text-secondary leading-relaxed">PDF splitting is essential for document privacy and efficiency. Instead of sharing a 100-page report when you only need pages 15-20, extract exactly what's needed. This protects sensitive information in other sections, reduces file sizes for email attachments, and helps recipients focus on relevant content.</p></div></div></section>
         </div>
 
-        {showUpgradeModal && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-dark-secondary rounded-xl p-8 max-w-md mx-4 border border-dark-border"><h3 className="text-xl font-bold text-dark-text-primary mb-4">Upgrade to Premium</h3><p className="text-dark-text-secondary mb-6">Unlock more powerful features:</p><ul className="space-y-2 mb-6"><li className="text-dark-text-secondary">✅ Extract unlimited pages</li><li className="text-dark-text-secondary">✅ 500MB file capacity</li></ul><div className="flex space-x-3"><button onClick={() => setShowUpgradeModal(false)} className="flex-1 border border-dark-border text-dark-text-primary py-2 rounded-lg hover:bg-dark-tertiary transition-colors">Continue Free</button><button className="flex-1 bg-dark-text-primary text-dark-primary py-2 rounded-lg font-medium hover:bg-dark-text-secondary transition-colors">Upgrade Now</button></div></div></div>)}
+        {showUpgradeModal && (<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div className="bg-dark-secondary rounded-xl p-8 max-w-md mx-4 border border-dark-border"><h3 className="text-xl font-bold text-dark-text-primary mb-4">Upgrade to Premium</h3><p className="text-dark-text-secondary mb-6">Unlock more powerful features:</p><ul className="space-y-2 mb-6"><li className="text-dark-text-secondary">✅ Extract unlimited pages</li><li className="text-dark-text-secondary">✅ 500MB file capacity</li><li className="text-dark-text-secondary">✅ Process larger PDFs</li><li className="text-dark-text-secondary">✅ Advanced export options</li></ul><div className="flex space-x-3"><button onClick={() => setShowUpgradeModal(false)} className="flex-1 border border-dark-border text-dark-text-primary py-2 rounded-lg hover:bg-dark-tertiary transition-colors">Continue Free</button><button className="flex-1 bg-dark-text-primary text-dark-primary py-2 rounded-lg font-medium hover:bg-dark-text-secondary transition-colors">Upgrade Now</button></div></div></div>)}
       </div>
     </>
   );
