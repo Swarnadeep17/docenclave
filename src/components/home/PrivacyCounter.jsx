@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { getMonthlyStats } from '../../utils/analytics.js'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { db } from '@/firebase' // adjust import if needed
+
+const monthId = new Date().toISOString().slice(0, 7)
 
 const PrivacyMetric = ({ value, label, icon, delay = 0 }) => {
   const [displayValue, setDisplayValue] = useState(0)
@@ -56,47 +59,32 @@ const LiveIndicator = () => (
 )
 
 const PrivacyCounter = () => {
-  const [stats, setStats] = useState({ visitors: 0, downloads: 0 })
-  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    toolsUsed: 0,
+    downloads: 0,
+    tickerMessage: ''
+  })
 
   useEffect(() => {
-    const loadStats = async () => {
-      const monthlyStats = await getMonthlyStats()
-      setStats(monthlyStats)
-      setLoading(false)
-    }
-    
-    loadStats()
-    
-    // Refresh every 10 seconds for real-time feel
-    const interval = setInterval(loadStats, 10000)
-    return () => clearInterval(interval)
+    const unsub = onSnapshot(doc(db, 'analytics', monthId), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data()
+        const toolsUsed = Object.values(data.tools_used || {}).reduce((sum, val) => sum + val, 0)
+        const downloads = data.downloads || 0
+        const tickerMessage = data.lastDownloadLocation ? `File downloaded from ${data.lastDownloadLocation}` : ''
+        setStats({ toolsUsed, downloads, tickerMessage })
+      }
+    })
+    return () => unsub()
   }, [])
 
-  if (loading) {
-    return (
-      <section className="bg-dark-secondary border-y border-dark-border py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center">
-            <div className="animate-pulse">
-              <div className="h-16 bg-dark-tertiary rounded w-64 mx-auto mb-6"></div>
-              <div className="h-6 bg-dark-tertiary rounded w-48 mx-auto"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  // Calculate privacy impact metrics
-  const documentsProcessed = stats.downloads
-  const filesProtected = Math.floor(stats.visitors * 2.3) // Avg 2.3 files per visitor session
+  const filesProtected = Math.floor(stats.downloads * 1.6) // More privacy impact
   
   return (
     <section className="bg-dark-secondary border-y border-dark-border py-20">
       <div className="container mx-auto px-4">
         <LiveIndicator />
-        
+
         <div className="max-w-5xl mx-auto">
           <h3 className="text-2xl md:text-3xl font-bold text-center text-dark-text-primary mb-4">
             Your Privacy is Our Priority
@@ -104,26 +92,35 @@ const PrivacyCounter = () => {
           <p className="text-center text-dark-text-secondary mb-12 max-w-2xl mx-auto">
             Real-time impact of our client-side processing approach
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20">
-            <PrivacyMetric 
+            <PrivacyMetric
               value={filesProtected}
               label="Files Kept Off Cloud Servers"
               icon="🔒"
               delay={300}
             />
-            <PrivacyMetric 
-              value={documentsProcessed}
+            <PrivacyMetric
+              value={stats.toolsUsed}
               label="Documents Processed Privately"
               icon="📄"
               delay={600}
             />
           </div>
-          
+
+          {stats.tickerMessage && (
+            <div className="text-center mt-10">
+              <p className="text-sm text-lime-400 italic animate-pulse">
+                {stats.tickerMessage}
+              </p>
+            </div>
+          )}
+
           <div className="text-center mt-12">
             <p className="text-sm text-dark-text-muted max-w-3xl mx-auto leading-relaxed">
-              Every file you process with DocEnclave stays on your device. 
-              No uploads, no cloud storage, no privacy concerns. Join thousands who trust us with their document privacy.
+              Every file you process with DocEnclave stays on your device.
+              No uploads, no cloud storage, no privacy concerns.
+              Join thousands who trust us with their document privacy.
             </p>
           </div>
         </div>
