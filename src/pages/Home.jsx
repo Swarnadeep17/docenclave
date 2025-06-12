@@ -1,23 +1,33 @@
-import React, { useEffect, useState } from 'react'; import { Link } from 'react-router-dom'; import { loadFull } from 'tsparticles'; import Particles from 'react-tsparticles'; import { trackVisitor, hasTrackedThisSession, markVisitorTracked, getVisitorStats } from '../utils/analytics'; import { ShieldCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react'; import { Link } from 'react-router-dom'; import { loadFull } from '@tsparticles/engine'; import { Particles } from '@tsparticles/react'; import { trackVisitor, hasTrackedThisSession, markVisitorTracked, getVisitorStats } from '../utils/analytics'; import { ShieldCheck } from 'lucide-react';
 
 const HeroParticles = () => ( <Particles id="tsparticles" init={loadFull} options={{ fullScreen: { enable: false }, background: { color: 'transparent' }, particles: { number: { value: 60 }, size: { value: 2 }, color: { value: '#00f0ff' }, links: { enable: true, color: '#00f0ff', opacity: 0.3 }, move: { enable: true, speed: 0.5 }, }, }} className="absolute inset-0 z-0" /> );
 
 const TickerStats = ({ visitors, downloads }) => (
 
   <div className="flex justify-center items-center gap-6 text-sm md:text-base text-neon-blue font-mono px-4 py-2 bg-dark-tertiary rounded-full shadow-lg shadow-neon-blue/30 animate-pulse border border-dark-border">
-    <span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-neon-green animate-bounce" /> {visitors} Visitors</span>
+    <span className="flex items-center gap-2">
+      <ShieldCheck className="w-4 h-4 text-neon-green animate-bounce" />
+      {visitors} Visitors
+    </span>
     <span className="w-px h-4 bg-dark-border" />
-    <span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-neon-green animate-bounce" /> {downloads} Downloads</span>
+    <span className="flex items-center gap-2">
+      <ShieldCheck className="w-4 h-4 text-neon-green animate-bounce" />
+      {downloads} Downloads
+    </span>
   </div>
 );const ToolCard = ({ tool, available }) => (
 
-  <div className={`rounded-xl p-4 ${available ? 'bg-dark-secondary hover:bg-dark-tertiary' : 'bg-dark-secondary opacity-50'} transition-all border border-dark-border group`}>
+  <div
+    className={`rounded-xl p-4 ${available ? 'bg-dark-secondary hover:bg-dark-tertiary' : 'bg-dark-secondary opacity-50'} transition-all border border-dark-border group`}
+  >
     <div className="flex justify-between items-center">
       <div>
         <h6 className="text-dark-text-primary font-semibold group-hover:text-white">{tool.name}</h6>
         <p className="text-dark-text-muted text-sm">{tool.description}</p>
       </div>
-      <span className={`text-xs px-2 py-1 rounded ${available ? 'bg-green-500/20 text-green-400' : 'bg-dark-tertiary text-dark-text-secondary'}`}>
+      <span
+        className={`text-xs px-2 py-1 rounded ${available ? 'bg-green-500/20 text-green-400' : 'bg-dark-tertiary text-dark-text-secondary'}`}
+      >
         {available ? 'Available' : 'Coming Soon'}
       </span>
     </div>
