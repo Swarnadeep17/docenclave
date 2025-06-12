@@ -1,179 +1,283 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { trackVisitor, getMonthlyStats, getRecentEvents } from '@/utils/analytics'
-import Particles from 'react-tsparticles'
-import { loadFull } from 'tsparticles'
-import { useTypewriter } from 'react-simple-typewriter'
+import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import PrivacyCounter from '../components/home/PrivacyCounter.jsx'
+import { trackVisitor, hasTrackedThisSession, markVisitorTracked } from '../utils/analytics.js'
 
-const toolsData = {
-  PDF: {
-    color: 'from-[#0ff] to-[#00f]',
-    subtools: [
-      { name: 'Merge', path: '/tools/pdf/merge', status: 'Available' },
-      { name: 'Split', path: '/tools/pdf/split', status: 'Available' },
-      { name: 'Compress', status: 'Coming Soon' },
-      { name: 'Protect', status: 'Coming Soon' }
-    ]
-  },
-  Images: {
-    color: 'from-[#f0f] to-[#a0f]',
-    subtools: [
-      { name: 'Resize', status: 'Coming Soon' },
-      { name: 'Convert', status: 'Coming Soon' }
-    ]
-  },
-  Documents: {
-    color: 'from-[#ff0] to-[#fa0]',
-    subtools: [
-      { name: 'OCR', status: 'Coming Soon' },
-      { name: 'Summarize', status: 'Coming Soon' }
-    ]
-  }
-}
-
-export default function Home() {
-  const [expandedTool, setExpandedTool] = useState(null)
-  const [stats, setStats] = useState({ secured: 0, uploadsAvoided: 0, timeSaved: 0 })
-  const [ticker, setTicker] = useState([])
-  const [currentTicker, setCurrentTicker] = useState(0)
-
-  useEffect(() => {
-    trackVisitor()
-    getMonthlyStats().then(data => {
-      setStats({
-        secured: data.tools_used || 0,
-        uploadsAvoided: data.uploads_avoided || 0,
-        timeSaved: data.time_saved || 0
-      })
-    })
-
-    getRecentEvents().then(setTicker)
-  }, [])
-
-  useEffect(() => {
-    if (ticker.length > 0) {
-      const interval = setInterval(() => {
-        setCurrentTicker(i => (i + 1) % ticker.length)
-      }, 5000)
-      return () => clearInterval(interval)
-    }
-  }, [ticker])
-
-  const handleInit = async (main) => await loadFull(main)
-
-  const [text] = useTypewriter({
-    words: ['Secure', 'Private', 'Fast', 'No Cloud Footprint'],
-    loop: true,
-    delaySpeed: 2500
-  })
-
+const ToolCategory = ({ title, icon, description, tools, isExpanded, onToggle }) => {
   return (
-    <div className="bg-dark-primary text-white min-h-screen">
-      {/* HERO + PARTICLES */}
-      <div className="relative h-[500px] flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-        <Particles
-          id="tsparticles"
-          init={handleInit}
-          options={{
-            fullScreen: false,
-            background: { color: '#111' },
-            particles: {
-              number: { value: 60 },
-              size: { value: 2 },
-              color: { value: '#0ff' },
-              links: { enable: true, color: '#0ff' },
-              move: { enable: true, speed: 0.5 }
-            }
-          }}
-          className="absolute inset-0 z-0"
-        />
-
-        <h1 className="z-10 text-5xl sm:text-6xl font-bold mb-4">DocEnclave</h1>
-        <p className="z-10 text-lg text-dark-text-muted mb-6">Where files stay <span className="text-[#0ff]">{text}</span>.</p>
-
-        {ticker.length > 0 && (
-          <div className="z-10 bg-dark-secondary px-4 py-2 rounded-xl shadow-md text-sm tracking-wide animate-fade-in">
-            {ticker[currentTicker]}
+    <div className="bg-dark-secondary rounded-xl border border-dark-border overflow-hidden transition-all duration-300">
+      <div 
+        onClick={onToggle}
+        className="p-8 cursor-pointer hover:bg-dark-tertiary transition-all duration-300"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-4xl mb-4">{icon}</div>
+            <h4 className="text-xl font-semibold text-dark-text-primary mb-3">{title}</h4>
+            <p className="text-dark-text-secondary mb-4">{description}</p>
           </div>
-        )}
-      </div>
-
-      {/* STATS */}
-      <div className="max-w-4xl mx-auto px-4 mt-10 text-center grid sm:grid-cols-3 gap-4">
-        <div className="bg-dark-secondary rounded-xl p-4 shadow">
-          <div className="text-2xl font-semibold text-[#0f0]">{stats.secured}</div>
-          <p className="text-sm text-dark-text-muted mt-1">Files Secured This Month</p>
-        </div>
-        <div className="bg-dark-secondary rounded-xl p-4 shadow">
-          <div className="text-2xl font-semibold text-[#ff0]">{stats.uploadsAvoided}</div>
-          <p className="text-sm text-dark-text-muted mt-1">Uploads Avoided</p>
-        </div>
-        <div className="bg-dark-secondary rounded-xl p-4 shadow">
-          <div className="text-2xl font-semibold text-[#f0f]">{stats.timeSaved} mins</div>
-          <p className="text-sm text-dark-text-muted mt-1">Processing Time Saved</p>
+          <div className={`text-2xl text-dark-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+            ⌄
+          </div>
         </div>
       </div>
-
-      {/* TOOLS */}
-      <div className="max-w-6xl mx-auto px-4 pb-24 mt-16">
-        <h2 className="text-3xl font-semibold mb-10 text-center">Tools</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-          {Object.entries(toolsData).map(([key, value]) => (
-            <div key={key}>
-              <button
-                onClick={() => setExpandedTool(expandedTool === key ? null : key)}
-                className={`w-full group bg-gradient-to-r ${value.color} p-[2px] rounded-2xl transition-all hover:scale-105`}
-              >
-                <div className="flex items-center justify-center p-6 bg-dark-secondary rounded-2xl">
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M4 12h16M4 8h16M4 4h16" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-              </button>
-              {expandedTool === key && (
-                <div className="mt-4 space-y-3">
-                  {value.subtools.map((tool, idx) => (
-                    <div
-                      key={idx}
-                      className={`flex items-center justify-between px-4 py-2 rounded-lg bg-dark-tertiary border border-dark-border ${
-                        tool.status === 'Available' ? 'hover:bg-dark-secondary transition cursor-pointer' : 'opacity-60 cursor-not-allowed'
-                      }`}
-                      onClick={() => tool.status === 'Available' && window.location.assign(tool.path)}
-                    >
-                      <span>{tool.name}</span>
-                      <span className={`text-sm ${tool.status === 'Available' ? 'text-[#0f0]' : 'text-[#999]'}`}>{tool.status}</span>
+      
+      {/* Expanded Tools Section */}
+      <div className={`transition-all duration-300 overflow-hidden ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="border-t border-dark-border bg-dark-primary p-6">
+          <h5 className="text-lg font-semibold text-dark-text-primary mb-4">Available Tools:</h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {tools.map((tool, index) => (
+              <div key={index} className="flex items-center justify-between">
+                {tool.available ? (
+                  <Link 
+                    to={tool.path}
+                    className="flex-1 bg-dark-secondary p-4 rounded-lg hover:bg-dark-tertiary transition-colors group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h6 className="text-dark-text-primary font-medium group-hover:text-white transition-colors">
+                          {tool.name}
+                        </h6>
+                        <p className="text-dark-text-muted text-sm">{tool.description}</p>
+                      </div>
+                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded ml-4">
+                        Available
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* COMPARISON */}
-      <div className="bg-dark-secondary py-20 px-6 text-center">
-        <h3 className="text-2xl sm:text-3xl font-semibold mb-10">How DocEnclave Compares</h3>
-        <div className="max-w-5xl mx-auto grid sm:grid-cols-2 gap-6 text-left">
-          {[
-            ['No Login Needed', 'Start instantly. No email required.'],
-            ['Client-Side Only', 'No file ever leaves your device.'],
-            ['Real-Time Stats', 'Track live tool usage, not you.'],
-            ['Futuristic UI', 'Modern tools with neon aesthetics.'],
-            ['Mobile-Ready', 'Built for all screen sizes.'],
-            ['Secure by Design', 'Zero trust cloudless processing.'],
-            ['No Tracking', 'We collect no personal info.'],
-            ['Open Source', 'Code transparency you can audit.'],
-            ['Fast Load Times', 'Lightweight & optimized codebase.'],
-            ['Coming Soon Tools', 'Stay tuned for regular upgrades.']
-          ].map(([title, desc], idx) => (
-            <div key={idx} className="bg-dark-tertiary p-6 rounded-xl border border-dark-border">
-              <p className="font-semibold mb-1">{title}</p>
-              <p className="text-sm text-dark-text-muted">{desc}</p>
-            </div>
-          ))}
+                  </Link>
+                ) : (
+                  <div className="flex-1 bg-dark-secondary p-4 rounded-lg opacity-60">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h6 className="text-dark-text-primary font-medium">{tool.name}</h6>
+                        <p className="text-dark-text-muted text-sm">{tool.description}</p>
+                      </div>
+                      <span className="text-xs bg-dark-tertiary text-dark-text-secondary px-2 py-1 rounded ml-4">
+                        Coming Soon
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   )
 }
+
+const Home = () => {
+  const [expandedCategory, setExpandedCategory] = useState(null)
+
+  useEffect(() => {
+    if (!hasTrackedThisSession()) {
+      trackVisitor()
+      markVisitorTracked()
+    }
+  }, [])
+
+  const handleCategoryToggle = (categoryId) => {
+    setExpandedCategory(expandedCategory === categoryId ? null : categoryId)
+  }
+
+  const toolCategories = [
+    {
+      id: 'pdf',
+      title: 'PDF Tools',
+      icon: '📄',
+      description: 'Process and manipulate PDF files with professional-grade tools',
+      tools: [
+        {
+          name: 'PDF Merge',
+          description: 'Combine multiple PDFs into one',
+          path: '/tools/pdf/merge',
+          available: true
+        },
+        {
+          name: 'PDF Split',
+          description: 'Extract pages or split into multiple files',
+          path: '/tools/pdf/split',
+          available: true  // ← Changed from false to true
+        },
+        {
+          name: 'PDF Compress',
+          description: 'Reduce file size while maintaining quality',
+          path: '/tools/pdf/compress',
+          available: false
+        },
+        {
+          name: 'PDF to Image',
+          description: 'Convert PDF pages to image formats',
+          path: '/tools/pdf/to-image',
+          available: false
+        }
+      ]
+    },
+    {
+      id: 'image',
+      title: 'Image Tools',
+      icon: '🖼️',
+      description: 'Resize, compress, and convert images while maintaining quality',
+      tools: [
+        {
+          name: 'Image Resize',
+          description: 'Change image dimensions',
+          path: '/tools/image/resize',
+          available: false
+        },
+        {
+          name: 'Image Compress',
+          description: 'Reduce file size',
+          path: '/tools/image/compress',
+          available: false
+        },
+        {
+          name: 'Format Convert',
+          description: 'Convert between image formats',
+          path: '/tools/image/convert',
+          available: false
+        },
+        {
+          name: 'Image to PDF',
+          description: 'Convert images to PDF',
+          path: '/tools/image/to-pdf',
+          available: false
+        }
+      ]
+    },
+    {
+      id: 'document',
+      title: 'Document Tools',
+      icon: '📝',
+      description: 'Advanced document processing and conversion tools',
+      tools: [
+        {
+          name: 'Word to PDF',
+          description: 'Convert DOC/DOCX to PDF',
+          path: '/tools/document/word-to-pdf',
+          available: false
+        },
+        {
+          name: 'Excel to PDF',
+          description: 'Convert spreadsheets to PDF',
+          path: '/tools/document/excel-to-pdf',
+          available: false
+        },
+        {
+          name: 'PowerPoint to PDF',
+          description: 'Convert presentations to PDF',
+          path: '/tools/document/ppt-to-pdf',
+          available: false
+        },
+        {
+          name: 'Text to PDF',
+          description: 'Create PDF from plain text',
+          path: '/tools/document/text-to-pdf',
+          available: false
+        }
+      ]
+    }
+  ]
+
+  return (
+    <>
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="text-center max-w-4xl mx-auto">
+          <h2 className="text-5xl md:text-7xl font-bold text-dark-text-primary mb-6 leading-tight">
+            Process Documents
+            <span className="block text-dark-text-muted">Securely</span>
+          </h2>
+          <p className="text-dark-text-secondary mb-12 max-w-2xl mx-auto text-lg md:text-xl leading-relaxed">
+            All processing happens in your browser. Your files never leave your device. 
+            No uploads, no tracking, no compromises.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <button 
+              onClick={() => handleCategoryToggle('pdf')}
+              className="bg-dark-text-primary text-dark-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-text-secondary transition-colors"
+            >
+              Start Processing
+            </button>
+            <button 
+              onClick={() => setExpandedCategory(expandedCategory ? null : 'pdf')}
+              className="border border-dark-border text-dark-text-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-tertiary transition-colors"
+            >
+              View Tools
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <PrivacyCounter />
+
+      {/* Tools Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="text-center mb-16">
+          <h3 className="text-3xl md:text-4xl font-bold text-dark-text-primary mb-4">
+            Choose Your File Type
+          </h3>
+          <p className="text-dark-text-secondary max-w-2xl mx-auto">
+            Click on any file type below to see available processing tools
+          </p>
+        </div>
+        
+        <div className="space-y-6 max-w-4xl mx-auto">
+          {toolCategories.map((category) => (
+            <ToolCategory
+              key={category.id}
+              title={category.title}
+              icon={category.icon}
+              description={category.description}
+              tools={category.tools}
+              isExpanded={expandedCategory === category.id}
+              onToggle={() => handleCategoryToggle(category.id)}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="bg-dark-secondary py-20">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl md:text-4xl font-bold text-dark-text-primary mb-4">
+              Why Choose DocEnclave
+            </h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="text-center">
+              <div className="text-5xl mb-6">🔒</div>
+              <h4 className="text-xl font-semibold text-dark-text-primary mb-3">100% Private</h4>
+              <p className="text-dark-text-secondary">
+                Files never leave your device. Complete client-side processing ensures maximum privacy.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-5xl mb-6">⚡</div>
+              <h4 className="text-xl font-semibold text-dark-text-primary mb-3">Lightning Fast</h4>
+              <p className="text-dark-text-secondary">
+                No upload delays. Process documents instantly without waiting for server responses.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-5xl mb-6">🌐</div>
+              <h4 className="text-xl font-semibold text-dark-text-primary mb-3">Works Offline</h4>
+              <p className="text-dark-text-secondary">
+                Once loaded, tools work without internet. Perfect for sensitive environments.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  )
+}
+
+export default Home
