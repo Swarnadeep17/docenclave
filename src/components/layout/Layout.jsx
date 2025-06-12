@@ -28,6 +28,15 @@ const Layout = ({ children }) => {
     }
   };
 
+  // THE IMPROVEMENT: If the auth state is loading, show a full-page spinner.
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-dark-primary flex items-center justify-center">
+        <div className="text-dark-text-secondary">Loading Application...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-dark-primary text-dark-text-primary">
       <header className="bg-dark-secondary/70 border-b border-dark-border sticky top-0 z-40 backdrop-blur-sm">
@@ -44,40 +53,38 @@ const Layout = ({ children }) => {
               </div>
             </Link>
             
-            {!loading && (
-              <div className="flex items-center space-x-4 md:space-x-6">
-                <button onClick={() => scrollToElement('tools-hub')} className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
-                  Tools
-                </button>
-                <button onClick={() => scrollToElement('features-comparison')} className="hidden md:inline text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
-                  Features
-                </button>
+            <div className="flex items-center space-x-4 md:space-x-6">
+              <button onClick={() => scrollToElement('tools-hub')} className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
+                Tools
+              </button>
+              <button onClick={() => scrollToElement('features-comparison')} className="hidden md:inline text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
+                Features
+              </button>
 
-                {currentUser ? (
-                  <>
-                    {isAdmin && (
-                      <Link to="/admin" className="hidden sm:inline bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-500/30 transition-colors text-sm font-medium">
-                        Admin
-                      </Link>
-                    )}
-                    <Link to="/account" className="flex items-center space-x-2 text-dark-text-secondary hover:text-dark-text-primary">
-                       <span className="text-xl">👤</span> 
-                       <span className="hidden md:inline text-sm font-medium">Account</span>
+              {currentUser ? (
+                <>
+                  {isAdmin && (
+                    <Link to="/admin" className="hidden sm:inline bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-500/30 transition-colors text-sm font-medium">
+                      Admin
                     </Link>
-                    <button onClick={handleLogout} className="hidden sm:inline text-dark-text-secondary hover:text-red-400 transition-colors text-sm font-medium">Logout</button>
-                  </>
-                ) : (
-                  <div className="flex items-center space-x-3">
-                     <Link to="/login" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
-                        Log In
-                    </Link>
-                    <Link to="/signup" className="bg-dark-tertiary hover:bg-gray-700 text-dark-text-primary px-4 py-2 rounded-lg transition-colors border border-dark-border text-sm font-medium">
-                        Sign Up
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                  <Link to="/account" className="flex items-center space-x-2 text-dark-text-secondary hover:text-dark-text-primary">
+                      <span className="text-xl">👤</span> 
+                      <span className="hidden md:inline text-sm font-medium">Account</span>
+                  </Link>
+                  <button onClick={handleLogout} className="hidden sm:inline text-dark-text-secondary hover:text-red-400 transition-colors text-sm font-medium">Logout</button>
+                </>
+              ) : (
+                <div className="flex items-center space-x-3">
+                    <Link to="/login" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
+                      Log In
+                  </Link>
+                  <Link to="/signup" className="bg-dark-tertiary hover:bg-gray-700 text-dark-text-primary px-4 py-2 rounded-lg transition-colors border border-dark-border text-sm font-medium">
+                      Sign Up
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
