@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { PDFDocument } from 'pdf-lib'
+import * as pdfjsLib from 'pdfjs-dist/webpack'
 import { useDropzone } from 'react-dropzone'
 import { PLAN_LIMITS, formatFileSize, validateFile } from '../../../utils/constants.js'
 import { trackDownload, trackToolUsage } from '../../../utils/analytics.js'
-import PDFPageRenderer from '../../../components/shared/PDFPageRenderer.jsx'
-import * as pdfjsLib from 'pdfjs-dist/webpack'
+
+// Set PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
 // SEO Head component
 const SEOHead = () => {
@@ -17,21 +19,95 @@ const SEOHead = () => {
   return null
 }
 
-// Update the PDFPagePreview component
-const PDFPagePreview = ({ file, pageData, pageNumber, isSelected, isDuplicate, onToggleSelect, onDelete, globalPageIndex }) => {
-  const [pdfDoc, setPdfDoc] = useState(null)
+// PDF Page Renderer Component
+const PDFPageRenderer = ({ pdfData, pageNumber }) => {
+  const canvasRef = useRef(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
-    const loadPdf = async () => {
+    const renderPage = async () => {
+      if (!pdfData || !canvasRef.current) return
+
       try {
-        const arrayBuffer = await file.file.arrayBuffer()
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
-        setPdfDoc(pdf)
+        setLoading(true)
+        setError(false)
+
+        // Load PDF document for this specific file
+        const pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise
+        const page = await pdfDoc.getPage(pageNumber)
+        const viewport = page.getViewport({ scale: 1 })
+        
+        // Calculate scale to fit within 80x112 dimensions
+        const scale = Math.min(80 / viewport.width, 112 / viewport.height)
+        const scaledViewport = page.getViewport({ scale })
+        
+        const canvas = canvasRef.current
+        const context = canvas.getContext('2d')
+        canvas.height = scaledViewport.height
+        canvas.width = scaledViewport.width
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: scaledViewport
+        }
+
+        await page.render(renderContext).promise
+        setLoading(false)
       } catch (err) {
-        console.error('Error loading PDF for preview:', err)
+        console.error('Error rendering PDF page:', err)
+        setError(true)
+        setLoading(false)
       }
     }
-    loadPdf()
+
+    renderPage()
+  }, [pdfData, pageNumber])
+
+  if (error) {
+    return (
+      <div className="w-20 h-28 bg-white rounded border flex items-center justify-center">
+        <div className="text-gray-400 text-xs text-center">
+          <div className="text-lg mb-1">⚠️</div>
+          <div>Error</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative w-20 h-28">
+      <canvas 
+        ref={canvasRef}
+        className="w-full h-full bg-white rounded border"
+        style={{ display: loading ? 'none' : 'block' }}
+      />
+      {loading && (
+        <div className="absolute inset-0 bg-white rounded border flex items-center justify-center">
+          <div className="text-gray-400 text-xs text-center animate-pulse">
+            <div className="text-lg mb-1">📄</div>
+            <div>Loading...</div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// PDF Page Preview Component
+const PDFPagePreview = ({ file, pageData, pageNumber, isSelected, isDuplicate, onToggleSelect, onDelete, globalPageIndex }) => {
+  const [pdfData, setPdfData] = useState(null)
+
+  useEffect(() => {
+    const loadPdfData = async () => {
+      try {
+        const arrayBuffer = await file.file.arrayBuffer()
+        setPdfData(arrayBuffer)
+      } catch (err) {
+        console.error('Error loading PDF data:', err)
+      }
+    }
+    loadPdfData()
   }, [file])
 
   return (
@@ -54,10 +130,8 @@ const PDFPagePreview = ({ file, pageData, pageNumber, isSelected, isDuplicate, o
 
       <div onClick={onToggleSelect} className="cursor-pointer">
         <PDFPageRenderer 
-          pdfDoc={pdfDoc}
+          pdfData={pdfData}
           pageNumber={pageNumber}
-          width={80}
-          height={112}
         />
 
         <div className="text-center mt-2">
@@ -74,6 +148,7 @@ const PDFPagePreview = ({ file, pageData, pageNumber, isSelected, isDuplicate, o
               checked={isSelected}
               onChange={onToggleSelect}
               className="w-4 h-4 accent-blue-500"
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -151,6 +226,7 @@ const FilePreview = ({ file, pages, onPagesUpdate, onRemoveFile }) => {
         {pages.map((page, pageIndex) => (
           <PDFPagePreview
             key={`${file.id}-${pageIndex}`}
+            file={file}
             pageData={page}
             pageNumber={pageIndex + 1}
             isSelected={page.selected}
@@ -164,7 +240,6 @@ const FilePreview = ({ file, pages, onPagesUpdate, onRemoveFile }) => {
     </div>
   )
 }
-
 const PDFMerge = () => {
   const [files, setFiles] = useState([])
   const [currentPlan, setCurrentPlan] = useState('FREE')
@@ -181,6 +256,7 @@ const PDFMerge = () => {
     trackToolUsage('pdf_merge')
   }, [])
 
+  // Detect duplicate pages across all files
   const detectDuplicates = (allFiles) => {
     const pageHashes = new Map()
     let globalPageIndex = 0
@@ -290,6 +366,19 @@ const PDFMerge = () => {
     return files.reduce((total, file) => 
       total + file.pages.filter(page => page.selected).length, 0
     )
+  }
+
+  const moveFile = (id, direction) => {
+    const index = files.findIndex(file => file.id === id)
+    if (
+      (direction === 'up' && index > 0) || 
+      (direction === 'down' && index < files.length - 1)
+    ) {
+      const newFiles = [...files]
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      ;[newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]]
+      setFiles(detectDuplicates(newFiles))
+    }
   }
 
   const mergePDFs = async () => {
@@ -417,7 +506,6 @@ const PDFMerge = () => {
           </div>
         </div>
 
-        {/* TOOL SECTION - Right after USP cards */}
         {/* Plan Limits Display */}
         <div className="bg-dark-secondary rounded-lg p-4 mb-6 border border-dark-border">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -458,8 +546,8 @@ const PDFMerge = () => {
           </div>
         )}
 
-        {/* File Upload Zone - Show when no files or in simple mode */}
-        {files.length === 0 && (
+        {/* File Upload Zone */}
+        {(!previewMode || files.length === 0) && (
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${
@@ -482,7 +570,7 @@ const PDFMerge = () => {
           </div>
         )}
 
-        {/* Simple File List View (when previewMode is false but files exist) */}
+        {/* Simple File List View */}
         {!previewMode && files.length > 0 && (
           <div className="space-y-4 mb-6">
             <div className="flex items-center justify-between">
@@ -505,7 +593,6 @@ const PDFMerge = () => {
               </div>
             </div>
             
-            {/* Simple file list */}
             <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border">
               <div className="space-y-3">
                 {files.map((file, index) => (
@@ -520,10 +607,23 @@ const PDFMerge = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-dark-text-secondary text-sm">#{index + 1}</span>
+                      <button
+                        onClick={() => moveFile(file.id, 'up')}
+                        disabled={index === 0}
+                        className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ⬆️
+                      </button>
+                      <button
+                        onClick={() => moveFile(file.id, 'down')}
+                        disabled={index === files.length - 1}
+                        className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        ⬇️
+                      </button>
                       <button
                         onClick={() => removeFile(file.id)}
-                        className="text-red-400 hover:text-red-300 p-2"
+                        className="p-2 text-red-400 hover:text-red-300"
                       >
                         🗑️
                       </button>
@@ -535,7 +635,7 @@ const PDFMerge = () => {
           </div>
         )}
 
-        {/* Advanced File Previews (when previewMode is true) */}
+        {/* Advanced File Previews */}
         {previewMode && files.length > 0 && (
           <div className="space-y-6 mb-6">
             <div className="flex items-center justify-between">
@@ -738,16 +838,18 @@ const PDFMerge = () => {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-dark-secondary rounded-xl p-8 max-w-md mx-4 border border-dark-border">
               <h3 className="text-xl font-bold text-dark-text-primary mb-4">
-                Upgrade to Premium
+                Upgrade to Premium for More Power
               </h3>
               <p className="text-dark-text-secondary mb-6">
-                Unlock more powerful features:
+                You've reached the free plan limits. Upgrade to Premium and unlock:
               </p>
               <ul className="space-y-2 mb-6">
                 <li className="text-dark-text-secondary">✅ Merge up to 50 PDF files</li>
                 <li className="text-dark-text-secondary">✅ 500MB total file capacity</li>
                 <li className="text-dark-text-secondary">✅ Custom output filenames</li>
-                <li className="text-dark-text-secondary">✅ Password protection</li>
+                <li className="text-dark-text-secondary">✅ Password protect merged PDFs</li>
+                <li className="text-dark-text-secondary">✅ Priority processing speed</li>
+                <li className="text-dark-text-secondary">✅ Batch queue operations</li>
               </ul>
               <div className="flex space-x-3">
                 <button
@@ -757,8 +859,8 @@ const PDFMerge = () => {
                   Continue Free
                 </button>
                 <button className="flex-1 bg-dark-text-primary text-dark-primary py-2 rounded-lg font-medium hover:bg-dark-text-secondary transition-colors">
-                  Upgrade Now
-                </button>
+                  Upgrade to Premium
+</button>
               </div>
             </div>
           </div>
