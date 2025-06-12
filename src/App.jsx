@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react'; // Import lazy and Suspense
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout.jsx';
 import Home from './pages/Home.jsx';
@@ -15,7 +15,7 @@ const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'));
 // A simple loading component for Suspense fallback
 const PageLoader = () => (
   <div className="flex justify-center items-center h-64">
-    <p>Loading Page...</p>
+    <p className="text-dark-text-secondary">Loading Page...</p>
   </div>
 );
 
