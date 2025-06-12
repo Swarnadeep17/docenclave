@@ -1,12 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, updateDoc, increment, getDoc, setDoc, collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
-import { 
-  getAuth, 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut,
-  onAuthStateChanged 
-} from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
 // IMPORTANT: Replace these with your actual Firebase config details from the Firebase console
 const firebaseConfig = {
@@ -18,40 +12,33 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID"
 };
 
-// --- THE DEFINITIVE FIX: SINGLETON PATTERN ---
-// Check if a Firebase app has already been initialized.
-// If not, initialize it. If it has, use the existing app.
+// Singleton Pattern: Initialize Firebase only once
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// --- AUTHENTICATION FUNCTIONS ---
+// --- AUTHENTICATION EXPORTS ---
+export { auth, db }; // Export for direct use if needed
+
 export const signup = async (email, password) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
-  // Create a corresponding user document in Firestore
   await setDoc(doc(db, 'users', user.uid), {
     uid: user.uid,
     email: user.email,
-    isAdmin: false, // Default to not an admin
+    isAdmin: false,
     plan: 'FREE',
     createdAt: Timestamp.now(),
   });
   return user;
 };
 
-export const login = (email, password) => {
-  return signInWithEmailAndPassword(auth, email, password);
-};
+export const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
 
-export const logout = () => {
-  return signOut(auth);
-};
+export const logout = () => signOut(auth);
 
-export const onAuthStateChangeHelper = (callback) => {
-  return onAuthStateChanged(auth, callback);
-};
+export const onAuthStateChangeHelper = (callback) => onAuthStateChanged(auth, callback);
 
 export const getUserProfile = async (uid) => {
   if (!uid) return null;
@@ -60,8 +47,7 @@ export const getUserProfile = async (uid) => {
   return userDoc.exists() ? userDoc.data() : null;
 };
 
-
-// --- ANALYTICS FUNCTIONS ---
+// --- ANALYTICS EXPORTS ---
 const getCurrentMonthKey = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -87,7 +73,7 @@ export const trackToolUsage = async (toolName) => {
         const docSnap = await getDoc(docRef);
         const updateData = { [`tools_used.${toolName}`]: increment(1) };
         if (!docSnap.exists()) {
-            await setDoc(docRef, { visitors: 0, downloads: 0, tools_used: { [toolName]: 1 }, created_at: Timestamp.now() });
+            await setDoc(docRef, { visitors: 0, downloads: 0, created_at: Timestamp.now(), tools_used: { [toolName]: 1 } });
         } else {
             await updateDoc(docRef, updateData);
         }
@@ -131,16 +117,8 @@ export const getHistoricalStats = async () => {
     const stats = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      // Defensive check to ensure created_at exists and is a valid Timestamp
       if (data.created_at && typeof data.created_at.toDate === 'function') {
           stats.push({ id: doc.id, ...data });
-      } else {
-          // Provide a safe default for any malformed documents
-          stats.push({ 
-              id: doc.id, 
-              ...data,
-              created_at: Timestamp.now()
-          });
       }
     });
     return stats;
