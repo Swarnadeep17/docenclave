@@ -377,6 +377,65 @@ const Home = () => {
                 </div>
               </div>
             </div>
+  
+                {/* Testimonials Section */}
+      <section className="py-16 bg-gradient-to-b from-black to-[#0c0e11]">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="text-center max极-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
+              Trusted by Security-Conscious Professionals
+            </h2>
+            <p className="text-gray-400 mt-4">
+              See what others have to say about protecting their sensitive documents
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Testimonial 1 */}
+            <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800">
+              <div className="flex items-center mb-4">
+                <div className="w-3 h-3 rounded-full bg-cyan-400 mr-2"></div>
+                <div className="w-3 h-3 rounded-full bg-purple-400 mr-2"></div>
+                <div className="w-3 h-3 rounded-full bg-pink-400 mr-2"></div>
+              </div>
+              <p className="text-gray-300 italic mb-6">
+                "As a legal professional handling NDAs daily, I no longer worry about accidental data leaks. My documents stay safe."
+              </p>
+              <div className="flex items-center">
+                <div className="flex-shrink-0 mr-4">
+                  <div className="rounded-full w-12 h-12 bg-gradient-to-r from-cyan-500 to-indigo-600 flex items-center justify-center">
+                    <span className="text-gray-900 text-lg font-bold">AE</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-200">Amanda E.</h4>
+                  <p className="text-gray-500 text-sm">Legal Counsel, Tech Confidential</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Testimonial 2 */}
+            <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800">
+              <div className="flex items-center mb-4">
+                <div className="w-3 h-3 rounded-full bg-cyan-400 mr-2"></div>
+                <div className="w-3 h-3 rounded-full bg-purple-400 mr-2"></div>
+                <div className="w-3 h-3 rounded-full bg-pink-400 mr-2"></div>
+              </div>
+              <p className="text-gray-300 italic mb-6">
+                "We eliminated our need for third-party document processors. Now our patents are handled internally with full security."
+              </p>
+              <div className="flex items-center">
+                <div className="flex-shrink-0 mr-4">
+                  <div className="rounded-full w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                    <span className="text-gray-900 text-lg font-bold">MR</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-bold text-gray-200">Marcus R.</h4>
+                  <p className="text-gray-500 text-sm">CTO, Horizon Innovations</p>
+                </div>
+              </div>
+            </div>
             
             {/* Testimonial 3 */}
             <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800">
@@ -396,7 +455,7 @@ const Home = () => {
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-200">Julia D.</h4>
-                  <p className="text-gray-500 text-sm">Healthcare Admin</p>
+                  <p className="text-gray-500 text-sm">Healthcare Admin</极>
                 </div>
               </div>
             </div>
@@ -438,7 +497,7 @@ const Home = () => {
                         <div className="inline-flex items-center">
                           <FiCheck className="w-6 h-6 mx-auto text-green-400" />
                         </div>
-                      ) : <FiX className="w-5 h-5 mx-auto text-red-400" />}
+                      ) : <FiX className="w-5 h-5 mx-aut极 text-red-400" />}
                     </td>
                     <td className="text-center py-4 px-4">
                       {feature.iLovePDF ? (
@@ -467,9 +526,7 @@ const Home = () => {
             </h2>
             <p className="text-gray-400 max-w-xl mx-auto mb-8">
               Join our newsletter for security updates, new tools, and early access features
-            </p>
-            
-            <form className="mt-6 flex flex-col sm:flexRow gap-4 max-w-md mx-auto">
+            <极form className="mt-6 flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
               <div className="flex-1">
                 <input 
                   type="email" 
@@ -479,7 +536,7 @@ const Home = () => {
               </div>
               <button
                 type="submit"
-                className="px-6 py-3 rounded-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-7极00 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-indigo-500/20"
+                className="px-6 py-3 rounded-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-indigo-500/20"
               >
                 Subscribe
               </button>
@@ -492,3 +549,4 @@ const Home = () => {
 };
 
 export default Home;
+  
