@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../auth/useAuth.js';
+import { useAuth } from '../../auth/useAuth.js'; // This will now work
 import { logout } from '../../utils/firebase.js';
 
 const Layout = ({ children }) => {
-  const { currentUser, isAdmin, loading } = useAuth();
+  const { currentUser, isAdmin, loading } = useAuth(); // This line was causing the crash
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -28,7 +28,7 @@ const Layout = ({ children }) => {
     }
   };
 
-  // THE IMPROVEMENT: If the auth state is loading, show a full-page spinner.
+  // Show a clean loading screen for the entire app while auth is initializing
   if (loading) {
     return (
       <div className="min-h-screen bg-dark-primary flex items-center justify-center">
@@ -44,44 +44,25 @@ const Layout = ({ children }) => {
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center">
               <div>
-                <h1 className="text-xl md:text-2xl font-bold text-dark-text-primary">
-                  DocEnclave
-                </h1>
-                <p className="hidden sm:block text-dark-text-muted text-xs md:text-sm">
-                  Secure Document Processing
-                </p>
+                <h1 className="text-xl md:text-2xl font-bold text-dark-text-primary">DocEnclave</h1>
+                <p className="hidden sm:block text-dark-text-muted text-xs md:text-sm">Secure Document Processing</p>
               </div>
             </Link>
             
             <div className="flex items-center space-x-4 md:space-x-6">
-              <button onClick={() => scrollToElement('tools-hub')} className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
-                Tools
-              </button>
-              <button onClick={() => scrollToElement('features-comparison')} className="hidden md:inline text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
-                Features
-              </button>
+              <button onClick={() => scrollToElement('tools-hub')} className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">Tools</button>
+              <button onClick={() => scrollToElement('features-comparison')} className="hidden md:inline text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">Features</button>
 
               {currentUser ? (
                 <>
-                  {isAdmin && (
-                    <Link to="/admin" className="hidden sm:inline bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-500/30 transition-colors text-sm font-medium">
-                      Admin
-                    </Link>
-                  )}
-                  <Link to="/account" className="flex items-center space-x-2 text-dark-text-secondary hover:text-dark-text-primary">
-                      <span className="text-xl">👤</span> 
-                      <span className="hidden md:inline text-sm font-medium">Account</span>
-                  </Link>
+                  {isAdmin && (<Link to="/admin" className="hidden sm:inline bg-blue-500/20 text-blue-300 px-3 py-1.5 rounded-lg hover:bg-blue-500/30 transition-colors text-sm font-medium">Admin</Link>)}
+                  <Link to="/account" className="flex items-center space-x-2 text-dark-text-secondary hover:text-dark-text-primary"><span className="text-xl">👤</span> <span className="hidden md:inline text-sm font-medium">Account</span></Link>
                   <button onClick={handleLogout} className="hidden sm:inline text-dark-text-secondary hover:text-red-400 transition-colors text-sm font-medium">Logout</button>
                 </>
               ) : (
                 <div className="flex items-center space-x-3">
-                    <Link to="/login" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
-                      Log In
-                  </Link>
-                  <Link to="/signup" className="bg-dark-tertiary hover:bg-gray-700 text-dark-text-primary px-4 py-2 rounded-lg transition-colors border border-dark-border text-sm font-medium">
-                      Sign Up
-                  </Link>
+                    <Link to="/login" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">Log In</Link>
+                    <Link to="/signup" className="bg-dark-tertiary hover:bg-gray-700 text-dark-text-primary px-4 py-2 rounded-lg transition-colors border border-dark-border text-sm font-medium">Sign Up</Link>
                 </div>
               )}
             </div>
