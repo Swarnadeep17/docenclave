@@ -1,139 +1,70 @@
-import { useState, useEffect } from 'react'
-import { trackVisitor, getMonthlyStats } from '@/utils/analytics'
+import { useState, useEffect } from 'react' import { trackVisitor, getMonthlyStats } from '@/utils/analytics'
 
-const toolsData = {
-  PDF: {
-    color: 'from-[#0ff] to-[#00f]',
-    subtools: [
-      { name: 'Merge', path: '/tools/pdf/merge', status: 'Available' },
-      { name: 'Split', path: '/tools/pdf/split', status: 'Available' },
-      { name: 'Compress', status: 'Coming Soon' },
-      { name: 'Protect', status: 'Coming Soon' },
-    ],
-  },
-  Images: {
-    color: 'from-[#f0f] to-[#a0f]',
-    subtools: [
-      { name: 'Resize', status: 'Coming Soon' },
-      { name: 'Convert', status: 'Coming Soon' },
-    ],
-  },
-  Documents: {
-    color: 'from-[#ff0] to-[#fa0]',
-    subtools: [
-      { name: 'OCR', status: 'Coming Soon' },
-      { name: 'Summarize', status: 'Coming Soon' },
-    ],
-  },
-}
+const toolsData = { PDF: { color: 'from-[#0ff] to-[#00f]', subtools: [ { name: 'Merge', path: '/tools/pdf/merge', status: 'Available' }, { name: 'Split', path: '/tools/pdf/split', status: 'Available' }, { name: 'Compress', status: 'Coming Soon' }, { name: 'Protect', status: 'Coming Soon' } ] }, Images: { color: 'from-[#f0f] to-[#a0f]', subtools: [ { name: 'Resize', status: 'Coming Soon' }, { name: 'Convert', status: 'Coming Soon' } ] }, Documents: { color: 'from-[#ff0] to-[#fa0]', subtools: [ { name: 'OCR', status: 'Coming Soon' }, { name: 'Summarize', status: 'Coming Soon' } ] } }
 
-export default function Home() {
-  const [stats, setStats] = useState({ visitors: 0, downloads: 0 })
-  const [openTool, setOpenTool] = useState(null)
+export default function Home() { const [expandedTool, setExpandedTool] = useState(null) const [stats, setStats] = useState({ visitors: 0, downloads: 0 })
 
-  useEffect(() => {
-    if (!sessionStorage.getItem('visitor_tracked')) {
-      trackVisitor()
-      sessionStorage.setItem('visitor_tracked', 'true')
-    }
+useEffect(() => { trackVisitor() getMonthlyStats().then(data => setStats({ visitors: data.visitors || 0, downloads: data.downloads || 0 })) }, [])
 
-    const fetchStats = async () => {
-      const data = await getMonthlyStats()
-      setStats({ visitors: data.visitors, downloads: data.downloads })
-    }
+return ( <div className="bg-dark-primary min-h-screen text-white"> <div className="relative overflow-hidden py-20 px-6 text-center"> <div className="absolute inset-0 z-0"> <div className="w-full h-full bg-gradient-to-br from-[#111] to-[#222] opacity-40 blur-2xl"></div> </div> <h1 className="text-4xl sm:text-6xl font-bold z-10 relative mb-4">DocEnclave</h1> <p className="text-dark-text-muted text-lg z-10 relative">Secure. Fast. Futuristic file tools.</p> <div className="flex justify-center space-x-6 mt-6 z-10 relative"> <div className="bg-dark-secondary px-4 py-2 rounded-xl shadow-md text-sm tracking-wide"> Visitors this month: <span className="text-[#0ff] font-semibold">{stats.visitors}</span> </div> <div className="bg-dark-secondary px-4 py-2 rounded-xl shadow-md text-sm tracking-wide"> Downloads: <span className="text-[#f0f] font-semibold">{stats.downloads}</span> </div> </div> </div>
 
-    fetchStats()
-  }, [])
-
-  return (
-    <div className="bg-dark-primary min-h-screen text-white p-4">
-      <section className="text-center py-10">
-        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-          DocEnclave
-        </h1>
-        <p className="text-dark-text-muted mb-6">
-          Secure & Private File Tools. No uploads. No tracking.
-        </p>
-        <div className="text-sm flex justify-center gap-4 text-dark-text-muted">
-          <span>Visitors: {stats.visitors}</span>
-          <span>Downloads: {stats.downloads}</span>
-        </div>
-      </section>
-
-      <section className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {Object.entries(toolsData).map(([tool, data]) => (
-          <div
-            key={tool}
-            className={`bg-gradient-to-br ${data.color} rounded-2xl p-4 shadow-lg cursor-pointer`}
-            onClick={() => setOpenTool(openTool === tool ? null : tool)}
+<div className="max-w-6xl mx-auto px-4 pb-24">
+    <h2 className="text-2xl sm:text-3xl font-semibold mb-10 text-center">Tools</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+      {Object.entries(toolsData).map(([key, value]) => (
+        <div key={key} className="relative">
+          <button
+            onClick={() => setExpandedTool(expandedTool === key ? null : key)}
+            className={`w-full group bg-gradient-to-r ${value.color} p-[2px] rounded-2xl transition-all hover:scale-105`}
           >
-            <div className="flex items-center justify-between">
-              <svg className="w-6 h-6 text-white opacity-80" viewBox="0 0 24 24" fill="none">
-                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <span className="text-xl font-semibold">{tool}</span>
-              <svg
-                className={`w-5 h-5 transform transition-transform ${openTool === tool ? 'rotate-180' : ''}`}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
-                  clipRule="evenodd"
-                />
+            <div className="flex items-center justify-center p-6 bg-dark-secondary rounded-2xl">
+              <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M4 12h16M4 8h16M4 4h16" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-
-            {openTool === tool && (
-              <div className="mt-4 space-y-2">
-                {data.subtools.map((sub, i) => (
-                  <div
-                    key={i}
-                    className="flex justify-between items-center bg-dark-secondary rounded-lg px-3 py-2 text-sm hover:bg-dark-tertiary transition-colors"
-                  >
-                    <span>{sub.name}</span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        sub.status === 'Available'
-                          ? 'bg-green-500/10 text-green-400'
-                          : 'bg-yellow-500/10 text-yellow-400'
-                      }`}
-                    >
-                      {sub.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </section>
-
-      <section className="mt-12 px-4 max-w-5xl mx-auto">
-        <h2 className="text-2xl font-bold mb-4 text-center">Why Choose DocEnclave?</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              title: '100% Local Processing',
-              desc: 'Your files never leave your device. No uploads, no surveillance.',
-            },
-            {
-              title: 'Lightning Fast',
-              desc: 'Tools open instantly with zero server delays. No loading screens.',
-            },
-            {
-              title: 'Private & Secure',
-              desc: 'We collect no personal data. Your documents are your business.',
-            },
-          ].map((card, i) => (
-            <div key={i} className="bg-dark-secondary p-4 rounded-xl shadow-inner border border-dark-border">
-              <h3 className="text-lg font-semibold mb-2">{card.title}</h3>
-              <p className="text-sm text-dark-text-muted">{card.desc}</p>
+          </button>
+          {expandedTool === key && (
+            <div className="mt-4 space-y-3">
+              {value.subtools.map((tool, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-center justify-between px-4 py-2 rounded-lg bg-dark-tertiary border border-dark-border ${tool.status === 'Available' ? 'hover:bg-dark-secondary transition' : 'opacity-60 cursor-not-allowed'}`}
+                >
+                  <span>{tool.name}</span>
+                  <span className={`text-sm ${tool.status === 'Available' ? 'text-[#0f0]' : 'text-[#999]'}`}>{tool.status}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      </section>
+      ))}
     </div>
-  )
-}
+
+    <div className="mt-20 text-center">
+      <h3 className="text-xl sm:text-2xl font-semibold mb-6">How DocEnclave Compares</h3>
+      <div className="grid sm:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-[#0ff] to-[#00f] p-[2px] rounded-xl">
+          <div className="bg-dark-secondary p-6 rounded-xl h-full">
+            <p className="font-semibold">No Account Needed</p>
+            <p className="text-sm text-dark-text-muted mt-2">Start using tools instantly. No signup friction.</p>
+          </div>
+        </div>
+        <div className="bg-gradient-to-br from-[#f0f] to-[#a0f] p-[2px] rounded-xl">
+          <div className="bg-dark-secondary p-6 rounded-xl h-full">
+            <p className="font-semibold">Secure & Private</p>
+            <p className="text-sm text-dark-text-muted mt-2">We track nothing personal. Your files are safe.</p>
+          </div>
+        </div>
+        <div className="bg-gradient-to-br from-[#ff0] to-[#fa0] p-[2px] rounded-xl">
+          <div className="bg-dark-secondary p-6 rounded-xl h-full">
+            <p className="font-semibold">Built for Speed</p>
+            <p className="text-sm text-dark-text-muted mt-2">Lightning fast file handling with modern tech.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+) }
+
