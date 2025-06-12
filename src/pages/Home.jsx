@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { trackVisitor, hasTrackedThisSession, markVisitorTracked } from '../utils/analytics.js';
 
-// Import the final, high-level components
 import Hero from '../components/home/Hero.jsx';
 import ToolsHub from '../components/home/ToolsHub.jsx';
 import ComparisonTable from '../components/home/ComparisonTable.jsx';
@@ -14,25 +13,27 @@ const Home = () => {
     }
   }, []);
 
-  // State is now managed within the ToolsHub component itself
-  // so Home.jsx is purely for layout.
+  const scrollToElement = (elementId) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   return (
     <>
-      <Hero onCategoryToggle={() => {
-        // The hero buttons can scroll to the tools hub
-        const toolsHubElement = document.querySelector('#tools-hub');
-        if (toolsHubElement) {
-            toolsHubElement.scrollIntoView({ behavior: 'smooth' });
-        }
-      }} />
+      <Hero 
+        onScrollToTools={() => scrollToElement('tools-hub')}
+        onScrollToFeatures={() => scrollToElement('features-comparison')}
+      />
 
-      {/* Adding an ID for the scroll behavior */}
       <div id="tools-hub">
         <ToolsHub />
       </div>
 
-      <ComparisonTable />
+      <div id="features-comparison">
+        <ComparisonTable />
+      </div>
     </>
   );
 };
