@@ -224,3 +224,56 @@ export const resetCurrentMonthStats = async () => {
     console.log('Failed to reset analytics:', error)
   }
 }
+// Track download with city+country location and fallback
+export const trackDownloadWithLocation = async (toolName = 'unknown') => {
+  try {
+    let location = 'Unknown Location'
+
+    // Attempt to fetch location
+    try {
+      const res = await fetch('https://ipapi.co/json/')
+      const data = await res.json()
+
+      const city = data?.city?.trim()
+      const country = data?.country_name?.trim()
+
+      if (city && country) {
+        location = `${city}, ${country}`
+      } else if (country) {
+        location = country
+      }
+    } catch (geoErr) {
+      console.warn('Geolocation fetch failed:', geoErr)
+    }
+
+    const monthKey = getCurrentMonthKey()
+    const docRef = doc(db, 'analytics', monthKey)
+    const docSnap = await getDoc(docRef)
+
+    if (!docSnap.exists()) {
+      // Create document if missing
+      await setDoc(docRef, {
+        visitors: 0,
+        downloads: 1,
+        tools_used: {
+          [toolName]: 1
+        },
+        lastDownloadLocation: location,
+        created_at: new Date(),
+        month_name: getCurrentMonthName()
+      })
+    } else {
+      // Update existing analytics document
+      await updateDoc(docRef, {
+        downloads: increment(1),
+        [`tools_used.${toolName}`]: increment(1),
+        lastDownloadLocation: location
+      })
+    }
+
+    console.log(`Tracked download: ${toolName} from ${location}`)
+  } catch (error) {
+    console.error('Failed to track download with location:', error)
+    // Fail silently
+  }
+}
