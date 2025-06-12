@@ -1,7 +1,7 @@
 // Plan limits
 export const PLAN_LIMITS = {
   FREE: {
-    maxFiles: 5,
+    maxFiles: 10,
     maxTotalSize: 50 * 1024 * 1024, // 50MB in bytes
     maxFileSize: 50 * 1024 * 1024,  // 50MB per file
     maxExtractPages: 20, // ← NEW: for PDF split
