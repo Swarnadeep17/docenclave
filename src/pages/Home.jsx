@@ -1,283 +1,294 @@
-import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import PrivacyCounter from '../components/home/PrivacyCounter.jsx'
-import { trackVisitor, hasTrackedThisSession, markVisitorTracked } from '../utils/analytics.js'
+import { useState, useRef, useEffect } from "react";
+import { StatsCounter } from "../components/home/StatsCounter";
+import Layout from "../components/layout/Layout";
+import PDFMerge from "../tools/pdf/merge/PDFMerge";
+import PDFSplit from "../tools/pdf/split/PDFSplit";
+import particlesConfig from "../utils/particlesConfig";
 
-const ToolCategory = ({ title, icon, description, tools, isExpanded, onToggle }) => {
-  return (
-    <div className="bg-dark-secondary rounded-xl border border-dark-border overflow-hidden transition-all duration-300">
-      <div 
-        onClick={onToggle}
-        className="p-8 cursor-pointer hover:bg-dark-tertiary transition-all duration-300"
-      >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-4xl mb-4">{icon}</div>
-            <h4 className="text-xl font-semibold text-dark-text-primary mb-3">{title}</h4>
-            <p className="text-dark-text-secondary mb-4">{description}</p>
-          </div>
-          <div className={`text-2xl text-dark-text-secondary transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-            ⌄
-          </div>
-        </div>
-      </div>
-      
-      {/* Expanded Tools Section */}
-      <div className={`transition-all duration-300 overflow-hidden ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="border-t border-dark-border bg-dark-primary p-6">
-          <h5 className="text-lg font-semibold text-dark-text-primary mb-4">Available Tools:</h5>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {tools.map((tool, index) => (
-              <div key={index} className="flex items-center justify-between">
-                {tool.available ? (
-                  <Link 
-                    to={tool.path}
-                    className="flex-1 bg-dark-secondary p-4 rounded-lg hover:bg-dark-tertiary transition-colors group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h6 className="text-dark-text-primary font-medium group-hover:text-white transition-colors">
-                          {tool.name}
-                        </h6>
-                        <p className="text-dark-text-muted text-sm">{tool.description}</p>
-                      </div>
-                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded ml-4">
-                        Available
-                      </span>
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="flex-1 bg-dark-secondary p-4 rounded-lg opacity-60">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h6 className="text-dark-text-primary font-medium">{tool.name}</h6>
-                        <p className="text-dark-text-muted text-sm">{tool.description}</p>
-                      </div>
-                      <span className="text-xs bg-dark-tertiary text-dark-text-secondary px-2 py-1 rounded ml-4">
-                        Coming Soon
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+export default function Home() {
+  const [activeTab, setActiveTab] = useState(0);
+  const toolsSectionRef = useRef(null);
+  const [particlesInitialized, setParticlesInitialized] = useState(false);
+  const tools = [
+    { name: "Merge PDFs", component: <PDFMerge /> },
+    { name: "Split PDF", component: <PDFSplit /> },
+  ];
 
-const Home = () => {
-  const [expandedCategory, setExpandedCategory] = useState(null)
+  // Initialize particles.js safely with dynamic import
+  useEffect(() => {
+    if (particlesInitialized) return;
+    
+    const initializeParticles = async () => {
+      try {
+        // Dynamically import the particles.js library
+        const { default: particlesJS } = await import("particles.js");
+        
+        // Configure for production build
+        if (typeof window !== "undefined" && window.particlesJS) {
+          window.particlesJS("particles-js", particlesConfig);
+          setParticlesInitialized(true);
+        } else if (particlesJS) {
+          particlesJS("particles-js", particlesConfig);
+          setParticlesInitialized(true);
+        }
+      } catch (error) {
+        console.error("Particles.js initialization failed:", error);
+      }
+    };
+
+    initializeParticles();
+  }, [particlesInitialized]);
+
+  const scrollToTools = () => {
+    toolsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ... Rest of your component (ComparisonTable, CheckIcon, etc) ... 
+  // Remaining code from the previous version continues here
+  // This includes the Custom SVG Icons, Comparison Table code, etc.
 
   useEffect(() => {
-    if (!hasTrackedThisSession()) {
-      trackVisitor()
-      markVisitorTracked()
+    // Initialize Particle.js if available
+    if (window.particlesJS) {
+      window.particlesJS("particles-js", {
+        particles: {
+          number: { value: 30, density: { enable: true, value_area: 800 } },
+          color: { value: "#3b82f6" },
+          opacity: { value: 0.5, random: true },
+          size: { value: 3, random: true },
+          line_linked: { enable: true, distance: 150, color: "#93c5fd", opacity: 0.4, width: 1 },
+          move: { enable: true, speed: 2, direction: "none", random: true, out_mode: "out" }
+        },
+        interactivity: {
+          detect_on: "canvas",
+          events: { onhover: { enable: true, mode: "grab" }, onclick: { enable: true, mode: "push" } }
+        }
+      });
     }
-  }, [])
+  }, []);
 
-  const handleCategoryToggle = (categoryId) => {
-    setExpandedCategory(expandedCategory === categoryId ? null : categoryId)
-  }
+  const scrollToTools = () => {
+    toolsSectionRef.current.scrollIntoView({ behavior: "smooth" });
+  };
 
-  const toolCategories = [
-    {
-      id: 'pdf',
-      title: 'PDF Tools',
-      icon: '📄',
-      description: 'Process and manipulate PDF files with professional-grade tools',
-      tools: [
-        {
-          name: 'PDF Merge',
-          description: 'Combine multiple PDFs into one',
-          path: '/tools/pdf/merge',
-          available: true
-        },
-        {
-          name: 'PDF Split',
-          description: 'Extract pages or split into multiple files',
-          path: '/tools/pdf/split',
-          available: true  // ← Changed from false to true
-        },
-        {
-          name: 'PDF Compress',
-          description: 'Reduce file size while maintaining quality',
-          path: '/tools/pdf/compress',
-          available: false
-        },
-        {
-          name: 'PDF to Image',
-          description: 'Convert PDF pages to image formats',
-          path: '/tools/pdf/to-image',
-          available: false
-        }
-      ]
-    },
-    {
-      id: 'image',
-      title: 'Image Tools',
-      icon: '🖼️',
-      description: 'Resize, compress, and convert images while maintaining quality',
-      tools: [
-        {
-          name: 'Image Resize',
-          description: 'Change image dimensions',
-          path: '/tools/image/resize',
-          available: false
-        },
-        {
-          name: 'Image Compress',
-          description: 'Reduce file size',
-          path: '/tools/image/compress',
-          available: false
-        },
-        {
-          name: 'Format Convert',
-          description: 'Convert between image formats',
-          path: '/tools/image/convert',
-          available: false
-        },
-        {
-          name: 'Image to PDF',
-          description: 'Convert images to PDF',
-          path: '/tools/image/to-pdf',
-          available: false
-        }
-      ]
-    },
-    {
-      id: 'document',
-      title: 'Document Tools',
-      icon: '📝',
-      description: 'Advanced document processing and conversion tools',
-      tools: [
-        {
-          name: 'Word to PDF',
-          description: 'Convert DOC/DOCX to PDF',
-          path: '/tools/document/word-to-pdf',
-          available: false
-        },
-        {
-          name: 'Excel to PDF',
-          description: 'Convert spreadsheets to PDF',
-          path: '/tools/document/excel-to-pdf',
-          available: false
-        },
-        {
-          name: 'PowerPoint to PDF',
-          description: 'Convert presentations to PDF',
-          path: '/tools/document/ppt-to-pdf',
-          available: false
-        },
-        {
-          name: 'Text to PDF',
-          description: 'Create PDF from plain text',
-          path: '/tools/document/text-to-pdf',
-          available: false
-        }
-      ]
-    }
-  ]
+  const ComparisonTable = () => (
+    <div className="overflow-x-auto mb-20">
+      <h2 className="text-2xl font-bold text-center mb-8 text-gray-800">
+        Why Choose DocEnclave?
+      </h2>
+      <table className="min-w-full border-collapse">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border py-3 px-4 text-left"></th>
+            <th className="border py-3 px-4">DocEnclave</th>
+            <th className="border py-3 px-4">iLovePDF</th>
+            <th className="border py-3 px-4">SmallPDF</th>
+          </tr>
+        </thead>
+        <tbody>
+          {comparisonData.map((row, i) => (
+            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-blue-50'}>
+              <td className="border py-3 px-4 font-medium">{row.feature}</td>
+              <td className="border py-3 px-4 text-center">
+                <CheckIcon />
+              </td>
+              <td className="border py-3 px-4 text-center">
+                {row.ilovepdf ? <CheckIcon /> : <XIcon />}
+              </td>
+              <td className="border py-3 px-4 text-center">
+                {row.smallpdf ? <CheckIcon /> : <XIcon />}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
-    <>
+    <Layout>
+      {/* Particle Background */}
+      <div id="particles-js" className="absolute inset-0 -z-10" style={{ height: '75vh' }} />
+
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 md:py-24">
-        <div className="text-center max-w-4xl mx-auto">
-          <h2 className="text-5xl md:text-7xl font-bold text-dark-text-primary mb-6 leading-tight">
-            Process Documents
-            <span className="block text-dark-text-muted">Securely</span>
-          </h2>
-          <p className="text-dark-text-secondary mb-12 max-w-2xl mx-auto text-lg md:text-xl leading-relaxed">
-            All processing happens in your browser. Your files never leave your device. 
-            No uploads, no tracking, no compromises.
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 relative">
+        <div className="text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4 tracking-tight">
+            Privacy-First PDF Tools
+          </h1>
+          <p className="text-xl text-gray-700 max-w-2xl mx-auto mb-10">
+            Secure client-side processing for PDFs. Your documents never leave your device.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <button 
-              onClick={() => handleCategoryToggle('pdf')}
-              className="bg-dark-text-primary text-dark-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-text-secondary transition-colors"
-            >
-              Start Processing
-            </button>
-            <button 
-              onClick={() => setExpandedCategory(expandedCategory ? null : 'pdf')}
-              className="border border-dark-border text-dark-text-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-tertiary transition-colors"
-            >
-              View Tools
-            </button>
+          <button 
+            onClick={scrollToTools}
+            className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
+          >
+            Get Started Now
+          </button>
+        </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16">
+        <div className="bg-white/80 backdrop-blur-lg rounded-2xl p-6 shadow-xl border border-gray-200">
+          <StatsCounter compactMode={true} />
+        </div>
+      </div>
+
+      {/* Tools Section (with ref for scrolling) */}
+      <div ref={toolsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
+          PDF Tools That Protect Your Privacy
+        </h2>
+        
+        <div className="max-w-4xl mx-auto">
+          {/* Tool Selector Tabs */}
+          <div className="flex justify-center mb-12">
+            {tools.map((tool, index) => (
+              <button
+                key={index}
+                className={`px-8 py-4 font-medium text-lg mx-2 rounded-xl transition-all transform hover:scale-105 ${
+                  activeTab === index
+                    ? "bg-blue-600 text-white shadow-lg"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+                onClick={() => setActiveTab(index)}
+              >
+                {tool.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Active Tool Container */}
+          <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-gray-200">
+            {tools[activeTab].component}
           </div>
         </div>
-      </section>
+      </div>
 
-      <PrivacyCounter />
-
-      {/* Tools Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h3 className="text-3xl md:text-4xl font-bold text-dark-text-primary mb-4">
-            Choose Your File Type
-          </h3>
-          <p className="text-dark-text-secondary max-w-2xl mx-auto">
-            Click on any file type below to see available processing tools
-          </p>
-        </div>
-        
-        <div className="space-y-6 max-w-4xl mx-auto">
-          {toolCategories.map((category) => (
-            <ToolCategory
-              key={category.id}
-              title={category.title}
-              icon={category.icon}
-              description={category.description}
-              tools={category.tools}
-              isExpanded={expandedCategory === category.id}
-              onToggle={() => handleCategoryToggle(category.id)}
-            />
+      {/* Features */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <h2 className="text-2xl font-bold text-center mb-12 text-gray-800">
+          Our Core Principles
+        </h2>
+        <div className="grid md:grid-cols-3 gap-8 mb-20">
+          {[
+            {
+              title: "Privacy First",
+              description: "Zero data leaves your browser - 100% client-side processing",
+              icon: <ShieldIcon />
+            },
+            {
+              title: "No Costs, Ever",
+              description: "Completely free with no hidden subscriptions",
+              icon: <MoneyIcon />
+            },
+            {
+              title: "No Watermarks",
+              description: "Clean results without branding or artifacts",
+              icon: <WatermarkIcon />
+            }
+          ].map((feature, idx) => (
+            <div 
+              key={idx} 
+              className="bg-white p-7 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all"
+            >
+              <div className="mb-5 text-blue-500 neon-glow">
+                {feature.icon}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+              <p className="text-gray-600">{feature.description}</p>
+            </div>
           ))}
         </div>
-      </section>
+      </div>
 
-      {/* Features Section */}
-      <section className="bg-dark-secondary py-20">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h3 className="text-3xl md:text-4xl font-bold text-dark-text-primary mb-4">
-              Why Choose DocEnclave
-            </h3>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="text-center">
-              <div className="text-5xl mb-6">🔒</div>
-              <h4 className="text-xl font-semibold text-dark-text-primary mb-3">100% Private</h4>
-              <p className="text-dark-text-secondary">
-                Files never leave your device. Complete client-side processing ensures maximum privacy.
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-5xl mb-6">⚡</div>
-              <h4 className="text-xl font-semibold text-dark-text-primary mb-3">Lightning Fast</h4>
-              <p className="text-dark-text-secondary">
-                No upload delays. Process documents instantly without waiting for server responses.
-              </p>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-5xl mb-6">🌐</div>
-              <h4 className="text-xl font-semibold text-dark-text-primary mb-3">Works Offline</h4>
-              <p className="text-dark-text-secondary">
-                Once loaded, tools work without internet. Perfect for sensitive environments.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-    </>
-  )
+      {/* Comparison Table */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <ComparisonTable />
+      </div>
+
+      {/* CTA */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl py-16 px-6 text-center mb-16 mx-6">
+        <h2 className="text-3xl font-bold text-white mb-6">
+          Experience True Document Privacy
+        </h2>
+        <p className="text-xl text-blue-100 max-w-2xl mx-auto mb-8">
+          Join thousands who've taken control of their document privacy
+        </p>
+        <button 
+          onClick={scrollToTools}
+          className="bg-white text-blue-600 px-10 py-4 rounded-xl font-semibold text-lg shadow-xl hover:bg-blue-50 transition-all duration-300"
+        >
+          Secure My Documents
+        </button>
+      </div>
+    </Layout>
+  );
 }
 
-export default Home
+// Custom SVG Icons
+const ShieldIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 19.93V12h7c-.93 4.83-4.35 8.1-7 8.93z"/>
+    <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="neon-pulse" 
+          d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
+const MoneyIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 8c-3.86 0-7 3.14-7 7s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm0 12c-2.75 0-5-2.25-5-5s2.25-5 5-5 5 2.25 5 5-2.25 5-5 5z"/>
+    <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="neon-glow"
+          d="M12 1L5 6v12l7 5 7-5V6l-7-5zM5 6h14M5 18h14"/>
+    <circle cx="12" cy="15" r="1" fill="currentColor" className="neon-pulse" />
+    <circle cx="12" cy="9" r="1" fill="currentColor" className="neon-pulse" />
+  </svg>
+);
+
+const WatermarkIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" viewBox="0 0 24 24">
+    <path fill="currentColor" d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+    <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M4.93 4.93l14.14 14.14" className="neon-glow" />
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" className="neon-pulse" />
+  </svg>
+);
+
+// Comparison icons
+const CheckIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500 inline" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+  </svg>
+);
+
+const XIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-500 inline" viewBox="0 0 20 20" fill="currentColor">
+    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+  </svg>
+);
+
+// Comparison Data
+const comparisonData = [
+  { feature: 'Client-Side Processing', docenclave: true, ilovepdf: false, smallpdf: false },
+  { feature: 'No File Uploads', docenclave: true, ilovepdf: false, smallpdf: false },
+  { feature: '100% Free', docenclave: true, ilovepdf: false, smallpdf: false },
+  { feature: 'No Watermarks', docenclave: true, ilovepdf: false, smallpdf: false },
+  { feature: 'No Registration Required', docenclave: true, ilovepdf: false, smallpdf: false },
+  { feature: 'No Tracking', docenclave: true, ilovepdf: false, smallpdf: false },
+];
+
+// CSS for neon effects (add to your global CSS)
+<style jsx>{`
+  .neon-glow {
+    filter: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 5px rgba(59, 130, 246, 0.3));
+  }
+  .neon-pulse {
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% { opacity: 0.8; }
+    50% { opacity: 1; }
+    100% { opacity: 0.8; }
+  }
+`}</style>
