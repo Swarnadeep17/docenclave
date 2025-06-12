@@ -15,18 +15,16 @@ const Hero = ({ onCategoryToggle }) => {
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
           <button
-            // This button will now open the first category ('pdf') as a default action
-            onClick={() => onCategoryToggle('pdf')}
+            onClick={onCategoryToggle}
             className="bg-dark-text-primary text-dark-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-text-secondary transition-colors"
           >
-            Start Processing
+            Explore Tools
           </button>
           <button
-            // This button will toggle the first category ('pdf')
-            onClick={() => onCategoryToggle('pdf')}
+            onClick={onCategoryToggle}
             className="border border-dark-border text-dark-text-primary px-8 py-4 rounded-lg font-semibold hover:bg-dark-tertiary transition-colors"
           >
-            View Tools
+            How It Works
           </button>
         </div>
       </div>
