@@ -24,7 +24,7 @@ const Dashboard = () => {
 
   if (loading) return <p className="text-center py-10">Loading Dashboard...</p>;
 
-  // --- Process Data for KPIs and Charts ---
+  // Process Data for KPIs and Charts
   const thisMonthStats = stats.length > 0 ? stats[0] : { visitors: 0, downloads: 0, tools_used: {} };
   const conversionRate = (thisMonthStats.visitors || 0) > 0 
     ? (((thisMonthStats.downloads || 0) / thisMonthStats.visitors) * 100).toFixed(1) + '%' 
@@ -36,8 +36,7 @@ const Dashboard = () => {
   // For Line Chart (reverse for chronological order)
   const reversedStats = [...stats].reverse();
   const lineChartData = {
-    // THE FIX IS HERE: We check if `s.created_at` exists before trying to format it.
-    labels: reversedStats.map(s => s.created_at ? format(s.created_at.toDate(), 'MMM yyyy') : 'Unknown Date'),
+    labels: reversedStats.map(s => s.created_at && typeof s.created_at.toDate === 'function' ? format(s.created_at.toDate(), 'MMM yyyy') : 'Unknown Date'),
     datasets: [
       { label: 'Visitors', data: reversedStats.map(s => s.visitors || 0), borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.5)' },
       { label: 'Downloads', data: reversedStats.map(s => s.downloads || 0), borderColor: 'rgb(34, 197, 94)', backgroundColor: 'rgba(34, 197, 94, 0.5)' },
@@ -86,8 +85,7 @@ const Dashboard = () => {
             <tbody>
               {stats.map(s => (
                 <tr key={s.id} className="border-b border-dark-border">
-                  {/* THE FIX IS ALSO APPLIED HERE for the table */}
-                  <td className="p-3">{s.created_at ? format(s.created_at.toDate(), 'MMMM yyyy') : 'Unknown Date'}</td>
+                  <td className="p-3">{s.created_at && typeof s.created_at.toDate === 'function' ? format(s.created_at.toDate(), 'MMMM yyyy') : 'Unknown Date'}</td>
                   <td className="p-3">{(s.visitors || 0).toLocaleString()}</td>
                   <td className="p-3">{(s.downloads || 0).toLocaleString()}</td>
                 </tr>
