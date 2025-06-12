@@ -1,29 +1,31 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Layout = ({ children }) => {
   return (
-    <div className="min-h-screen bg-dark-primary">
-      {/* Header */}
-      <header className="bg-dark-secondary border-b border-dark-border">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-dark-primary text-dark-text-primary">
+      {/* Header - Made more compact with reduced padding (py-4) */}
+      <header className="bg-dark-secondary border-b border-dark-border sticky top-0 z-40 backdrop-blur-sm bg-opacity-70">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16"> {/* Use fixed height for consistency */}
             <Link to="/" className="flex items-center">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-dark-text-primary">
+                <h1 className="text-xl md:text-2xl font-bold text-dark-text-primary">
                   DocEnclave
                 </h1>
-                <p className="text-dark-text-muted text-sm md:text-base">
+                <p className="hidden sm:block text-dark-text-muted text-xs md:text-sm">
                   Secure Document Processing
                 </p>
               </div>
             </Link>
-            <div className="hidden md:flex items-center space-x-6">
-              <Link to="/tools/pdf/merge" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm">
-                Tools
+            <div className="flex items-center space-x-6">
+              <Link to="/" className="text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
+                Home
               </Link>
-              <span className="text-dark-text-secondary text-sm">About</span>
-              <button className="bg-dark-tertiary hover:bg-gray-700 text-dark-text-primary px-4 py-2 rounded-lg transition-colors border border-dark-border">
+              <a href="#features-comparison" className="hidden md:inline text-dark-text-secondary hover:text-dark-text-primary transition-colors text-sm font-medium">
+                Features
+              </a>
+              <button className="hidden sm:inline bg-dark-tertiary hover:bg-gray-700 text-dark-text-primary px-4 py-2 rounded-lg transition-colors border border-dark-border text-sm font-medium">
                 Premium
               </button>
             </div>
@@ -34,29 +36,31 @@ const Layout = ({ children }) => {
       {/* Main Content */}
       <main>{children}</main>
       
-      {/* Footer */}
-      <footer className="bg-dark-primary border-t border-dark-border py-12">
+      {/* Footer - Made more compact with reduced padding (py-8) */}
+      <footer className="bg-dark-primary border-t border-dark-border py-8">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <h4 className="text-xl font-bold text-dark-text-primary mb-2">DocEnclave</h4>
-            <p className="text-dark-text-muted mb-6">Privacy-first document processing</p>
+            <h4 className="text-lg font-bold text-dark-text-primary mb-1">DocEnclave</h4>
+            <p className="text-dark-text-muted mb-6 text-sm">Privacy-first document processing</p>
             
-            <div className="flex justify-center space-x-8 mb-8">
-              <Link to="/tools/pdf/merge" className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors">
+            <div className="flex justify-center space-x-6 mb-6">
+              <a href="#tools-hub" className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors text-sm">
                 Tools
-              </Link>
-              <span className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors">Privacy</span>
-              <span className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors">Support</span>
+              </a>
+              <a href="#features-comparison" className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors text-sm">
+                Features
+              </a>
+              <span className="text-dark-text-secondary hover:text-dark-text-primary cursor-pointer transition-colors text-sm">Support</span>
             </div>
             
-            <p className="text-dark-text-muted text-sm">
-              &copy; 2024 DocEnclave. Privacy-first document processing.
+            <p className="text-dark-text-muted text-xs">
+              © 2024 DocEnclave. All Rights Reserved.
             </p>
           </div>
         </div>
       </footer>
     </div>
-  )
-}
+  );
+};
 
-export default Layout
+export default Layout;
