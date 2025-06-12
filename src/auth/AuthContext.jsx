@@ -30,9 +30,10 @@ export const AuthProvider = ({ children }) => {
     loading,
   };
 
+  // THE FIX: Always render children. The Provider's only job is to provide the value.
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };
