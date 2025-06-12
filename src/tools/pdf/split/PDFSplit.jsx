@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { PDFDocument } from 'pdf-lib'
+import * as pdfjsLib from 'pdfjs-dist/webpack'
 import { useDropzone } from 'react-dropzone'
 import { PLAN_LIMITS, formatFileSize, validateFile, validatePDFForSplit, validatePageSelection } from '../../../utils/constants.js'
 import { trackDownload, trackToolUsage } from '../../../utils/analytics.js'
-import PDFPageRenderer from '../../../components/shared/PDFPageRenderer.jsx'
+
+// Set PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
 // SEO Head component
 const SEOHead = () => {
@@ -16,8 +19,81 @@ const SEOHead = () => {
   return null
 }
 
-// Update the PDFPagePreview component
-const PDFPagePreview = ({ pdfDoc, pageData, pageNumber, isSelected, onToggleSelect }) => {
+// PDF Page Renderer Component
+const PDFPageRenderer = ({ pdfDoc, pageNumber }) => {
+  const canvasRef = useRef(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    const renderPage = async () => {
+      if (!pdfDoc || !canvasRef.current) return
+
+      try {
+        setLoading(true)
+        setError(false)
+
+        const page = await pdfDoc.getPage(pageNumber)
+        const viewport = page.getViewport({ scale: 1 })
+        
+        // Calculate scale to fit within 80x112 dimensions
+        const scale = Math.min(80 / viewport.width, 112 / viewport.height)
+        const scaledViewport = page.getViewport({ scale })
+        
+        const canvas = canvasRef.current
+        const context = canvas.getContext('2d')
+        canvas.height = scaledViewport.height
+        canvas.width = scaledViewport.width
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: scaledViewport
+        }
+
+        await page.render(renderContext).promise
+        setLoading(false)
+      } catch (err) {
+        console.error('Error rendering PDF page:', err)
+        setError(true)
+        setLoading(false)
+      }
+    }
+
+    renderPage()
+  }, [pdfDoc, pageNumber])
+
+  if (error) {
+    return (
+      <div className="w-20 h-28 bg-white rounded border flex items-center justify-center">
+        <div className="text-gray-400 text-xs text-center">
+          <div className="text-lg mb-1">⚠️</div>
+          <div>Error</div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative w-20 h-28">
+      <canvas 
+        ref={canvasRef}
+        className="w-full h-full bg-white rounded border"
+        style={{ display: loading ? 'none' : 'block' }}
+      />
+      {loading && (
+        <div className="absolute inset-0 bg-white rounded border flex items-center justify-center">
+          <div className="text-gray-400 text-xs text-center animate-pulse">
+            <div className="text-lg mb-1">📄</div>
+            <div>Loading...</div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// PDF Page Preview Component for Split
+const PDFPagePreview = ({ pdfDoc, pageNumber, isSelected, onToggleSelect }) => {
   return (
     <div className={`relative bg-dark-tertiary rounded-lg p-3 border-2 transition-all cursor-pointer ${
       isSelected ? 'border-blue-500 shadow-blue-500/20' : 'border-dark-border hover:border-gray-500'
@@ -26,8 +102,6 @@ const PDFPagePreview = ({ pdfDoc, pageData, pageNumber, isSelected, onToggleSele
         <PDFPageRenderer 
           pdfDoc={pdfDoc}
           pageNumber={pageNumber}
-          width={80}
-          height={112}
         />
 
         <div className="text-center mt-2">
@@ -41,6 +115,7 @@ const PDFPagePreview = ({ pdfDoc, pageData, pageNumber, isSelected, onToggleSele
               checked={isSelected}
               onChange={onToggleSelect}
               className="w-4 h-4 accent-blue-500"
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
         </div>
@@ -63,7 +138,6 @@ const RangeSelector = ({ totalPages, selectedPages, onRangeChange }) => {
   const applyRange = () => {
     setRangeError('')
     
-    // Don't process empty input
     if (!rangeInput.trim()) {
       setRangeError('Please enter page numbers or ranges')
       return
@@ -80,18 +154,18 @@ const RangeSelector = ({ totalPages, selectedPages, onRangeChange }) => {
             throw new Error(`Invalid range: ${range}. Use format like 1-5`)
           }
           for (let i = start; i <= end; i++) {
-            newSelection.add(i - 1) // Convert to 0-indexed
+            newSelection.add(i - 1)
           }
         } else {
           const page = parseInt(range.trim())
           if (isNaN(page) || page < 1 || page > totalPages) {
             throw new Error(`Invalid page: ${range}. Must be between 1 and ${totalPages}`)
           }
-          newSelection.add(page - 1) // Convert to 0-indexed
+          newSelection.add(page - 1)
         }
       }
       onRangeChange(Array.from(newSelection))
-      setRangeInput('') // Clear input after successful application
+      setRangeInput('')
     } catch (error) {
       setRangeError(error.message)
     }
@@ -169,6 +243,7 @@ const RangeSelector = ({ totalPages, selectedPages, onRangeChange }) => {
 
 const PDFSplit = () => {
   const [file, setFile] = useState(null)
+  const [pdfJsDoc, setPdfJsDoc] = useState(null) // For rendering
   const [pages, setPages] = useState([])
   const [selectedPages, setSelectedPages] = useState([])
   const [currentPlan, setCurrentPlan] = useState('FREE')
@@ -177,7 +252,7 @@ const PDFSplit = () => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [error, setError] = useState('')
   const [previewMode, setPreviewMode] = useState(false)
-  const [exportOption, setExportOption] = useState('separate') // 'separate' or 'combined'
+  const [exportOption, setExportOption] = useState('separate')
 
   const limits = PLAN_LIMITS[currentPlan]
 
@@ -208,10 +283,14 @@ const PDFSplit = () => {
 
     try {
       const arrayBuffer = await droppedFile.arrayBuffer()
+      
+      // Load with pdf-lib for processing
       const pdfDoc = await PDFDocument.load(arrayBuffer)
       const pageCount = pdfDoc.getPageCount()
       
-      // Check page limit for free users
+      // Load with pdf.js for rendering
+      const pdfJsDocument = await pdfjsLib.getDocument({ data: arrayBuffer }).promise
+      
       const pageValidation = validatePDFForSplit(pageCount, currentPlan)
       if (!pageValidation.valid) {
         setShowUpgradeModal(true)
@@ -229,6 +308,7 @@ const PDFSplit = () => {
         size: droppedFile.size,
         pdfDoc: pdfDoc
       })
+      setPdfJsDoc(pdfJsDocument)
       setPages(pagesArray)
       setSelectedPages([])
       setPreviewMode(true)
@@ -253,7 +333,6 @@ const PDFSplit = () => {
       if (prev.includes(pageIndex)) {
         return prev.filter(p => p !== pageIndex)
       } else {
-        // Check free plan limits
         const selectionValidation = validatePageSelection(prev.length + 1, currentPlan)
         if (!selectionValidation.valid) {
           setShowUpgradeModal(true)
@@ -265,7 +344,6 @@ const PDFSplit = () => {
   }
 
   const handleRangeSelection = (newSelection) => {
-    // Check free plan limits
     const selectionValidation = validatePageSelection(newSelection.length, currentPlan)
     if (!selectionValidation.valid) {
       setShowUpgradeModal(true)
@@ -280,15 +358,9 @@ const PDFSplit = () => {
       return
     }
 
-    // Validate selected pages are within bounds
     const validPages = selectedPages.filter(pageIndex => pageIndex >= 0 && pageIndex < pages.length)
     if (validPages.length === 0) {
       setError('No valid pages selected')
-      return
-    }
-
-    if (validPages.length !== selectedPages.length) {
-      setError('Some selected pages are invalid. Please reselect pages.')
       return
     }
 
@@ -298,7 +370,6 @@ const PDFSplit = () => {
 
     try {
       if (exportOption === 'separate') {
-        // Create separate PDF for each selected page
         for (let i = 0; i < validPages.length; i++) {
           setProgress((i / validPages.length) * 90)
           
@@ -317,11 +388,9 @@ const PDFSplit = () => {
           document.body.removeChild(link)
           URL.revokeObjectURL(url)
           
-          // Small delay to prevent browser blocking multiple downloads
           await new Promise(resolve => setTimeout(resolve, 100))
         }
       } else if (exportOption === 'combined') {
-        // Create single PDF with selected pages
         setProgress(50)
         
         const newPdf = await PDFDocument.create()
@@ -359,6 +428,7 @@ const PDFSplit = () => {
 
   const resetTool = () => {
     setFile(null)
+    setPdfJsDoc(null)
     setPages([])
     setSelectedPages([])
     setPreviewMode(false)
@@ -586,7 +656,7 @@ const PDFSplit = () => {
               </div>
             </div>
 
-            {/* Page Grid */}
+            {/* Page Grid with Real Previews */}
             <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-dark-text-primary font-medium">Pages ({pages.length} total)</h4>
@@ -598,7 +668,7 @@ const PDFSplit = () => {
                 {pages.map((page, pageIndex) => (
                   <PDFPagePreview
                     key={pageIndex}
-                    pageData={page}
+                    pdfDoc={pdfJsDoc}
                     pageNumber={pageIndex + 1}
                     isSelected={selectedPages.includes(pageIndex)}
                     onToggleSelect={() => handlePageToggle(pageIndex)}
@@ -609,7 +679,7 @@ const PDFSplit = () => {
           </div>
         )}
 
-        {/* Split Controls - Always show if file exists and pages selected */}
+        {/* Split Controls */}
         {file && selectedPages.length > 0 && (
           <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border mb-16">
             <div className="flex items-center justify-between mb-4">
@@ -649,6 +719,7 @@ const PDFSplit = () => {
             </p>
           </div>
         )}
+
         {/* How to Use Section */}
         <section className="mb-16">
           <h2 className="text-2xl font-bold text-dark-text-primary text-center mb-8">
@@ -750,7 +821,7 @@ const PDFSplit = () => {
                 <p className="text-dark-text-secondary leading-relaxed">
                   Not all PDF splitting tools maintain original document quality. Images can be compressed, fonts might be substituted, 
                   and formatting could shift during the extraction process. Professional-grade splitting preserves vector graphics, 
-                  maintains font embedding, and keeps original resolution for images. This quality preservation is essential for legal 
+     maintains font embedding, and keeps original resolution for images. This quality preservation is essential for legal 
                   documents, technical drawings, and any materials requiring precise formatting.
                 </p>
               </div>
@@ -765,7 +836,7 @@ const PDFSplit = () => {
                   find that documenting their splitting workflows helps team members maintain consistency and reduces time spent on 
                   repetitive document processing tasks.
                 </p>
-              </div>
+</div>
 
               <div>
                 <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
@@ -781,8 +852,7 @@ const PDFSplit = () => {
             </div>
           </div>
         </section>
-
-        {/* Upgrade Modal */}
+{/* Upgrade Modal */}
         {showUpgradeModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-dark-secondary rounded-xl p-8 max-w-md mx-4 border border-dark-border">
@@ -804,7 +874,7 @@ const PDFSplit = () => {
                   className="flex-1 border border-dark-border text-dark-text-primary py-2 rounded-lg hover:bg-dark-tertiary transition-colors"
                 >
                   Continue Free
-                </button>
+</button>
                 <button className="flex-1 bg-dark-text-primary text-dark-primary py-2 rounded-lg font-medium hover:bg-dark-text-secondary transition-colors">
                   Upgrade Now
                 </button>
