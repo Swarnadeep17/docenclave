@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getMonthlyStats } from '../../utils/analytics.js';
+import { getMonthlyStats } from '../../utils/firebase.js';
 import { toolCategories } from '../../data/toolData.js';
 import ToolCategory from './ToolCategory.jsx';
 
@@ -7,7 +7,10 @@ const ImpactStat = ({ value, label }) => {
     const [displayValue, setDisplayValue] = useState(0);
   
     useEffect(() => {
-      if (value === 0) return;
+      if (value === 0) {
+        setDisplayValue(0);
+        return;
+      }
       let start = 0;
       const end = parseInt(value, 10);
       const duration = 2000;
@@ -43,7 +46,9 @@ const ToolsHub = () => {
   useEffect(() => {
     const loadStats = async () => {
       const monthlyStats = await getMonthlyStats();
-      setStats(monthlyStats);
+      if (monthlyStats) {
+        setStats(monthlyStats);
+      }
     };
     loadStats();
     const interval = setInterval(loadStats, 10000);
@@ -54,25 +59,17 @@ const ToolsHub = () => {
     setExpandedCategory(expandedCategory === categoryId ? null : categoryId);
   };
 
-  const filesKeptPrivate = Math.floor(stats.visitors * 2.5);
-  const documentsProcessed = stats.downloads;
+  const filesKeptPrivate = Math.floor((stats?.visitors || 0) * 2.5);
+  const documentsProcessed = stats?.downloads || 0;
 
   return (
-    // Section is now just a simple container with padding
     <section className="container mx-auto px-4 py-12 md:py-20">
-      {/* 
-        This is the new container with a static multi-color gradient border.
-        The trick is a padded parent with a gradient background, and a child
-        with a solid background and a 1px margin, revealing the parent's gradient.
-      */}
       <div className="max-w-4xl mx-auto rounded-xl p-px bg-gradient-to-r from-blue-500 via-purple-500 to-yellow-500">
         <div className="bg-dark-secondary rounded-[11px] p-6">
-            {/* Header */}
             <div className="text-center mb-6">
                 <h3 className="text-2xl md:text-3xl font-bold text-dark-text-primary mb-3">
                     Tools Hub
                 </h3>
-                {/* Compact Stats Bar */}
                 <div className="flex items-center justify-center gap-4 md:gap-6 flex-wrap text-xs text-dark-text-secondary">
                     <span className="flex items-center text-green-400 font-medium">
                         <span className="relative flex h-2 w-2 mr-1.5"><span className="animate-ping absolute h-full w-full rounded-full bg-green-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
@@ -84,8 +81,6 @@ const ToolsHub = () => {
                     <ImpactStat value={documentsProcessed} label="Secure Operations" />
                 </div>
             </div>
-
-            {/* Tools Accordion */}
             <div className="space-y-3">
             {toolCategories.map((category) => (
                 <ToolCategory
