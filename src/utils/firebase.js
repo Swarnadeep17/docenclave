@@ -1,4 +1,4 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore, doc, updateDoc, increment, getDoc, setDoc, collection, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
 import { 
   getAuth, 
@@ -8,7 +8,7 @@ import {
   onAuthStateChanged 
 } from 'firebase/auth';
 
-// IMPORTANT: Replace these with your actual Firebase config details
+// IMPORTANT: Replace these with your actual Firebase config details from the Firebase console
 const firebaseConfig = {
     apiKey: "YOUR_API_KEY",
     authDomain: "YOUR_AUTH_DOMAIN",
@@ -18,8 +18,11 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// --- THE DEFINITIVE FIX: SINGLETON PATTERN ---
+// Check if a Firebase app has already been initialized.
+// If not, initialize it. If it has, use the existing app.
+const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 
@@ -27,10 +30,11 @@ const auth = getAuth(app);
 export const signup = async (email, password) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
+  // Create a corresponding user document in Firestore
   await setDoc(doc(db, 'users', user.uid), {
     uid: user.uid,
     email: user.email,
-    isAdmin: false,
+    isAdmin: false, // Default to not an admin
     plan: 'FREE',
     createdAt: Timestamp.now(),
   });
@@ -50,9 +54,12 @@ export const onAuthStateChangeHelper = (callback) => {
 };
 
 export const getUserProfile = async (uid) => {
-  const userDoc = await getDoc(doc(db, 'users', uid));
+  if (!uid) return null;
+  const userDocRef = doc(db, 'users', uid);
+  const userDoc = await getDoc(userDocRef);
   return userDoc.exists() ? userDoc.data() : null;
 };
+
 
 // --- ANALYTICS FUNCTIONS ---
 const getCurrentMonthKey = () => {
@@ -73,15 +80,30 @@ export const trackVisitor = async () => {
     } catch (error) { console.error('Analytics tracking failed:', error); }
 };
 
+export const trackToolUsage = async (toolName) => {
+    try {
+        const monthKey = getCurrentMonthKey();
+        const docRef = doc(db, 'analytics', monthKey);
+        const docSnap = await getDoc(docRef);
+        const updateData = { [`tools_used.${toolName}`]: increment(1) };
+        if (!docSnap.exists()) {
+            await setDoc(docRef, { visitors: 0, downloads: 0, tools_used: { [toolName]: 1 }, created_at: Timestamp.now() });
+        } else {
+            await updateDoc(docRef, updateData);
+        }
+    } catch (error) { console.error('Tool usage tracking failed:', error); }
+};
+
 export const trackDownload = async (toolName = 'unknown') => {
     try {
         const monthKey = getCurrentMonthKey();
         const docRef = doc(db, 'analytics', monthKey);
         const docSnap = await getDoc(docRef);
+        const updateData = { downloads: increment(1), [`tools_used.${toolName}`]: increment(1) };
         if (!docSnap.exists()) {
             await setDoc(docRef, { visitors: 0, downloads: 1, tools_used: { [toolName]: 1 }, created_at: Timestamp.now() });
         } else {
-            await updateDoc(docRef, { downloads: increment(1), [`tools_used.${toolName}`]: increment(1) });
+            await updateDoc(docRef, updateData);
         }
     } catch (error) { console.error('Download tracking failed:', error); }
 };
