@@ -268,7 +268,7 @@ const Home = () => {
             <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-500">
               Secure Document Tools
             </h2>
-            <极 className="text-gray-400 mt-4">
+            <p className="text-gray-400 mt-4">
               All privacy features. Zero compromises. Totally free.
             </p>
           </div>
@@ -398,7 +398,7 @@ const Home = () => {
                   <h4 className="font-bold text-gray-200">Julia D.</h4>
                   <p className="text-gray-500 text-sm">Healthcare Admin</p>
                 </div>
-              </极>
+              </div>
             </div>
           </div>
         </div>
