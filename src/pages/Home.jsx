@@ -9,28 +9,24 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState(0);
   const toolsSectionRef = useRef(null);
   const [particlesInitialized, setParticlesInitialized] = useState(false);
+
   const tools = [
     { name: "Merge PDFs", component: <PDFMerge /> },
     { name: "Split PDF", component: <PDFSplit /> },
   ];
 
-  // Initialize particles.js safely with dynamic import
   useEffect(() => {
     if (particlesInitialized) return;
-    
+
     const initializeParticles = async () => {
       try {
-        // Dynamically import the particles.js library
         const { default: particlesJS } = await import("particles.js");
-        
-        // Configure for production build
         if (typeof window !== "undefined" && window.particlesJS) {
           window.particlesJS("particles-js", particlesConfig);
-          setParticlesInitialized(true);
         } else if (particlesJS) {
           particlesJS("particles-js", particlesConfig);
-          setParticlesInitialized(true);
         }
+        setParticlesInitialized(true);
       } catch (error) {
         console.error("Particles.js initialization failed:", error);
       }
@@ -41,34 +37,6 @@ export default function Home() {
 
   const scrollToTools = () => {
     toolsSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  // ... Rest of your component (ComparisonTable, CheckIcon, etc) ... 
-  // Remaining code from the previous version continues here
-  // This includes the Custom SVG Icons, Comparison Table code, etc.
-
-  useEffect(() => {
-    // Initialize Particle.js if available
-    if (window.particlesJS) {
-      window.particlesJS("particles-js", {
-        particles: {
-          number: { value: 30, density: { enable: true, value_area: 800 } },
-          color: { value: "#3b82f6" },
-          opacity: { value: 0.5, random: true },
-          size: { value: 3, random: true },
-          line_linked: { enable: true, distance: 150, color: "#93c5fd", opacity: 0.4, width: 1 },
-          move: { enable: true, speed: 2, direction: "none", random: true, out_mode: "out" }
-        },
-        interactivity: {
-          detect_on: "canvas",
-          events: { onhover: { enable: true, mode: "grab" }, onclick: { enable: true, mode: "push" } }
-        }
-      });
-    }
-  }, []);
-
-  const scrollToTools = () => {
-    toolsSectionRef.current.scrollIntoView({ behavior: "smooth" });
   };
 
   const ComparisonTable = () => (
@@ -107,7 +75,6 @@ export default function Home() {
 
   return (
     <Layout>
-      {/* Particle Background */}
       <div id="particles-js" className="absolute inset-0 -z-10" style={{ height: '75vh' }} />
 
       {/* Hero Section */}
@@ -119,7 +86,6 @@ export default function Home() {
           <p className="text-xl text-gray-700 max-w-2xl mx-auto mb-10">
             Secure client-side processing for PDFs. Your documents never leave your device.
           </p>
-          
           <button 
             onClick={scrollToTools}
             className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white px-8 py-4 rounded-full font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
@@ -136,14 +102,12 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Tools Section (with ref for scrolling) */}
+      {/* Tools Section */}
       <div ref={toolsSectionRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
           PDF Tools That Protect Your Privacy
         </h2>
-        
         <div className="max-w-4xl mx-auto">
-          {/* Tool Selector Tabs */}
           <div className="flex justify-center mb-12">
             {tools.map((tool, index) => (
               <button
@@ -159,8 +123,6 @@ export default function Home() {
               </button>
             ))}
           </div>
-
-          {/* Active Tool Container */}
           <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-gray-200">
             {tools[activeTab].component}
           </div>
@@ -173,23 +135,7 @@ export default function Home() {
           Our Core Principles
         </h2>
         <div className="grid md:grid-cols-3 gap-8 mb-20">
-          {[
-            {
-              title: "Privacy First",
-              description: "Zero data leaves your browser - 100% client-side processing",
-              icon: <ShieldIcon />
-            },
-            {
-              title: "No Costs, Ever",
-              description: "Completely free with no hidden subscriptions",
-              icon: <MoneyIcon />
-            },
-            {
-              title: "No Watermarks",
-              description: "Clean results without branding or artifacts",
-              icon: <WatermarkIcon />
-            }
-          ].map((feature, idx) => (
+          {features.map((feature, idx) => (
             <div 
               key={idx} 
               className="bg-white p-7 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all"
@@ -228,11 +174,11 @@ export default function Home() {
   );
 }
 
-// Custom SVG Icons
+// Icons & Data
 const ShieldIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" viewBox="0 0 24 24">
     <path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 19.93V12h7c-.93 4.83-4.35 8.1-7 8.93z"/>
-    <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="neon-pulse" 
+    <path fill="none" stroke="currentColor" strokeWidth="2" className="neon-pulse"
           d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
   </svg>
 );
@@ -240,7 +186,7 @@ const ShieldIcon = () => (
 const MoneyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" viewBox="0 0 24 24">
     <path fill="currentColor" d="M12 8c-3.86 0-7 3.14-7 7s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm0 12c-2.75 0-5-2.25-5-5s2.25-5 5-5 5 2.25 5 5-2.25 5-5 5z"/>
-    <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="neon-glow"
+    <path fill="none" stroke="currentColor" strokeWidth="2" className="neon-glow"
           d="M12 1L5 6v12l7 5 7-5V6l-7-5zM5 6h14M5 18h14"/>
     <circle cx="12" cy="15" r="1" fill="currentColor" className="neon-pulse" />
     <circle cx="12" cy="9" r="1" fill="currentColor" className="neon-pulse" />
@@ -250,12 +196,11 @@ const MoneyIcon = () => (
 const WatermarkIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16" viewBox="0 0 24 24">
     <path fill="currentColor" d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
-    <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M4.93 4.93l14.14 14.14" className="neon-glow" />
+    <path fill="none" stroke="currentColor" strokeWidth="2" className="neon-glow" d="M4.93 4.93l14.14 14.14" />
     <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" className="neon-pulse" />
   </svg>
 );
 
-// Comparison icons
 const CheckIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-500 inline" viewBox="0 0 20 20" fill="currentColor">
     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -268,27 +213,29 @@ const XIcon = () => (
   </svg>
 );
 
-// Comparison Data
-const comparisonData = [
-  { feature: 'Client-Side Processing', docenclave: true, ilovepdf: false, smallpdf: false },
-  { feature: 'No File Uploads', docenclave: true, ilovepdf: false, smallpdf: false },
-  { feature: '100% Free', docenclave: true, ilovepdf: false, smallpdf: false },
-  { feature: 'No Watermarks', docenclave: true, ilovepdf: false, smallpdf: false },
-  { feature: 'No Registration Required', docenclave: true, ilovepdf: false, smallpdf: false },
-  { feature: 'No Tracking', docenclave: true, ilovepdf: false, smallpdf: false },
+const features = [
+  {
+    title: "Privacy First",
+    description: "Zero data leaves your browser - 100% client-side processing",
+    icon: <ShieldIcon />,
+  },
+  {
+    title: "No Costs, Ever",
+    description: "Completely free with no hidden subscriptions",
+    icon: <MoneyIcon />,
+  },
+  {
+    title: "No Watermarks",
+    description: "Clean results without branding or artifacts",
+    icon: <WatermarkIcon />,
+  },
 ];
 
-// CSS for neon effects (add to your global CSS)
-<style jsx>{`
-  .neon-glow {
-    filter: drop-shadow(0 0 2px currentColor) drop-shadow(0 0 5px rgba(59, 130, 246, 0.3));
-  }
-  .neon-pulse {
-    animation: pulse 1.5s infinite;
-  }
-  @keyframes pulse {
-    0% { opacity: 0.8; }
-    50% { opacity: 1; }
-    100% { opacity: 0.8; }
-  }
-`}</style>
+const comparisonData = [
+  { feature: 'Client-Side Processing', ilovepdf: false, smallpdf: false },
+  { feature: 'No File Uploads', ilovepdf: false, smallpdf: false },
+  { feature: '100% Free', ilovepdf: false, smallpdf: false },
+  { feature: 'No Watermarks', ilovepdf: false, smallpdf: false },
+  { feature: 'No Registration Required', ilovepdf: false, smallpdf: false },
+  { feature: 'No Tracking', ilovepdf: false, smallpdf: false },
+];
