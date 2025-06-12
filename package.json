@@ -31,5 +31,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
+  },
+  "overrides": {
+    "react-simple-typewriter": {
+      "react": "^18.2.0"
+    }
   }
 }
