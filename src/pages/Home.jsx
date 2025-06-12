@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { trackVisitor, hasTrackedThisSession, markVisitorTracked } from '../utils/analytics.js';
-
+import { trackVisitor, hasTrackedThisSession, markVisitorTracked } from '../utils/firebase.js';
 import Hero from '../components/home/Hero.jsx';
 import ToolsHub from '../components/home/ToolsHub.jsx';
 import ComparisonTable from '../components/home/ComparisonTable.jsx';
@@ -26,11 +25,9 @@ const Home = () => {
         onScrollToTools={() => scrollToElement('tools-hub')}
         onScrollToFeatures={() => scrollToElement('features-comparison')}
       />
-
       <div id="tools-hub">
         <ToolsHub />
       </div>
-
       <div id="features-comparison">
         <ComparisonTable />
       </div>
