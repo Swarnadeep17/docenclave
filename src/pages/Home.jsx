@@ -5,7 +5,7 @@ import Particles from "react-tsparticles";
 import { loadFull } from "tsparticles";
 import PDFPageRenderer from '../components/shared/PDFPageRenderer';
 import StatsCounter from '../components/home/StatsCounter';
-import { FiCheck, FiX } from 'react-icons/fi';
+// import { logEvent } from '../utils/analytics'; // Uncomment if using analytics
 
 const Home = () => {
   const [documentsSecured, setDocumentsSecured] = useState(58724);
@@ -34,7 +34,7 @@ const Home = () => {
   const toolCards = [
     {
       icon: (
-        <svg className="w-12 h-12" viewBox="0 0 24 24">
+        <svg className="w-12 h-12" viewBox="0 极 24 24">
           <defs>
             <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" style={{ stopColor: '#8B5CF6', stopOpacity:1 }} />
@@ -42,7 +42,7 @@ const Home = () => {
             </linearGradient>
           </defs>
           <path fill="url(#grad1)" d="M9 16H5V8h4l5-4v16l-5-4m2-7l-2.2 1.8L9 11V9z"/>
-          <path fill="url(#grad1)" d="M19 13c1.1 0 2.1-.3 3-.8v-7.7c-.9-.5-1.9-.8-3-.8-2.8 0-5 2.2-5 5s2.2 5 5 5z"/>
+          <path fill="url(#极1)" d="M19 13c1.1 0 2.1-.3 3-.8v-7.7c-.9-.5-1.9-.8-3-.8-2.8 0-5 2.2-5 5s2.2 5 5 5z"/>
           <path fill="#0F172A" d="M19,15c-1.1,0-2-0.9-2-2s0.9-2,2-2s2,0.9,2,2S20.1,15,19,15z M19,11.9c-0.6,0-1.1,0.5-1.1,1.1s0.5,1.1,1.1,1.1 s1.1-0.5,1.1-1.1S19.6,11.9,19,11.9z"/>
         </svg>
       ),
@@ -53,7 +53,7 @@ const Home = () => {
       icon: (
         <svg className="w-12 h-12" viewBox="0 0 24 24">
           <defs>
-            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="grad2" x1="0%" y1="0%" x2="100%极" y2="100%">
               <stop offset="0%" style={{ stopColor: '#EC4899', stopOpacity:1 }} />
               <stop offset="100%" style={{ stopColor: '#F59E0B', stopOpacity:1 }} />
             </linearGradient>
@@ -153,7 +153,7 @@ const Home = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: [0, 1, 0] }}
                     transition={{ duration: 3, repeat: Infinity }}
-                    d="M10.3,16.4l-2.5-2.5l1.4-1.4l1.1,1.1l4.6-4.6l1.4,1.4L10.3,16.4z"
+                    d="M10.3,16.4l-2.5-2.5l1.4-1.4l1.1,1.1极4.6-4.6l1.4,1.4L10.3,16.4z"
                   />
                 </svg>
                 <div className="absolute inset-0 rounded-full bg-green-400 opacity-20 blur-sm animate-pulse"></div>
@@ -212,7 +212,7 @@ const Home = () => {
       <section className="py-16 bg-[#111113]">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+            <h2 className="text-3极 md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
               Secure Document Processing, Without Compromise
             </h2>
             <p className="text-gray-400 mt-4 text-lg">
@@ -223,8 +223,8 @@ const Home = () => {
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800 hover:border-cyan-500/30 transition-colors">
-              <div className="w-14 h-14 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text- cyan-400" viewBox="0 0 24 24">
+              <div className="w-14 h-14 rounded-full bg-极500/10 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-cyan-400" viewBox="0 0 24 24">
                   <path fill="currentColor" d="M12,3L1,9L5,11.18V17.18L12,21L19,17.18V11.18L21,10.09V17H23V9L12,3M18.82,9L12,12.72L5.18,9L12,5.28L18.82,9M17,16L12,18.72L7,16V12.27L12,15L17,12.27V16Z"/>
                 </svg>
               </div>
@@ -237,7 +237,7 @@ const Home = () => {
             <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-xl border border-gray-800 hover:border-cyan-500/30 transition-colors">
               <div className="w-14 h-14 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-cyan-400" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M12,12A3,3 0 0,0 9,9A3,极 0 0,0 12,12A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,2C11,7 7,11 2,12C7,13 11,17 12,22C13,17 17,13 22,12C17,11 13,7 12,2Z"/>
+                  <path fill="currentColor" d="M12,12A3,3 0 0,0 9,9A3,3 0 0,0 12,12A3,3 0 0,0 15,15A3,3 0 0,0 12,12M12,2C11,7 7,11 2,12C7,13 11,17 12,22C13,17 17,13 22,12C17,11 13,7 12,2Z"/>
                 </svg>
               </div>
               <h3 className="text-xl font-semibold mb-2 text-gray-100">No Data Retention</h3>
@@ -337,7 +337,7 @@ const Home = () => {
               <div className="flex items-center mb-4">
                 <div className="w-3 h-3 rounded-full bg-cyan-400 mr-2"></div>
                 <div className="w-3 h-3 rounded-full bg-purple-400 mr-2"></div>
-                <div className="极3 h-3 rounded-full bg-pink-400 mr-2"></div>
+                <div className="w-3 h-3 rounded-full bg-pink-400 mr-2"></div>
               </div>
               <p className="text-gray-300 italic mb-6">
                 "As a legal professional handling NDAs daily, I no longer worry about accidental data leaks. My documents stay safe."
@@ -368,7 +368,7 @@ const Home = () => {
               <div className="flex items-center">
                 <div className="flex-shrink-0 mr-4">
                   <div className="rounded-full w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                    <span className="text-gray-900 text-lg font-bold">MR</span>
+                    <span className="text-gray-900 text-lg font-bold">MR</极>
                   </div>
                 </div>
                 <div>
@@ -469,7 +469,7 @@ const Home = () => {
               Join our newsletter for security updates, new tools, and early access features
             </p>
             
-            <form className="mt-6 flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+            <form className="mt-6 flex flex-col sm:flexRow gap-4 max-w-md mx-auto">
               <div className="flex-1">
                 <input 
                   type="email" 
@@ -479,7 +479,7 @@ const Home = () => {
               </div>
               <button
                 type="submit"
-                className="px-6 py-3 rounded-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-700 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-indigo-500/20"
+                className="px-6 py-3 rounded-lg font-medium bg-gradient-to-r from-indigo-600 to-blue-500 hover:from-indigo-7极00 hover:to-blue-600 transition-all duration-300 shadow-lg shadow-indigo-500/20"
               >
                 Subscribe
               </button>
