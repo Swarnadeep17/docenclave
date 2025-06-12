@@ -10,9 +10,14 @@ const Dashboard = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const data = await getHistoricalStats();
-      setStats(data);
-      setLoading(false);
+      try {
+        const data = await getHistoricalStats();
+        setStats(data);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchStats();
   }, []);
@@ -21,18 +26,21 @@ const Dashboard = () => {
 
   // --- Process Data for KPIs and Charts ---
   const thisMonthStats = stats.length > 0 ? stats[0] : { visitors: 0, downloads: 0, tools_used: {} };
-  const conversionRate = thisMonthStats.visitors > 0 ? ((thisMonthStats.downloads / thisMonthStats.visitors) * 100).toFixed(1) + '%' : '0%';
+  const conversionRate = (thisMonthStats.visitors || 0) > 0 
+    ? (((thisMonthStats.downloads || 0) / thisMonthStats.visitors) * 100).toFixed(1) + '%' 
+    : '0%';
   
-  const sortedTools = Object.entries(thisMonthStats.tools_used).sort(([,a], [,b]) => b - a);
+  const sortedTools = Object.entries(thisMonthStats.tools_used || {}).sort(([,a], [,b]) => b - a);
   const topTool = sortedTools.length > 0 ? sortedTools[0][0].replace(/_/g, ' ') : 'N/A';
 
   // For Line Chart (reverse for chronological order)
   const reversedStats = [...stats].reverse();
   const lineChartData = {
-    labels: reversedStats.map(s => format(s.created_at.toDate(), 'MMM yyyy')),
+    // THE FIX IS HERE: We check if `s.created_at` exists before trying to format it.
+    labels: reversedStats.map(s => s.created_at ? format(s.created_at.toDate(), 'MMM yyyy') : 'Unknown Date'),
     datasets: [
-      { label: 'Visitors', data: reversedStats.map(s => s.visitors), borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.5)' },
-      { label: 'Downloads', data: reversedStats.map(s => s.downloads), borderColor: 'rgb(34, 197, 94)', backgroundColor: 'rgba(34, 197, 94, 0.5)' },
+      { label: 'Visitors', data: reversedStats.map(s => s.visitors || 0), borderColor: 'rgb(59, 130, 246)', backgroundColor: 'rgba(59, 130, 246, 0.5)' },
+      { label: 'Downloads', data: reversedStats.map(s => s.downloads || 0), borderColor: 'rgb(34, 197, 94)', backgroundColor: 'rgba(34, 197, 94, 0.5)' },
     ],
   };
 
@@ -52,21 +60,18 @@ const Dashboard = () => {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
       
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <KPICard title="Visitors (This Month)" value={thisMonthStats.visitors.toLocaleString()} icon="👥" />
-        <KPICard title="Downloads (This Month)" value={thisMonthStats.downloads.toLocaleString()} icon="📄" />
+        <KPICard title="Visitors (This Month)" value={(thisMonthStats.visitors || 0).toLocaleString()} icon="👥" />
+        <KPICard title="Downloads (This Month)" value={(thisMonthStats.downloads || 0).toLocaleString()} icon="📄" />
         <KPICard title="Conversion Rate" value={conversionRate} icon="🎯" />
         <KPICard title="Most Used Tool" value={topTool} icon="🔧" />
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <TrendChart data={lineChartData} type="line" />
         <TrendChart data={barChartData} type="bar" />
       </div>
 
-      {/* Historical Data Table */}
       <div className="bg-dark-secondary p-4 rounded-lg border border-dark-border">
         <h2 className="text-xl font-bold mb-4">Historical Data</h2>
         <div className="overflow-x-auto">
@@ -81,9 +86,10 @@ const Dashboard = () => {
             <tbody>
               {stats.map(s => (
                 <tr key={s.id} className="border-b border-dark-border">
-                  <td className="p-3">{format(s.created_at.toDate(), 'MMMM yyyy')}</td>
-                  <td className="p-3">{s.visitors.toLocaleString()}</td>
-                  <td className="p-3">{s.downloads.toLocaleString()}</td>
+                  {/* THE FIX IS ALSO APPLIED HERE for the table */}
+                  <td className="p-3">{s.created_at ? format(s.created_at.toDate(), 'MMMM yyyy') : 'Unknown Date'}</td>
+                  <td className="p-3">{(s.visitors || 0).toLocaleString()}</td>
+                  <td className="p-3">{(s.downloads || 0).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
