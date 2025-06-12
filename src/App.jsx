@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react'; // Import lazy and Suspense
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout.jsx';
 import Home from './pages/Home.jsx';
 import PDFMerge from './tools/pdf/merge/PDFMerge.jsx';
 import PDFSplit from './tools/pdf/split/PDFSplit.jsx';
-
-// Import new pages and the admin route
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import Account from './pages/Account.jsx';
-import Dashboard from './pages/admin/Dashboard.jsx';
 import AdminRoute from './auth/AdminRoute.jsx';
+
+// LAZY LOAD the dashboard component
+const Dashboard = lazy(() => import('./pages/admin/Dashboard.jsx'));
+
+// A simple loading component for Suspense fallback
+const PageLoader = () => (
+  <div className="flex justify-center items-center h-64">
+    <p>Loading Page...</p>
+  </div>
+);
 
 function App() {
   return (
@@ -28,12 +35,18 @@ function App() {
 
           {/* Protected Routes */}
           <Route path="/account" element={<Account />} />
-          <Route path="/admin" element={
-            <AdminRoute>
-              <Dashboard />
-            </AdminRoute>
-          } />
-
+          
+          {/* Admin Route with Lazy Loading and Suspense */}
+          <Route 
+            path="/admin" 
+            element={
+              <AdminRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <Dashboard />
+                </Suspense>
+              </AdminRoute>
+            } 
+          />
         </Routes>
       </Layout>
     </Router>
