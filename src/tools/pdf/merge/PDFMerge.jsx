@@ -3,7 +3,7 @@ import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist/webpack';
 import { useDropzone } from 'react-dropzone';
 import { PLAN_LIMITS, formatFileSize, validateFile } from '../../../utils/constants.js';
-import { trackDownload, trackToolUsage } from '../../../utils/analytics.js';
+import { trackDownload, trackToolUsage } from '../../../utils/firebase.js';
 
 // Set PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
