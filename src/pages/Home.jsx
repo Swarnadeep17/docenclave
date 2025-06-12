@@ -1,56 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { trackVisitor, hasTrackedThisSession, markVisitorTracked } from '../utils/analytics.js';
-import { toolCategories } from '../data/toolData.js'; // Import data from its new location
+import { toolCategories } from '../data/toolData.js';
 
-// Import the new modular components
+// Import the new and updated components
 import Hero from '../components/home/Hero.jsx';
-import PrivacyCounter from '../components/home/PrivacyCounter.jsx';
+import PrivacyImpact from '../components/home/PrivacyImpact.jsx';
 import ToolCategory from '../components/home/ToolCategory.jsx';
-
-// A new simple component for the "Why Choose Us" section
-const Features = () => (
-  <section className="bg-dark-secondary py-20">
-    <div className="container mx-auto px-4">
-      <div className="text-center mb-16">
-        <h3 className="text-3xl md:text-4xl font-bold text-dark-text-primary mb-4">
-          Why Choose DocEnclave
-        </h3>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-        <div className="text-center">
-          <div className="text-5xl mb-6">🔒</div>
-          <h4 className="text-xl font-semibold text-dark-text-primary mb-3">100% Private</h4>
-          <p className="text-dark-text-secondary">
-            Files never leave your device. Complete client-side processing ensures maximum privacy.
-          </p>
-        </div>
-        
-        <div className="text-center">
-          <div className="text-5xl mb-6">⚡</div>
-          <h4 className="text-xl font-semibold text-dark-text-primary mb-3">Lightning Fast</h4>
-          <p className="text-dark-text-secondary">
-            No upload delays. Process documents instantly without waiting for server responses.
-          </p>
-        </div>
-        
-        <div className="text-center">
-          <div className="text-5xl mb-6">🌐</div>
-          <h4 className="text-xl font-semibold text-dark-text-primary mb-3">Works Offline</h4>
-          <p className="text-dark-text-secondary">
-            Once loaded, tools work without internet. Perfect for sensitive environments.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-);
-
+import ComparisonTable from '../components/home/ComparisonTable.jsx';
 
 const Home = () => {
   const [expandedCategory, setExpandedCategory] = useState(null);
 
   useEffect(() => {
+    // Automatically open the first tool category on page load for better discovery
+    setExpandedCategory('pdf');
+
     if (!hasTrackedThisSession()) {
       trackVisitor();
       markVisitorTracked();
@@ -65,16 +29,16 @@ const Home = () => {
     <>
       <Hero onCategoryToggle={handleCategoryToggle} />
 
-      <PrivacyCounter />
+      <PrivacyImpact />
 
       {/* Tools Section */}
-      <section className="container mx-auto px-4 py-20">
+      <section className="container mx-auto px-4 py-24">
         <div className="text-center mb-16">
           <h3 className="text-3xl md:text-4xl font-bold text-dark-text-primary mb-4">
-            Our Suite of Tools
+            A Complete Suite of Privacy-First Tools
           </h3>
-          <p className="text-dark-text-secondary max-w-2xl mx-auto">
-            Click on any file type below to see available processing tools. All tools work entirely in your browser.
+          <p className="text-dark-text-secondary max-w-2xl mx-auto text-lg">
+            Select a category to explore tools. All processing is secure and happens on your device.
           </p>
         </div>
         
@@ -82,10 +46,7 @@ const Home = () => {
           {toolCategories.map((category) => (
             <ToolCategory
               key={category.id}
-              title={category.title}
-              icon={category.icon}
-              description={category.description}
-              tools={category.tools}
+              {...category} // Pass all category props directly
               isExpanded={expandedCategory === category.id}
               onToggle={() => handleCategoryToggle(category.id)}
             />
@@ -93,7 +54,7 @@ const Home = () => {
         </div>
       </section>
 
-      <Features />
+      <ComparisonTable />
     </>
   );
 };
