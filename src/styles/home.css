@@ -1,0 +1,10 @@
+/* src/styles/home.css */
+
+.neon-text {
+  color: #00ffff;
+  text-shadow: 0 0 4px #00ffff, 0 0 10px #00ffff;
+}
+
+html {
+  scroll-behavior: smooth;
+}
