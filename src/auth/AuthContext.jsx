@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
     loading,
   };
 
-  // THE FIX: Always render children. The Provider's only job is to provide the value.
+  // This is correct: The provider must always render its children.
   return (
     <AuthContext.Provider value={value}>
       {children}
