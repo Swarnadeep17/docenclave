@@ -7,10 +7,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
-esbuild: {
-  loader: 'js',
-  include: /src\/.*\.js$/
-}
+  esbuild: {
+    loader: 'js',
+    include: /src\/.*\.js$/
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
