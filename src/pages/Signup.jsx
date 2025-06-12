@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { signup } from '../utils/firebase.js'; // Assuming firebase.js is in utils
+import { signup } from '../utils/firebase.js'; // Make sure this path is correct
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -16,6 +16,10 @@ const Signup = () => {
 
     if (password !== confirmPassword) {
       return setError('Passwords do not match');
+    }
+
+    if (password.length < 6) {
+        return setError('Password should be at least 6 characters long.');
     }
 
     setLoading(true);
@@ -61,7 +65,7 @@ const Signup = () => {
 
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-dark-text-secondary mb-2">
-              Password
+              Password (min. 6 characters)
             </label>
             <input
               id="password"
@@ -113,4 +117,5 @@ const Signup = () => {
   );
 };
 
+// This is the line that fixes the error.
 export default Signup;
