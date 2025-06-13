@@ -345,7 +345,24 @@ const PDFMergeTool = () => {
     <div className="min-h-screen bg-black">
       <div className="container-padding mx-auto py-8">
         {/* ... (Header, Dropzone, etc. - remains the same) ... */}
-        
+
+        {/* Dropzone */}
+        {!previewMode && !loadingPreviews && (
+           <div
+            className={`border-2 border-dashed ${
+              dragOver ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 bg-gray-900'
+            } rounded-lg p-8 text-center cursor-pointer transition-colors duration-200`}
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={() => fileInputRef.current.click()}
+          >
+            <span className="material-icons text-gray-400 text-5xl mb-2">cloud_upload</span>
+            <p className="text-white text-lg font-medium">Drag & Drop PDF files here</p>
+            <p className="text-gray-400 text-sm">or click to select files</p>
+          </div>
+        )}
+
         {/* Loading Previews Indicator */}
         {loadingPreviews && (
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 my-6">
