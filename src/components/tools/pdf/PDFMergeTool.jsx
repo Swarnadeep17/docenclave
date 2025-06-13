@@ -171,7 +171,7 @@ const PDFMergeTool = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link
-            to="/tools/pdf" {/* Assuming /tools/pdf is the parent route */}
+            to="/tools/pdf" /* Assuming /tools/pdf is the parent route */
             className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors duration-300"
           >
             <span className="material-icons">arrow_back</span>
