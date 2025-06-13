@@ -769,7 +769,7 @@ export default PDFMergeTool;
       </div> {/* End of container-padding mx-auto py-8 */}
     </div> /* End of min-h-screen bg-black */
   );
-};
+  
 
 export default PDFMergeTool;
 
