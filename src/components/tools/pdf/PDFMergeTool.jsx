@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { PDFDocument } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -10,15 +10,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 const PDFMergeTool = () => {
   const [files, setFiles] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [advancedMode, setAdvancedMode] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [previews, setPreviews] = useState({});
+  const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false);
   const [error, setError] = useState('');
-  const [outputFilename, setOutputFilename] = useState('merged-document.pdf');
-  const [loadingPreviews, setLoadingPreviews] = useState(false);
 
-  // Advanced options state (remains for future use)
-  const [mergeOptions, setMergeOptions] = useState(() => ({
+  // Advanced options state
+  const [mergeOptions, setMergeOptions] = useState({
+    // Smart Merge (Free)
+    pageRanges: {},
     alternatePages: false,
+    customInsertions: [],
+
+    // Compression (Free)
     compressionLevel: 4,
+
+    // Premium Features
     preserveBookmarks: false,
     generateTOC: false,
     addSectionDividers: false,
@@ -28,199 +37,151 @@ const PDFMergeTool = () => {
     addWatermark: false,
     watermarkText: '',
     stripMetadata: false,
-    customFileName: 'merged-document.pdf',
-    // Keep track of which options are premium
-    isPremium: {
-      preserveBookmarks: true, generateTOC: true, addSectionDividers: true, customPageNumbering: true, passwordProtect: true, addWatermark: true, stripMetadata: true
-    }
-  }));
+    ocrProcessing: false, // Excluded based on client-side constraint
+    preserveSignatures: false, // Excluded based on client-side constraint
+    customFileName: '',
+    outputFormat: 'pdf', // Only PDF export in this version
+    errorRecovery: false, // Premium Feature
+  });
 
   const fileInputRef = useRef(null);
-  const [userPlan] = useState('free'); // Placeholder for user plan
-  const [userLocation] = useState('US'); // Placeholder for user location
 
+  // User plan (simulate for demo - will be from auth context in real app)
+  const [userPlan, setUserPlan] = useState('free'); // 'free' or 'premium'
+  const [userLocation, setUserLocation] = useState('US'); // Placeholder
+
+  // Limits based on plan
   const limits = {
-    free: { maxFiles: 20, maxFileSize: 50 * 1024 * 1024, maxTotalSize: 100 * 1024 * 1024 },
-    premium: { maxFiles: 200, maxFileSize: 500 * 1024 * 1024, maxTotalSize: 2000 * 1024 * 1024 }
+    free: { maxFiles: 20, maxFileSize: 50 * 1024 * 1024, totalSize: 50 * 1024 * 1024 }, // Assuming total size limit for free tier
+    premium: { maxFiles: 200, maxFileSize: 500 * 1024 * 1024, totalSize: 500 * 1024 * 1024 } // Assuming total size limit for premium tier
   };
   const currentLimits = limits[userPlan];
 
-  /**
-   * Renders a single PDF page to a canvas and returns it as a Data URL (image).
-   * This is the core function for creating a visual preview.
-   */
-  const renderPagePreview = async (pdfDoc, pageIndex, scale = 0.5) => {
-    try {
-      console.log(`renderPagePreview: Starting to render page ${pageIndex + 1}`);
-      const page = await pdfDoc.getPage(pageIndex + 1);
-      const viewport = page.getViewport({ scale });
-      
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
 
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
+  // Premium features list (matching state keys)
+  const premiumFeatures = [
+      'preserveBookmarks', 'generateTOC', 'addSectionDividers', 'customPageNumbering',
+      'passwordProtect', 'addWatermark', 'stripMetadata', 'customFileName', 'errorRecovery'
+  ];
 
-      console.log(`renderPagePreview: Before page.render for page ${pageIndex + 1}`);
-      await page.render(renderContext).promise;
-      console.log(`renderPagePreview: After page.render for page ${pageIndex + 1}. Generating data URL.`);
-      return canvas.toDataURL('image/jpeg', 0.8);
-    } catch (error) {
-      console.error('Error rendering page preview:', error);
-      return null; // Return null if a preview can't be generated
-    }
-  };
 
-  /**
-   * Generates image previews for all pages in a given PDF file.
-   * It uses pdfjs-dist to load the document and then calls renderPagePreview for each page.
-   */
-  const generatePreviews = async (file, arrayBuffer) => {
-    try {
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdfDoc = await loadingTask.promise;
-      const numPages = pdfDoc.numPages;
-      
-      const pages = [];
-      for (let i = 0; i < numPages; i++) {
-        const previewImage = await renderPagePreview(pdfDoc, i);
-        pages.push({
-          pageIndex: i,
-          selected: true,
-          isDuplicate: false, // Will be calculated later
-          globalIndex: 0, // Will be calculated later
-          preview: previewImage
-        });
+  // Placeholder functions
+  const generatePreviews = async (fileData) => {
+      setIsGeneratingPreviews(true);
+      try {
+          const arrayBuffer = await fileData.file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const numPages = pdf.numPages;
+
+          const pagePreviews = [];
+          for (let i = 0; i < numPages; i++) {
+              const page = await pdf.getPage(i + 1);
+              const viewport = page.getViewport({ scale: 0.5 }); // Smaller scale for thumbnail
+              const canvas = document.createElement('canvas');
+              const context = canvas.getContext('2d');
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+
+              const renderContext = {
+                  canvasContext: context,
+                  viewport: viewport
+              };
+
+              await page.render(renderContext).promise;
+              const thumbnail = canvas.toDataURL('image/jpeg', 0.7); // Adjust quality if needed
+
+              pagePreviews.push({
+                  pageNum: i + 1,
+                  thumbnail,
+                  selected: true // All pages selected by default
+              });
+          }
+
+          setPreviews(prev => ({
+              ...prev,
+              [fileData.id]: {
+                  pageCount: numPages,
+                  pages: pagePreviews
+              }
+          }));
+
+      } catch (error) {
+          console.error('Error generating preview:', error);
+          toast.error('Failed to generate preview for ' + fileData.name);
+          // Create placeholder with no thumbnail on error
+           setPreviews(prev => ({
+              ...prev,
+              [fileData.id]: {
+                  pageCount: 0, // Indicate preview failed
+                  pages: []
+              }
+          }));
+
+      } finally {
+          setIsGeneratingPreviews(false);
       }
-      
-      return pages;
-    } catch (error) {
-      console.error('Error generating previews:', error);
-      // Fallback: If preview generation fails, create page objects without a preview image.
-      const pdfLibDoc = await PDFDocument.load(arrayBuffer);
-      const pageCount = pdfLibDoc.getPageCount();
-      return Array.from({ length: pageCount }, (_, index) => ({
-        pageIndex: index,
-        selected: true,
-        isDuplicate: false,
-        globalIndex: 0,
-        preview: null
-      }));
-    }
   };
 
-  // Detects if a page has been uploaded more than once across all files.
-  const detectDuplicates = (allFiles) => {
-    const pageHashes = new Map();
-    let globalPageIndex = 0;
-    
-    return allFiles.map(file => ({
-      ...file,
-      pages: file.pages.map((page, pageIndex) => {
-        const pageHash = `${file.name}-${pageIndex}`;
-        const isDuplicate = pageHashes.has(pageHash);
-        if (!isDuplicate) pageHashes.set(pageHash, true);
-        
-        return {
-          ...page,
-          isDuplicate,
-          globalIndex: globalPageIndex++
-        };
-      })
-    }));
-  };
 
-  // Validates a single file based on type and size.
-  const validateFile = (file) => {
-    if (file.type !== 'application/pdf') {
-      return { valid: false, error: 'Only PDF files are accepted' };
-    }
-    
-    if (file.size > currentLimits.maxFileSize) {
-      const maxSize = currentLimits.maxFileSize / (1024 * 1024);
-      return { valid: false, error: `File too large (max ${maxSize}MB for ${userPlan} users)` };
-    }
-    
-    return { valid: true };
-  };
-
-  /**
-   * Handles file selection from input or drag-and-drop.
-   * This function now orchestrates the preview generation process.
-   */
-  const handleFileSelect = async (selectedFiles) => {
+   const handleFileSelect = async (selectedFiles) => {
     setError('');
-    setLoadingPreviews(true); // Start loading indicator
-    
-    const acceptedFiles = Array.from(selectedFiles);
-    
+    const acceptedFiles = Array.from(selectedFiles).filter(file => {
+      if (file.type !== 'application/pdf') {
+        toast.error(`${file.name} is not a PDF file`);
+        return false;
+      }
+
+      if (file.size > currentLimits.maxFileSize) {
+        const maxSize = currentLimits.maxFileSize / (1024 * 1024);
+        toast.error(`${file.name} is too large (max ${maxSize}MB per file for ${userPlan} users)`);
+        return false;
+      }
+
+      return true;
+    });
+
     if (files.length + acceptedFiles.length > currentLimits.maxFiles) {
-      setError(`Maximum ${currentLimits.maxFiles} files allowed for ${userPlan} users.`);
-      setLoadingPreviews(false);
+      toast.error(`Maximum ${currentLimits.maxFiles} files allowed for ${userPlan} users`);
       return;
     }
 
-    const newFiles = [];
-    let totalSize = files.reduce((sum, file) => sum + file.size, 0);
+     let totalSize = files.reduce((sum, fileData) => sum + fileData.size, 0);
+     for(const file of acceptedFiles) {
+         totalSize += file.size;
+     }
 
-    for (const file of acceptedFiles) {
-      const validation = validateFile(file);
-      if (!validation.valid) {
-        setError(validation.error);
-        setLoadingPreviews(false);
-        return;
-      }
-      if (totalSize + file.size > currentLimits.maxTotalSize) {
-        setError(`Total file size exceeds ${currentLimits.maxTotalSize / (1024 * 1024)}MB limit.`);
-        setLoadingPreviews(false);
-        return;
-      }
+     if (totalSize > currentLimits.totalSize) {
+         const totalSizeMB = currentLimits.totalSize / (1024 * 1024);
+         toast.error(`Total file size exceeds ${totalSizeMB.toFixed(2)}MB limit for ${userPlan} users.`);
+         return;
+     }
 
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        // Generate the visual previews for the uploaded file
-        const pages = await generatePreviews(file, arrayBuffer.slice(0));
 
-        newFiles.push({
-          id: Math.random().toString(36).substring(7),
-          file,
-          name: file.name,
-          size: file.size,
-          pages
-        });
-        totalSize += file.size;
-      } catch (err) {
-        console.error("Error loading PDF:", err);
-        setError(`Failed to load PDF: ${file.name}. It might be corrupted or protected.`);
-        setLoadingPreviews(false);
-        return;
-      }
+    const fileDataArray = acceptedFiles.map((file, index) => ({
+      id: Date.now() + index + Math.random(), // More unique ID
+      file,
+      name: file.name,
+      size: file.size,
+    }));
+
+    setFiles(prev => [...prev, ...fileDataArray]);
+
+    // Trigger preview generation for newly added files
+    fileDataArray.forEach(fileData => generatePreviews(fileData));
+
+    if (fileDataArray.length > 0) {
+         toast.success(`Added ${fileDataArray.length} file(s).`);
     }
 
-    const updatedFiles = [...files, ...newFiles];
-    const filesWithDuplicates = detectDuplicates(updatedFiles);
-    setFiles(filesWithDuplicates);
-    setLoadingPreviews(false); // Stop loading indicator
-    
-    if (newFiles.length > 0) {
-      setPreviewMode(true);
-      toast.success(`Added ${newFiles.length} file(s).`);
-    }
+     // Automatically move to next step if threshold is met or user clicks button
   };
-  
-  // --- Other functions (handleDrop, removeFile, mergePDFs, etc.) remain unchanged ---
-  // --- as they were already correct. For brevity, I will omit them here but they are ---
-  // --- assumed to be present as in the original file provided. Let's include the key ones. ---
+
 
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
-    console.log('[handleDrop] Files dropped');
-    handleFileSelect(e.dataTransfer.files);
+    const droppedFiles = e.dataTransfer.files;
+    handleFileSelect(droppedFiles);
   };
 
   const handleDragOver = (e) => {
@@ -230,244 +191,590 @@ const PDFMergeTool = () => {
 
   const handleDragLeave = (e) => {
     e.preventDefault();
-    console.log('[handleDragLeave] Drag leave');
     setDragOver(false);
   };
-  
+
   const removeFile = (id) => {
-    const updatedFiles = files.filter(file => file.id !== id);
-    setFiles(detectDuplicates(updatedFiles));
+    setFiles(prev => prev.filter(file => file.id !== id));
+    setPreviews(prev => {
+      const newPreviews = { ...prev };
+      delete newPreviews[id];
+      return newPreviews;
+    });
     toast.success('File removed');
   };
 
-  const updatePagesForFile = (fileId, newPages) => {
-    const updatedFiles = files.map(file => 
-      file.id === fileId ? { ...file, pages: newPages } : file
-    );
-    setFiles(detectDuplicates(updatedFiles));
-  };
-  
-  const handlePageToggle = (fileId, pageIndex) => {
-    const fileToUpdate = files.find(f => f.id === fileId);
-    if (!fileToUpdate) return;
-    const updatedPages = fileToUpdate.pages.map((page, idx) => 
-      idx === pageIndex ? { ...page, selected: !page.selected } : page
-    );
-    updatePagesForFile(fileId, updatedPages);
+   const togglePageSelection = (fileId, pageNum) => {
+    setPreviews(prev => {
+      const filePreview = prev[fileId];
+      if (!filePreview) return prev;
+
+      return {
+        ...prev,
+        [fileId]: {
+          ...filePreview,
+          pages: filePreview.pages.map(page =>
+            page.pageNum === pageNum ? { ...page, selected: !page.selected } : page
+          )
+        }
+      };
+    });
   };
 
-  const getTotalSelectedPages = () => {
-    return files.reduce((total, file) => 
-      total + file.pages.filter(page => page.selected).length, 0
-    );
+   const selectAllPages = (fileId, select = true) => {
+      setPreviews(prev => {
+        const filePreview = prev[fileId];
+        if (!filePreview) return prev;
+         return {
+             ...prev,
+             [fileId]: {
+                ...filePreview,
+                pages: filePreview.pages.map(page => ({...page, selected: select}))
+             }
+         };
+      });
+   };
+
+
+   const moveFile = (fromIndex, toIndex) => {
+       const newFiles = [...files];
+       const [movedFile] = newFiles.splice(fromIndex, 1);
+       newFiles.splice(toIndex, 0, movedFile);
+       setFiles(newFiles); // State update will trigger re-render
+   };
+
+
+   const getTotalSelectedPages = () => {
+       return files.reduce((total, fileData) => {
+           const filePreview = previews[fileData.id];
+           if (!filePreview) return total;
+           return total + filePreview.pages.filter(page => page.selected).length;
+       }, 0);
+   };
+
+
+  const mergePDFs = async () => {
+       setError('');
+       if (getTotalSelectedPages() === 0) {
+           setError('Please select at least one page to merge.');
+           toast.error('No pages selected for merging.');
+           return;
+       }
+       if (files.length < 1) { // Allow merging a single multi-page PDF
+            setError('Please upload at least one PDF file.');
+            toast.error('No files uploaded.');
+            return;
+       }
+
+
+       setIsProcessing(true);
+
+       try {
+            const mergedPdf = await PDFDocument.create();
+
+            for (const fileData of files) {
+                const arrayBuffer = await fileData.file.arrayBuffer();
+                const pdf = await PDFDocument.load(arrayBuffer, {
+                    // Consider options like ignoreEncryption, throwOnInvalidObject
+                    ignoreEncryption: mergeOptions.errorRecovery && userPlan === 'premium', // Error recovery
+                });
+
+                const filePreview = previews[fileData.id];
+                const selectedPagesIndices = filePreview
+                    ? filePreview.pages.filter(p => p.selected).map(p => p.pageNum - 1)
+                    : Array.from({ length: pdf.getPageCount() }, (_, i) => i); // Select all if no preview
+
+                if (selectedPagesIndices.length > 0) {
+                    const copiedPages = await mergedPdf.copyPages(pdf, selectedPagesIndices);
+                    copiedPages.forEach((page) => mergedPdf.addPage(page));
+                }
+            }
+
+            // --- Apply Merge Options ---
+
+            // Apply Compression Level (Level 4)
+            // PDF-lib doesn't have explicit compression levels like 1-5, but save options control quality.
+            // Use `useObjectStreams` for potentially better compression.
+            // Aggressive compression might involve image re-encoding or downsampling, which pdf-lib doesn't do natively.
+            // For Level 4, we'll use useObjectStreams and mention that truly aggressive compression might need other libraries/techniques.
+             const pdfBytes = await mergedPdf.save({
+                 useObjectStreams: mergeOptions.compressionLevel >= 3, // Use streams for higher levels
+                 addDefaultPage: false, // Prevent adding a blank page if no pages were added
+                 // compression: // pdf-lib's compression option is experimental and for object streams.
+             });
+
+
+            // Apply Password Protection (Premium)
+            if (mergeOptions.passwordProtect && mergeOptions.password && userPlan === 'premium') {
+                 // Note: pdf-lib v1.x doesn't support adding passwords directly during save.
+                 // This would typically require a server-side library or a different client-side library like pdfmake (which has different capabilities).
+                 // For now, this feature is marked as Premium but requires further research/implementation outside of pdf-lib's current capabilities.
+                 // I will leave the option in the UI but add a note about implementation requirement.
+                 console.warn("Password Protection requires a library that supports adding passwords (pdf-lib v1.x does not).");
+                 toast.error("Password Protection is not yet fully implemented with the current library.");
+            }
+
+
+            // Apply Watermark Addition (Premium)
+             if (mergeOptions.addWatermark && mergeOptions.watermarkText && userPlan === 'premium') {
+                 // Watermark implementation requires drawing text or images on each page.
+                 // This involves iterating through mergedPdf pages and using pdf-lib drawing functions.
+                 // This is a more complex implementation task. Placeholder for now.
+                  console.warn("Watermark Addition implementation is pending.");
+                  toast.error("Watermark Addition is not yet implemented.");
+             }
+
+             // Metadata Stripping (Premium)
+              if (mergeOptions.stripMetadata && userPlan === 'premium') {
+                  // Stripping metadata involves modifying the PDF document's info dictionary.
+                  // pdf-lib allows reading and writing the info dictionary.
+                   const info = mergedPdf.getInfoDict();
+                   if (info) {
+                       // Common keys to remove - adjust as needed
+                       const keysToRemove = ['Author', 'Creator', 'Producer', 'CreationDate', 'ModDate'];
+                       keysToRemove.forEach(key => {
+                            if (info.has(key)) {
+                                // pdf-lib uses PDFName objects for keys
+                                const name = PDFDocument.getPDFName(key);
+                                info.delete(name);
+                                // console.log(`Removed metadata key: ${key}`); // For debugging
+                            }
+                       });
+                       // Note: More advanced metadata stripping might involve inspecting and removing
+                       // XMP metadata streams, which is more complex.
+                   }
+              }
+
+            // Apply Custom File Naming (Premium)
+            const fileName = (mergeOptions.customFileName && userPlan === 'premium') ? mergeOptions.customFileName : 'merged-document.pdf';
+
+
+            // Create download
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            toast.success('PDF merged successfully!');
+
+            // Clear files and reset wizard on successful merge
+            setFiles([]);
+            setPreviews({});
+            setWizardStep(1);
+
+        } catch (error) {
+            console.error('PDF merge error:', error);
+            setError('Failed to merge PDFs. Please check files and options.');
+            toast.error('PDF merge failed.');
+        } finally {
+            setIsProcessing(false);
+        }
   };
 
-  const moveFile = (id, direction) => {
-    const index = files.findIndex(file => file.id === id);
-    if ((direction === 'up' && index > 0) || (direction === 'down' && index < files.length - 1)) {
-      const newFiles = [...files];
-      const targetIndex = direction === 'up' ? index - 1 : index + 1;
-      [newFiles[index], newFiles[targetIndex]] = [newFiles[targetIndex], newFiles[index]];
-      setFiles(detectDuplicates(newFiles));
-    }
-  };
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
-    const k = 1024;
+ const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const mergePDFs = async () => {
-    // This function's logic is correct and remains unchanged.
-    if (getTotalSelectedPages() < 1) {
-      setError('Please select at least 1 page to merge');
-      return;
+  const nextStep = () => {
+    // Basic validation before moving to next steps
+    if (wizardStep === 1 && files.length === 0) {
+        setError('Please upload at least one PDF file.');
+        toast.error('Please upload files.');
+        return;
     }
-    setIsProcessing(true);
-    setError('');
-    try {
-      const mergedPdf = await PDFDocument.create();
-      let processedFiles = 0;
-      for (const file of files) {
-        const selectedPagesInFile = file.pages.filter(page => page.selected);
-        if (selectedPagesInFile.length > 0) {
-          const fileArrayBuffer = await file.file.arrayBuffer();
-          const pdf = await PDFDocument.load(fileArrayBuffer);
-          const pageIndices = selectedPagesInFile.map(page => page.pageIndex);
-          const copiedPages = await mergedPdf.copyPages(pdf, pageIndices);
-          copiedPages.forEach((page) => mergedPdf.addPage(page));
-        }
-        processedFiles++;
-      }
+     if (wizardStep === 1 && isGeneratingPreviews) {
+         setError('Please wait for previews to finish generating.');
+         toast.error('Previews are still generating.');
+         return;
+     }
+     if (wizardStep === 3 && getTotalSelectedPages() === 0) {
+         setError('Please select at least one page to merge.');
+         toast.error('No pages selected.');
+         return;
+     }
 
-      const pdfBytes = await mergedPdf.save({ enableXRefTableStructure: false, useCompression: mergeOptions.compressionLevel > 0 });
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = mergeOptions.customFileName || 'merged-document.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      setProgress(100);
-      toast.success('PDF merged successfully!');
-      setTimeout(() => {
-        setFiles([]);
-        setPreviewMode(false);
-        setIsProcessing(false)
-    } catch (err) {
-      console.error('PDF merge error:', err);
-      setError('Failed to merge PDFs. Please ensure all files are valid PDF documents.');
-      setIsProcessing(false);
-      setProgress(0);
-    }
+
+    if (wizardStep < 4) setWizardStep(wizardStep + 1);
   };
 
-  const renderMergePageActions = (file) => {
-    // This function's logic is correct and remains unchanged.
-    const allSelected = file.pages.every(p => p.selected);
-    return (
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => { const updatedPages = file.pages.map(page => ({ ...page, selected: !allSelected })); updatePagesForFile(file.id, updatedPages);}} className="text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors">{allSelected ? 'Deselect All' : 'Select All'}</button>
-        <button onClick={() => { const updatedPages = file.pages.map((page, idx) => ({ ...page, selected: idx % 2 === 0 })); updatePagesForFile(file.id, updatedPages);}} className="text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors">Odd Pages</button>
-        <button onClick={() => { const updatedPages = file.pages.map((page, idx) => ({ ...page, selected: idx % 2 === 1 })); updatePagesForFile(file.id, updatedPages);}} className="text-xs bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-600 transition-colors">Even Pages</button>
-      </div>
-    );
+  const prevStep = () => {
+    if (wizardStep > 1) setWizardStep(wizardStep - 1);
   };
 
-  // Reset the tool to initial state
-  const resetTool = () => {
-    setFiles([]);
-    setPreviewMode(false);
-    setDragOver(false); // Reset dragOver state
-    setProgress(0);
-    setError('');
-  };
+  // Helper to check if a feature is premium and if user is free
+  const isPremiumLocked = (featureKey) => premiumFeatures.includes(featureKey) && userPlan === 'free';
+
 
   return (
-    // The main return with JSX. The key change is pointed out below.
-    <div className="min-h-screen bg-black">
-      <div className="container-padding mx-auto py-8">
-        {/* ... (Header, Dropzone, etc. - remains the same) ... */}
-
-        {/* Dropzone */}
-        {!previewMode && !loadingPreviews && (
-           <div
-            className={`border-2 border-dashed ${
-              dragOver ? 'border-blue-500 bg-blue-500/10' : 'border-gray-600 bg-gray-900'
-            } rounded-lg p-8 text-center cursor-pointer transition-colors duration-200`}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current.click()}
+    <div className="min-h-screen bg-black text-white">
+      <div className="container-padding mx-auto py-8 md:py-12">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Link
+            to="/tools/pdf"
+            className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors duration-300"
           >
-            <span className="material-icons text-gray-400 text-5xl mb-2">cloud_upload</span>
-            <p className="text-white text-lg font-medium">Drag & Drop PDF files here</p>
-            <p className="text-gray-400 text-sm">or click to select files</p>
-          </div>
-        )}
+            <span className="material-icons">arrow_back</span>
+            <span>Back to PDF Tools</span>
+          </Link>
 
-        {/* Loading Previews Indicator */}
-        {loadingPreviews && (
-          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 my-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-blue-400 text-sm">Generating page previews, please wait...</p>
+          {/* Plan Badge */}
+          <div className="flex items-center space-x-4">
+            <div className={`px-4 py-2 rounded-full text-sm font-semibold ${
+              userPlan === 'premium'
+                ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                : 'bg-gray-800 text-gray-300 border border-gray-700'
+            }`}>
+              {userPlan === 'premium' ? '✨ Premium' : '🆓 Free Plan'}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Step 1: Upload Files / Step 3: Preview & Review */}
-        {!isProcessing && (
-          <div className="space-y-6 mb-6">
-            {/* ... (File list header remains the same) ... */}
-            {files.map((file, index) => (
-              <div key={file.id} className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-                {/* File Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <span className="material-icons text-red-400 text-2xl">picture_as_pdf</span>
-                    <div>
-                      <p className="text-white font-medium">{file.name}</p>
-                      <p className="text-gray-400 text-sm">{formatFileSize(file.size)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {renderMergePageActions(file)}
-                    <div className="flex items-center space-x-2 ml-4">
-                      <button onClick={() => moveFile(file.id, 'up')} disabled={index === 0} className="p-2 text-gray-400 hover:text-white disabled:opacity-50"><span className="material-icons">keyboard_arrow_up</span></button>
-                      <button onClick={() => moveFile(file.id, 'down')} disabled={index === files.length - 1} className="p-2 text-gray-400 hover:text-white disabled:opacity-50"><span className="material-icons">keyboard_arrow_down</span></button>
-                      <button onClick={() => removeFile(file.id)} className="p-2 text-red-400 hover:text-red-300"><span className="material-icons">delete</span></button>
-                    </div>
-                  </div>
-                </div>
+        {/* Tool Header */}
+        <div className="text-center space-y-6 mb-12">
+          <div className="flex items-center justify-center space-x-4">
+            <div className="w-16 h-16 bg-red-500/20 rounded-xl flex items-center justify-center">
+              <span className="material-icons text-3xl text-red-400">merge</span>
+            </div>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black">Advanced PDF Merge</h1>
+              <p className="text-gray-400 text-lg">Professional PDF merging with advanced options</p>
+            </div>
+          </div>
 
-                {/* Page Preview Grid - THIS IS THE VISUAL FIX */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mt-4">
-                  {file.pages.map((page, pageIdx) => (
-                    <div
-                      key={pageIdx}
-                      className={`relative cursor-pointer rounded-lg border-2 transition-all duration-300 ${
-                        page.selected 
-                          ? 'border-blue-400 shadow-lg shadow-blue-400/25' 
-                          : 'border-gray-600 hover:border-gray-500'
-                      }`}
-                      onClick={() => handlePageToggle(file.id, pageIdx)}
-                    >
-                      {/* This part now renders the generated image or a fallback */}
-                      {page.preview ? (
-                        <img
-                          src={page.preview}
-                          alt={`Page ${page.pageIndex + 1} of ${file.name}`}
-                          className="w-full h-24 md:h-32 object-contain bg-gray-800 rounded"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-24 md:h-32 bg-gray-700 rounded flex flex-col items-center justify-center text-center p-2">
-                           <span className="material-icons text-gray-400">error_outline</span>
-                          <span className="text-gray-400 text-xs mt-1">Preview failed</span>
-                        </div>
-                      )}
-                      <div className={`absolute inset-0 flex items-center justify-center ${
-                        page.selected ? 'bg-blue-500/20' : 'bg-black/20'
-                      }`}>
-                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${
-                          page.selected 
-                            ? 'bg-blue-500 border-blue-500' 
-                            : 'border-white bg-black/50'
-                        }`}>
-                          {page.selected && (
-                            <span className="material-icons text-white text-sm">check</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="absolute bottom-1 left-1 bg-black/80 text-white text-xs px-2 py-1 rounded">
-                        {page.pageIndex + 1}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Mode Toggle */}
+          <div className="flex items-center justify-center space-x-4">
+            <button
+              onClick={() => setAdvancedMode(!advancedMode)}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-semibold transition-all duration-300 ${
+                advancedMode
+                  ? 'bg-white text-black'
+                  : 'bg-gray-800 text-white border border-gray-600 hover:bg-gray-700'
+              }`}
+            >
+              <span className="material-icons text-sm">
+                {advancedMode ? 'toggle_on' : 'toggle_off'}
+              </span>
+              <span>Advanced Options</span>
+               {/* Optional: Indicate number of advanced options enabled */}
+               {/* {advancedMode && getAdvancedFeaturesCount() > 0 && (
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  {getAdvancedFeaturesCount()}
+                </span>
+              )} */}
+            </button>
+          </div>
+
+          {/* Wizard Steps */}
+          <div className="flex items-center justify-center space-x-4 mt-8">
+            {[
+              { step: 1, title: 'Upload', icon: 'cloud_upload' },
+              { step: 2, title: 'Options', icon: 'settings' },
+              { step: 3, title: 'Preview', icon: 'preview' },
+              { step: 4, title: 'Download', icon: 'download' }
+            ].map(({ step, title, icon }) => (
+              <div
+                key={step}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                  wizardStep >= step
+                    ? 'bg-white/10 text-white'
+                    : 'bg-gray-800 text-gray-500'
+                }`}
+              >
+                <span className="material-icons text-sm">{icon}</span>
+                <span className="text-sm font-medium">{title}</span>
+                {wizardStep === step && (
+                  <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+                )}
               </div>
             ))}
           </div>
-        )}
-        
-        {/* ... (Rest of the component remains the same) ... */}
-         <input
-          type="file"
-          accept="application/pdf"
-          multiple
-          ref={fileInputRef}
-          onChange={(e) => handleFileSelect(e.target.files)}
-          className="hidden"
-        />
-      </div>
-    </div>
-  );
-};
+        </div>
 
-export default PDFMergeTool;
+        {/* Main Content */}
+        <div className="max-w-6xl mx-auto space-y-8">
+
+            {/* Error Display */}
+            {error && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 my-4 text-red-400 text-sm">
+                    {error}
+                </div>
+            )}
+
+
+          {/* Step 1: File Upload */}
+          {wizardStep === 1 && (
+            <div className="space-y-8">
+              {/* File Upload Area */}
+              <div
+                className={`border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-300 ${
+                  dragOver
+                    ? 'border-white bg-white/5'
+                    : 'border-gray-700 hover:border-gray-600'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <div className="space-y-6">
+                  <div className="w-20 h-20 mx-auto bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="material-icons text-4xl text-gray-400">cloud_upload</span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-2xl font-semibold mb-2">Drop PDF files here</h3>
+                    <p className="text-gray-400 mb-4">or click to browse your files</p>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="btn-primary"
+                    >
+                      Select PDF Files
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-4 text-xs text-gray-500">
+                    <span>• Max {currentLimits.maxFiles} files ({userPlan})</span>
+                    <span>• Max {(currentLimits.maxFileSize / (1024*1024)).toFixed(0)}MB per file</span>
+                     <span>• Total size: {(currentLimits.totalSize / (1024*1024)).toFixed(0)}MB ({userPlan})</span>
+                    <span>• PDF files only</span>
+                  </div>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept=".pdf,application/pdf"
+                  onChange={(e) => handleFileSelect(e.target.files)}
+                  className="hidden"
+                />
+              </div>
+
+              {/* File List with Previews */}
+              {files.length > 0 && (
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold">Selected Files ({files.length})</h3>
+                    <button
+                      onClick={nextStep}
+                      disabled={files.length === 0 || isGeneratingPreviews}
+                      className="btn-primary"
+                    >
+                      Continue to Options
+                    </button>
+                  </div>
+
+                  {isGeneratingPreviews && (
+                       <div className="text-center py-4">
+                           <div className="w-8 h-8 border-2 border-gray-600 border-t-white rounded-full animate-spin mx-auto mb-2"></div>
+                           <p className="text-sm text-gray-400">Generating previews...</p>
+                       </div>
+                  )}
+
+
+                  <div className="space-y-6">
+                    {files.map((fileData, index) => (
+                      <div key={fileData.id} className="border border-gray-700 rounded-xl p-4">
+                        {/* File Header */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <span className="material-icons text-red-400">picture_as_pdf</span>
+                            <div>
+                              <p className="font-medium">{fileData.name}</p>
+                              <p className="text-sm text-gray-400">{formatFileSize(fileData.size)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                              {/* Reorder buttons */}
+                                <button onClick={() => moveFile(index, index - 1)} disabled={index === 0} className="p-1 hover:bg-gray-700 rounded-md disabled:opacity-30"><span className="material-icons text-gray-400 text-sm">arrow_upward</span></button>
+                                <button onClick={() => moveFile(index, index + 1)} disabled={index === files.length - 1} className="p-1 hover:bg-gray-700 rounded-md disabled:opacity-30"><span className="material-icons text-gray-400 text-sm">arrow_downward</span></button>
+
+                            {previews[fileData.id]?.pages.length > 0 && (
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => selectAllPages(fileData.id, true)}
+                                  className="text-sm text-blue-400 hover:text-blue-300"
+                                >
+                                  Select All
+                                </button>
+                                <button
+                                  onClick={() => selectAllPages(fileData.id, false)}
+                                  className="text-sm text-red-400 hover:text-red-300"
+                                >
+                                  Deselect All
+                                </button>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => removeFile(fileData.id)}
+                              className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors duration-200"
+                            >
+                              <span className="material-icons text-sm">delete</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Page Previews */}
+                        {previews[fileData.id] && previews[fileData.id].pages.length > 0 ? (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 mt-4">
+                            {previews[fileData.id].pages.map((page) => (
+                              <div
+                                key={page.pageNum}
+                                className={`relative cursor-pointer rounded-lg overflow-hidden transition-all duration-300 ${
+                                  page.selected
+                                    ? 'ring-2 ring-blue-400 shadow-lg scale-105'
+                                    : 'ring-1 ring-gray-600 hover:ring-gray-500'
+                                }`}
+                                onClick={() => togglePageSelection(fileData.id, page.pageNum)}
+                              >
+                                <img
+                                  src={page.thumbnail}
+                                  alt={`Page ${page.pageNum} preview of ${fileData.name}`}
+                                  className="w-full h-32 object-cover bg-gray-800" // Add bg-gray-800 as fallback background
+                                  onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/200x280/1f2937/ffffff?text=Error%20Loading%20Page%20${page.pageNum}`; e.target.className += ' object-contain'; }} // Basic error fallback
+                                />
+                                <div className={`absolute inset-0 flex items-center justify-center ${
+                                  page.selected ? 'bg-blue-500/20' : 'bg-black/20'
+                                }`}>
+                                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                                    page.selected
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-white bg-transparent'
+                                  }`}>
+                                    {page.selected && (
+                                      <span className="material-icons text-white text-sm">check</span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-1 left-1 bg-black/70 text-white text-xs px-1 rounded">
+                                  {page.pageNum}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                            // Placeholder if preview generation failed or not started
+                            !isGeneratingPreviews && (
+                                <div className="text-center py-8 text-gray-400 text-sm">
+                                   {previews[fileData.id] && previews[fileData.id].pages.length === 0 ? (
+                                        'Failed to generate previews for this file.'
+                                   ) : (
+                                       'Upload files to see previews.' // Should not happen in this step if files exist
+                                   )}
+                                </div>
+                            )
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 2: Configure Options */}
+          {wizardStep === 2 && (
+            <div className="space-y-8">
+               <h2 className="text-2xl font-semibold text-center">Configure Merge Options</h2>
+              <p className="text-gray-400 text-center">Customize how your PDF files will be merged.</p>
+
+              <div className="max-w-3xl mx-auto space-y-6">
+                {/* Free Tier Options */}
+                <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
+                  <h3 className="text-xl font-semibold">Free Features</h3>
+
+                  {/* Smart Merge Options */}
+                  <div>
+                    <h4 className="text-lg font-medium mb-2">Smart Merge</h4>
+                    <div className="space-y-3">
+                      {/* Alternate Page Merging */}
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="alternatePages" className="flex items-center space-x-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            id="alternatePages"
+                            checked={mergeOptions.alternatePages}
+                            onChange={(e) => setMergeOptions({ ...mergeOptions, alternatePages: e.target.checked })}
+                            className="form-checkbox h-5 w-5 text-blue-600 rounded"
+                          />
+                          <span>Alternate Page Merging</span>
+                        </label>
+                        <span className="text-sm text-gray-400">Interleave pages (e.g., P1-File1, P1-File2, P2-File1...).</span>
+                      </div>
+
+                       {/* Page Range Selection (Basic Text Input per file) */}
+                       <div>
+                          <h5 className="font-medium mb-1">Page Range Selection</h5>
+                          <p className="text-sm text-gray-400 mb-2">Override selected pages for each file (e.g., 1-5, 8, 10-).</p>
+                          <div className="space-y-2">
+                             {files.map(fileData => (
+                                <div key={fileData.id} className="flex items-center space-x-2">
+                                   <label className="text-sm text-gray-400 w-32 truncate">{fileData.name}:</label>
+                                   <input
+                                      type="text"
+                                      value={mergeOptions.pageRanges[fileData.id] || ''}
+                                      onChange={(e) => setMergeOptions({
+                                         ...mergeOptions,
+                                         pageRanges: {
+                                            ...mergeOptions.pageRanges,
+                                            [fileData.id]: e.target.value
+                                         }
+                                      })}
+                                      placeholder="e.g., 1-5, 8, 10-"
+                                      className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
+                                   />
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+
+                       {/* Custom Page Insertion (Placeholder) */}
+                        <div className="opacity-50" >
+                            <h5 className="font-medium mb-1 text-gray-400">Custom Page Insertion</h5>
+                            <p className="text-sm text-gray-500">Insert specific pages at exact positions (Advanced UI needed).</p>
+                        </div>
+
+                    </div>
+                  </div>
+
+                  {/* Compression */}
+                  <div>
+                    <h4 className="text-lg font-medium mb-2">Compression</h4>
+                     <div className="flex items-center space-x-4">
+                        <label htmlFor="compressionLevel" className="text-sm text-gray-400">Level:</label>
+                        <select
+                            id="compressionLevel"
+                            value={mergeOptions.compressionLevel}
+                            onChange={(e) => setMergeOptions({ ...mergeOptions, compressionLevel: parseInt(e.target.value) })}
+                            className="bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-white text-sm"
+                        >
+                            {[1, 2, 3, 4, 5].map(level => (
+                                <option key={level} value={level}>Level {level}{level === 4 && ' (Aggressive)'}</option>
+                            ))}
+                        </select>
+                     </div>
+                  </div>
+
+                   {/* Batch Operations (Placeholder) */}
+                    <div className="opacity-50">
+                        <h4 className="text-lg font-medium mb-2 text-gray-400">Batch Operations</h4>
+                        <p className="text-sm text-gray-500">Process multiple merge operations simultaneously.</p>
+                    </div>
+
+                </div>
+
+                {/* Premium Tier Options (Visible based on advancedMode toggle) */}
+                 {advancedMode && (
+                    <div className="bg-yellow-900/20 border border-yellow-800/30 rounded-xl p-6 space-y-6">
+                         <h3 className="text-xl font-semibold text-yellow-400">Premium Features</h3>
+                         {userPlan === 'free' && <p className="text-sm text
