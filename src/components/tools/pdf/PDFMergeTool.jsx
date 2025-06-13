@@ -399,66 +399,66 @@ const PDFMergeTool = () => {
               </div>
               {/* FIXED: File List with Working Previews */}
               {files.length > 0 && (
-                div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-6">
-                  div className="flex flex-col md:flex-row md:items-center justify-between mb-6 space-y-4 md:space-y-0">
-                    h3 className="text-lg md:text-xl font-semibold">Selected Files ({files.length})/h3>
-                    button
+                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 space-y-4 md:space-y-0">
+                    <h3 className="text-lg md:text-xl font-semibold">Selected Files ({files.length})</h3>
+                    <button
                       onClick={nextStep}
-                      disabled={files.length  2}
-                      className={`btn-primary w-full md:w-auto ${files.length  2 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      disabled={files.length < 2}
+                      className={`btn-primary w-full md:w-auto ${files.length < 2 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                       Continue to Options
-                    /button>
-                  /div>
+                    </button>
+                  </div>
 
-                  div className="space-y-6">
+                  <div className="space-y-6">
                     {files.map((fileData) => (
-                      div key={fileData.id} className="border border-gray-700 rounded-xl p-4">
+                      <div key={fileData.id} className="border border-gray-700 rounded-xl p-4">
                         {/* File Header */}
-                        div className="flex items-center justify-between mb-4">
-                          div className="flex items-center space-x-3 min-w-0 flex-1">
-                            span className="material-icons text-red-400 flex-shrink-0">picture_as_pdf/span>
-                            div className="min-w-0 flex-1">
-                              p className="font-medium truncate">{fileData.name}/p>
-                              p className="text-sm text-gray-400">{formatFileSize(fileData.size)}/p>
-                            /div>
-                          /div>
-                          div className="flex items-center space-x-2 flex-shrink-0">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center space-x-3 min-w-0 flex-1">
+                            <span className="material-icons text-red-400 flex-shrink-0">picture_as_pdf</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-medium truncate">{fileData.name}</p>
+                              <p className="text-sm text-gray-400">{formatFileSize(fileData.size)}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
                             {previews[fileData.id] && (
-                              >
-                                button
+                              <>
+                                <button
                                   onClick={() => selectAllPages(fileData.id, true)}
                                   className="px-3 py-1 text-sm text-blue-400 border border-blue-400/30 rounded hover:bg-blue-400/10"
                                 >
                                   Select All
-                                /button>
-                                button
+                                </button>
+                                <button
                                   onClick={() => selectAllPages(fileData.id, false)}
                                   className="px-3 py-1 text-sm text-red-400 border border-red-400/30 rounded hover:bg-red-400/10"
                                 >
                                   Deselect All
-                                /button>
-                              />
+                                </button>
+                              </>
                             )}
-                            button
+                            <button
                               onClick={() => removeFile(fileData.id)}
                               className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors duration-200"
                             >
-                              span className="material-icons text-sm">delete/span>
-                            /button>
-                          /div>
-                        /div>
+                              <span className="material-icons text-sm">delete</span>
+                            </button>
+                          </div>
+                        </div>
 
                         {/* FIXED: Page Previews with Better Styling */}
                         {isGeneratingPreviews ? (
-                          div className="text-center py-8">
-                            div className="w-8 h-8 border-2 border-gray-600 border-t-white rounded-full animate-spin mx-auto mb-2">/div>
-                            p className="text-sm text-gray-400">Generating previews.../p>
-                          /div>
+                          <div className="text-center py-8">
+                            <div className="w-8 h-8 border-2 border-gray-600 border-t-white rounded-full animate-spin mx-auto mb-2"></div>
+                            <p className="text-sm text-gray-400">Generating previews...</p>
+                          </div>
                         ) : previews[fileData.id] ? (
-                          div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                             {previews[fileData.id].pages.map((page) => (
-                              div
+                              <div
                                 key={page.pageNum}
                                 className={`relative cursor-pointer rounded-lg overflow-hidden transition-all duration-300 border-2 ${
                                   page.selected 
@@ -467,68 +467,68 @@ const PDFMergeTool = () => {
                                 }`}
                                 onClick={() => togglePageSelection(fileData.id, page.pageNum)}
                               >
-                                img 
+                                <img 
                                   src={page.thumbnail}
                                   alt={`Page ${page.pageNum}`}
                                   className="w-full h-24 md:h-32 object-cover bg-white"
                                   onError={(e) => {
                                     if (!e.target.dataset.fallback) {
                                       e.target.dataset.fallback = 'true';
-                                      e.target.src = `https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/c881125f-a8e3-4f3a-bbaa-800c2065be54.png
+                                      e.target.src = `https://placehold.co/200x280/4a5568/ffffff?text=${page.pageNum}`;
                                     }
                                   }}
                                 />
-                                div className={`absolute inset-0 flex items-center justify-center ${
+                                <div className={`absolute inset-0 flex items-center justify-center ${
                                   page.selected ? 'bg-blue-500/20' : 'bg-black/20'
                                 }`}>
-                                  div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center backdrop-blur-sm ${
+                                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center backdrop-blur-sm ${
                                     page.selected 
                                       ? 'bg-blue-500 border-blue-500 shadow-lg' 
                                       : 'border-white bg-black/50'
                                   }`}>
                                     {page.selected && (
-                                      span className="material-icons text-white text-sm">check/span>
+                                      <span className="material-icons text-white text-sm">check</span>
                                     )}
-                                  /div>
-                                /div>
-                                div className="absolute bottom-1 left-1 bg-black/80 text-white text-xs px-2 py-1 rounded">
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-1 left-1 bg-black/80 text-white text-xs px-2 py-1 rounded">
                                   Page {page.pageNum}
-                                /div>
-                              /div>
+                                </div>
+                              </div>
                             ))}
-                          /div>
+                          </div>
                         ) : null}
-                      /div>
+                      </div>
                     ))}
-                  /div>
-                /div>
+                  </div>
+                </div>
               )}
-            /div>
+            </div>
           )}
 
           {/* Step 2: Advanced Options */}
           {wizardStep === 2 && advancedMode && (
-            div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8">
-              div className="flex flex-col md:flex-row md:items-center justify-between mb-8 space-y-4 md:space-y-0">
-                h3 className="text-xl md:text-2xl font-semibold">Advanced Options/h3>
-                div className="flex space-x-3">
-                  button onClick={prevStep} className="btn-secondary flex-1 md:flex-none">
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 space-y-4 md:space-y-0">
+                <h3 className="text-xl md:text-2xl font-semibold">Advanced Options</h3>
+                <div className="flex space-x-3">
+                  <button onClick={prevStep} className="btn-secondary flex-1 md:flex-none">
                     Previous
-                  /button>
-                  button onClick={nextStep} className="btn-primary flex-1 md:flex-none">
+                  </button>
+                  <button onClick={nextStep} className="btn-primary flex-1 md:flex-none">
                     Preview Merge
-                  /button>
-                /div>
-              /div>
+                  </button>
+                </div>
+              </div>
 
-              div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Free Features */}
-                div className="space-y-6">
-                  h4 className="text-lg font-semibold text-green-400">✅ Free Features/h4>
-                  div className="space-y-3">
-                    label className="text-sm font-medium">Compression Level/label>
-                    div className="space-y-2">
-                      input
+                <div className="space-y-6">
+                  <h4 className="text-lg font-semibold text-green-400">✅ Free Features</h4>
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium">Compression Level</label>
+                    <div className="space-y-2">
+                      <input
                         type="range"
                         min="1"
                         max="5"
@@ -536,143 +536,143 @@ const PDFMergeTool = () => {
                         onChange={(e) => setMergeOptions(prev => ({ ...prev, compressionLevel: parseInt(e.target.value) }))}
                         className="w-full"
                       />
-                      div className="flex justify-between text-xs text-gray-400">
-                        span>Light/span>
-                        span>Level {mergeOptions.compressionLevel}/span>
-                        span>Aggressive/span>
-                      /div>
-                    /div>
-                  /div>
-                /div>
+                      <div className="flex justify-between text-xs text-gray-400">
+                        <span>Light</span>
+                        <span>Level {mergeOptions.compressionLevel}</span>
+                        <span>Aggressive</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Premium Features */}
-                div className="space-y-6">
-                  h4 className="text-lg font-semibold text-yellow-400">⭐ Premium Features/h4>
-                  div className="text-center p-6 border border-yellow-500/30 rounded-lg bg-yellow-500/10">
-                    p className="text-yellow-300 mb-4">Upgrade to access advanced features/p>
-                    Link to="/pricing" className="btn-primary bg-yellow-500 hover:bg-yellow-400 text-black">
+                <div className="space-y-6">
+                  <h4 className="text-lg font-semibold text-yellow-400">⭐ Premium Features</h4>
+                  <div className="text-center p-6 border border-yellow-500/30 rounded-lg bg-yellow-500/10">
+                    <p className="text-yellow-300 mb-4">Upgrade to access advanced features</p>
+                    <Link to="/pricing" className="btn-primary bg-yellow-500 hover:bg-yellow-400 text-black">
                       Upgrade Now - {currentPricing.symbol}{currentPricing.amount}/month
-                    /Link>
-                  /div>
-                /div>
-              /div>
-            /div>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Step 3: Preview & Merge */}
           {(wizardStep === 3 || (wizardStep === 2 && !advancedMode)) && (
-            div className="space-y-8">
-              div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8">
-                div className="flex flex-col md:flex-row md:items-center justify-between mb-6 space-y-4 md:space-y-0">
-                  h3 className="text-xl md:text-2xl font-semibold">Merge Preview/h3>
-                  div className="flex space-x-3">
-                    button onClick={prevStep} className="btn-secondary flex-1 md:flex-none">
+            <div className="space-y-8">
+              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 space-y-4 md:space-y-0">
+                  <h3 className="text-xl md:text-2xl font-semibold">Merge Preview</h3>
+                  <div className="flex space-x-3">
+                    <button onClick={prevStep} className="btn-secondary flex-1 md:flex-none">
                       Previous
-                    /button>
-                    button
+                    </button>
+                    <button
                       onClick={mergePDFs}
                       disabled={isProcessing}
                       className="btn-primary flex-1 md:flex-none"
                     >
                       {isProcessing ? (
-                        div className="flex items-center space-x-2">
-                          div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin">/div>
-                          span>Processing.../span>
-                        /div>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-5 h-5 border-2 border-gray-600 border-t-black rounded-full animate-spin"></div>
+                          <span>Processing...</span>
+                        </div>
                       ) : (
-                        div className="flex items-center space-x-2">
-                          span className="material-icons">merge/span>
-                          span>Merge & Download/span>
-                        /div>
+                        <div className="flex items-center space-x-2">
+                          <span className="material-icons">merge</span>
+                          <span>Merge & Download</span>
+                        </div>
                       )}
-                    /button>
-                  /div>
-                /div>
+                    </button>
+                  </div>
+                </div>
 
-                div className="bg-gray-800 rounded-lg p-4 mb-6">
-                  h4 className="font-semibold mb-3">Selected Options:/h4>
-                  div className="flex flex-wrap gap-2">
-                    span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
+                <div className="bg-gray-800 rounded-lg p-4 mb-6">
+                  <h4 className="font-semibold mb-3">Selected Options:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
                       Compression: Level {mergeOptions.compressionLevel}
-                    /span>
+                    </span>
                     {mergeOptions.alternatePages && (
-                      span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
+                      <span className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm">
                         Alternate Pages
-                      /span>
+                      </span>
                     )}
-                  /div>
-                /div>
+                  </div>
+                </div>
 
-                div className="space-y-4">
-                  h4 className="font-semibold">
+                <div className="space-y-4">
+                  <h4 className="font-semibold">
                     Pages to be merged ({
                       Object.values(previews).reduce((total, preview) => 
                         total + (preview?.pages?.filter(p => p.selected)?.length || 0), 0
                       )} total):
-                  /h4>
+                  </h4>
                   
-                  div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-12 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-12 gap-2">
                     {files.map(fileData => 
                       previews[fileData.id]?.pages
                         ?.filter(page => page.selected)
                         ?.map(page => (
-                          div key={`${fileData.id}-${page.pageNum}`} className="text-center">
-                            img 
+                          <div key={`${fileData.id}-${page.pageNum}`} className="text-center">
+                            <img 
                               src={page.thumbnail}
                               alt={`Page ${page.pageNum}`}
                               className="w-full h-16 md:h-20 object-cover rounded border border-gray-600"
                               onError={(e) => {
                                 if (!e.target.dataset.fallback) {
                                   e.target.dataset.fallback = 'true';
-                                  e.target.src = `https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/695e7a6c-299c-4662-9097-10000a2bcaf3.png
+                                  e.target.src = `https://placehold.co/200x280/4a5568/ffffff?text=P${page.pageNum}`;
                                 }
                               }}
                             />
-                            p className="text-xs text-gray-400 mt-1 truncate">
+                            <p className="text-xs text-gray-400 mt-1 truncate">
                               {fileData.name.slice(0, 6)}...p{page.pageNum}
-                            /p>
-                          /div>
+                            </p>
+                          </div>
                         )) || []
                     )}
-                  /div>
-                /div>
-              /div>
-            /div>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Premium Upgrade Prompt */}
           {userPlan === 'free' && (
-            div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6 md:p-8">
-              div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
-                div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  span className="material-icons text-2xl text-yellow-400">star/span>
-                /div>
-                div className="flex-1 text-center md:text-left">
-                  h3 className="text-xl md:text-2xl font-semibold mb-2">Unlock Premium Features/h3>
-                  p className="text-gray-400 mb-4">Advanced document organization, security features, and more./p>
-                  div className="flex flex-wrap justify-center md:justify-start gap-2">
-                    span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">Password Protection/span>
-                    span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">Watermarks/span>
-                    span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">200 Files/span>
-                    span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">500MB Limit/span>
-                  /div>
-                /div>
-                div className="text-center flex-shrink-0">
-                  div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-1">
+            <div className="bg-gradient-to-r from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-2xl p-6 md:p-8">
+              <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="material-icons text-2xl text-yellow-400">star</span>
+                </div>
+                <div className="flex-1 text-center md:text-left">
+                  <h3 className="text-xl md:text-2xl font-semibold mb-2">Unlock Premium Features</h3>
+                  <p className="text-gray-400 mb-4">Advanced document organization, security features, and more.</p>
+                  <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                    <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">Password Protection</span>
+                    <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">Watermarks</span>
+                    <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">200 Files</span>
+                    <span className="px-3 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-sm">500MB Limit</span>
+                  </div>
+                </div>
+                <div className="text-center flex-shrink-0">
+                  <div className="text-2xl md:text-3xl font-bold text-yellow-400 mb-1">
                     {currentPricing.symbol}{currentPricing.amount}
-                  /div>
-                  div className="text-sm text-gray-400 mb-4">per month/div>
-                  Link to="/pricing" className="btn-primary bg-yellow-500 hover:bg-yellow-400 text-black w-full md:w-auto">
+                  </div>
+                  <div className="text-sm text-gray-400 mb-4">per month</div>
+                  <Link to="/pricing" className="btn-primary bg-yellow-500 hover:bg-yellow-400 text-black w-full md:w-auto">
                     Upgrade Now
-                  /Link>
-                  p className="text-xs text-gray-400 mt-2">7-day free trial available/p>
-                /div>
-              /div>
-            /div>
+                  </Link>
+                  <p className="text-xs text-gray-400 mt-2">7-day free trial available</p>
+                </div>
+              </div>
+            </div>
           )}
-        /div>
-      /div>
-    /div>
+        </div>
+      </div>
+    </div>
   );
 };
 
