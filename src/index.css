@@ -84,8 +84,8 @@
   .card-feature {
     @apply bg-gray-900 border border-gray-800 rounded-xl p-8 
            transition-all duration-500 ease-out hover:bg-gray-800 
-           hover:border-gray-600 hover:scale-105 hover:shadow-glow-lg
-           group cursor-pointer;
+           hover:border-gray-600 hover:scale-105 hover:shadow-glow-lg;
+           /* Removed 'group' from @apply to fix build error */
   }
   
   /* Input components */
@@ -170,3 +170,4 @@
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
 }
+
