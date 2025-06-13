@@ -16,6 +16,7 @@
     "firebase": "^10.7.1",
     "pdf-lib": "^1.17.1",
     "lucide-react": "^0.294.0",
+    "pdfjs-dist": "^3.11.174",
     "react-hot-toast": "^2.4.1"
   },
   "devDependencies": {
