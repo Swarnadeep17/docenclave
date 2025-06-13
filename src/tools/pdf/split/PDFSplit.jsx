@@ -109,7 +109,9 @@ const PDFSplit = () => {
       const arrayBuffer = await droppedFile.arrayBuffer();
       const pdfDoc = await PDFDocument.load(arrayBuffer); // for processing
       const pageCount = pdfDoc.getPageCount();
-      const pdfJsDocument = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise; // for rendering
+      // Must use a new ArrayBuffer for pdf.js, as pdf-lib may have modified the original
+      const renderArrayBuffer = arrayBuffer.slice(0); 
+      const pdfJsDocument = await pdfjsLib.getDocument({ data: renderArrayBuffer }).promise; // for rendering
       
       const pageValidation = validatePDFForSplit(pageCount, currentPlan);
       if (!pageValidation.valid) {
@@ -185,7 +187,16 @@ const PDFSplit = () => {
           const [copiedPage] = await newPdf.copyPages(file.pdfDoc, [selectedPages[i]]);
           newPdf.addPage(copiedPage);
           const pdfBytes = await newPdf.save();
-          // ... (download logic unchanged)
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${file.name.replace('.pdf', '')}_page_${selectedPages[i] + 1}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       } else if (exportOption === 'combined') {
         setProgress(50);
@@ -194,7 +205,15 @@ const PDFSplit = () => {
         const copiedPages = await newPdf.copyPages(file.pdfDoc, sortedPages);
         copiedPages.forEach(page => newPdf.addPage(page));
         const pdfBytes = await newPdf.save();
-        // ... (download logic unchanged)
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${file.name.replace('.pdf', '')}_extracted_pages.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
       }
       
       setProgress(100);
@@ -229,13 +248,117 @@ const PDFSplit = () => {
         description="Split PDF files for free with page preview. Extract specific pages, split by ranges, or create separate files. 100% secure, no uploads required. Start splitting PDFs instantly."
       />
       <div className="container mx-auto px-4 py-8">
-        {/* Tool Header and USP Cards... (unchanged) */}
-        {/* Plan Limits Display and Error Display... (unchanged) */}
+        {/* Tool Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-dark-text-primary mb-4">
+            PDF Split Tool
+          </h1>
+          <p className="text-lg text-dark-text-secondary max-w-2xl mx-auto">
+            Extract specific pages from PDF files with advanced preview. Select page ranges, 
+            split into separate files, or create custom extracts — all while keeping your files 100% private.
+          </p>
+        </div>
+
+        {/* 4 USP Cards - 2 per row */}
+        <div className="grid grid-cols-2 gap-4 mb-12 max-w-3xl mx-auto">
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">👁️</span>
+              <h3 className="text-lg font-semibold text-blue-400">Page Preview</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              See every page before extraction. Select specific pages with visual thumbnails.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/30 rounded-lg p-4 shadow-lg shadow-green-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">🔒</span>
+              <h3 className="text-lg font-semibold text-green-400">100% Private</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              Your PDFs never leave your device. All processing happens locally in your browser.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-lg p-4 shadow-lg shadow-purple-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">📐</span>
+              <h3 className="text-lg font-semibold text-purple-400">Range Selection</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              Select pages by ranges (1-5, 8, 10-12) or use quick buttons for odd/even pages.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/30 rounded-lg p-4 shadow-lg shadow-yellow-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">📤</span>
+              <h3 className="text-lg font-semibold text-yellow-400">Smart Export</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              Export as separate files or combine selected pages into a single document.
+            </p>
+          </div>
+        </div>
+
+        {/* Plan Limits Display */}
+        <div className="bg-dark-secondary rounded-lg p-4 mb-6 border border-dark-border">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-6">
+              <span className="text-dark-text-secondary text-sm">
+                <span className="font-medium text-dark-text-primary">{currentPlan}</span> Plan
+              </span>
+              {file && (
+                <>
+                  <span className="text-dark-text-secondary text-sm">
+                    Pages: <span className="text-dark-text-primary">{pages.length}</span>
+                  </span>
+                  <span className="text-dark-text-secondary text-sm">
+                    Size: <span className="text-dark-text-primary">{formatFileSize(file.size)}</span>
+                  </span>
+                  <span className="text-dark-text-secondary text-sm">
+                    Selected: <span className="text-dark-text-primary">{selectedPagesCount}</span>
+                    {currentPlan === 'FREE' && `/${limits.maxExtractPages}`}
+                  </span>
+                </>
+              )}
+            </div>
+            {currentPlan === 'FREE' && (
+              <button 
+                onClick={() => setShowUpgradeModal(true)}
+                className="bg-dark-text-primary text-dark-primary px-4 py-2 rounded text-sm font-medium hover:bg-dark-text-secondary transition-colors"
+              >
+                Upgrade to Premium
+              </button>
+            )}
+          </div>
+        </div>
         
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+            <div className="flex items-center space-x-3">
+              <span className="text-red-400">⚠️</span>
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          </div>
+        )}
+
         {/* File Upload Zone - Show when no file */}
         {!file && (
           <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${isDragActive ? 'border-blue-400 bg-blue-500/5' : 'border-dark-border hover:border-gray-500 bg-dark-secondary'}`}>
-            {/* ... Dropzone JSX ... */}
+            <input {...getInputProps()} />
+            <div className="text-6xl mb-4">📄</div>
+            <h3 className="text-xl font-semibold text-dark-text-primary mb-2">
+              {isDragActive ? 'Drop your PDF file here' : 'Choose or drag PDF file here'}
+            </h3>
+            <p className="text-dark-text-secondary mb-4">
+              Select a PDF file to extract pages from
+            </p>
+            <p className="text-dark-text-muted text-sm">
+              Maximum {formatFileSize(limits.maxTotalSize)} • Extract up to {limits.maxExtractPages} pages
+            </p>
           </div>
         )}
 
@@ -255,7 +378,37 @@ const PDFSplit = () => {
 
             {/* Export Options */}
             <div className="bg-dark-secondary rounded-lg p-4 border border-dark-border">
-              {/* ... Export Options JSX ... */}
+              <h4 className="text-dark-text-primary font-medium mb-3">Export Options</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center p-3 bg-dark-tertiary rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                  <input
+                    type="radio"
+                    name="exportOption"
+                    value="separate"
+                    checked={exportOption === 'separate'}
+                    onChange={(e) => setExportOption(e.target.value)}
+                    className="mr-3"
+                  />
+                  <div>
+                    <span className="text-dark-text-primary font-medium block">Separate Files</span>
+                    <span className="text-dark-text-muted text-xs">One PDF per page</span>
+                  </div>
+                </label>
+                <label className="flex items-center p-3 bg-dark-tertiary rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                  <input
+                    type="radio"
+                    name="exportOption"
+                    value="combined"
+                    checked={exportOption === 'combined'}
+                    onChange={(e) => setExportOption(e.target.value)}
+                    className="mr-3"
+                  />
+                  <div>
+                    <span className="text-dark-text-primary font-medium block">Combined File</span>
+                    <span className="text-dark-text-muted text-xs">All pages in one PDF</span>
+                  </div>
+                </label>
+              </div>
             </div>
 
             {/* Page Grid using the new shared component */}
@@ -271,19 +424,206 @@ const PDFSplit = () => {
         {/* Split Controls */}
         {file && selectedPagesCount > 0 && (
           <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border mb-16">
-            {/* ... Split Controls JSX ... */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-dark-text-primary font-medium">Ready to Extract</h4>
+                <p className="text-dark-text-muted text-sm">
+                  {selectedPagesCount} page{selectedPagesCount !== 1 ? 's' : ''} selected
+                  {exportOption === 'separate' ? ` (${selectedPagesCount} files will be downloaded)` : ' (1 file will be downloaded)'}
+                </p>
+              </div>
+              {selectedPagesCount > 5 && exportOption === 'separate' && (
+                <div className="text-yellow-400 text-xs">
+                  ⚠️ Multiple downloads - allow popups if blocked
+                </div>
+              )}
+            </div>
+            
+            <button
+              onClick={splitPDF}
+              disabled={selectedPagesCount === 0 || isProcessing}
+              className="w-full bg-dark-text-primary text-dark-primary py-4 rounded-lg font-semibold hover:bg-dark-text-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            >
+              {isProcessing ? `Processing... ${progress}%` : 
+               exportOption === 'separate' ? `Extract ${selectedPagesCount} Pages as Separate Files` :
+               `Extract ${selectedPagesCount} Pages as One PDF`}
+            </button>
           </div>
         )}
         
         {/* Help message when no pages selected */}
         {file && selectedPagesCount === 0 && (
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6 mb-16 text-center">
-            {/* ... Help message JSX ... */}
+            <div className="text-blue-400 text-4xl mb-4">👆</div>
+            <h4 className="text-blue-400 font-medium mb-2">Select Pages to Extract</h4>
+            <p className="text-blue-300 text-sm">
+              Click on individual pages above or use the quick selection buttons to choose which pages to extract.
+            </p>
           </div>
         )}
 
-        {/* How to Use and SEO sections... (unchanged) */}
-        {/* Upgrade Modal... (unchanged) */}
+        {/* How to Use Section */}
+        <section className="mb-16">
+          <h2 className="text-2xl font-bold text-dark-text-primary text-center mb-8">
+            How to Use
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">1</div>
+              <h3 className="font-semibold text-dark-text-primary mb-2">Upload PDF</h3>
+              <p className="text-dark-text-secondary text-sm">Drag & drop or browse to select a PDF file to split</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">2</div>
+              <h3 className="font-semibold text-dark-text-primary mb-2">Select Pages</h3>
+              <p className="text-dark-text-secondary text-sm">Choose specific pages or ranges you want to extract</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">3</div>
+              <h3 className="font-semibold text-dark-text-primary mb-2">Download</h3>
+              <p className="text-dark-text-secondary text-sm">Get your extracted pages as separate or combined files</p>
+            </div>
+          </div>
+        </section>
+
+        {/* SEO Blog Section */}
+        <section className="mb-16">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-dark-text-primary mb-8">
+              The Complete Guide to PDF Splitting
+            </h2>
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Why Split PDF Files Instead of Sharing Entire Documents
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  PDF splitting is essential for document privacy and efficiency. Instead of sharing a 100-page report when you only need pages 15-20, 
+                  extract exactly what's needed. This protects sensitive information in other sections, reduces file sizes for email attachments, 
+                  and helps recipients focus on relevant content. Professional document management often requires surgical precision rather than 
+                  broad sharing.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Common PDF Splitting Scenarios in Business
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Legal professionals extract specific contract clauses, HR departments isolate individual employee records from bulk files, 
+                  researchers separate relevant chapters from lengthy publications, and students extract assignment pages from textbooks. 
+                  Each scenario requires different splitting strategies — sometimes individual pages, sometimes page ranges, and often 
+                  custom combinations based on content structure.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Security Advantages of Local PDF Processing
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Traditional PDF splitting tools require uploading your documents to unknown servers, creating security vulnerabilities. 
+                  Confidential business plans, legal documents, medical records, and personal information should never be processed on 
+                  external servers. Client-side processing ensures your sensitive documents remain completely private while still providing 
+                  professional-grade splitting capabilities that rival expensive desktop software.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Advanced Page Selection Techniques
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Effective PDF splitting goes beyond simple page extraction. Use odd/even selection for double-sided document processing, 
+                  range selection for chapter extraction, and visual preview to identify content boundaries. Understanding your document 
+                  structure helps determine whether to create separate files for each page or combine related pages into logical sections. 
+                  Professional users often develop splitting patterns based on their workflow requirements.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  File Organization After Splitting
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Proper file naming becomes crucial when splitting PDFs into multiple documents. Create descriptive filenames that reflect 
+                  content rather than just page numbers. For legal documents, include case numbers and section names. For research papers, 
+                  use chapter titles or topic descriptions. This organization strategy saves time later when searching for specific content 
+                  and helps maintain professional document management standards.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Quality Considerations in PDF Extraction
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Not all PDF splitting tools maintain original document quality. Images can be compressed, fonts might be substituted, 
+                  and formatting could shift during the extraction process. Professional-grade splitting preserves vector graphics, 
+     maintains font embedding, and keeps original resolution for images. This quality preservation is essential for legal 
+                  documents, technical drawings, and any materials requiring precise formatting.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Workflow Integration and Automation Opportunities
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Regular PDF splitting tasks can benefit from systematic approaches. Develop consistent naming conventions, establish 
+                  folder structures for different document types, and create templates for common splitting patterns. Many professionals 
+                  find that documenting their splitting workflows helps team members maintain consistency and reduces time spent on 
+                  repetitive document processing tasks.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Future Trends in Document Management
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Document processing is evolving toward more intelligent, privacy-preserving solutions. Advanced splitting tools will 
+                  likely incorporate content recognition to suggest optimal split points, automatic metadata preservation, and smart 
+                  organization features. However, the fundamental need for secure, local processing will remain paramount as data 
+                  privacy regulations continue to strengthen and users become more conscious of digital privacy rights.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Upgrade Modal */}
+        {showUpgradeModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-dark-secondary rounded-xl p-8 max-w-md mx-4 border border-dark-border">
+              <h3 className="text-xl font-bold text-dark-text-primary mb-4">
+                Upgrade to Premium
+              </h3>
+              <p className="text-dark-text-secondary mb-6">
+                Unlock more powerful features:
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="text-dark-text-secondary">✅ Extract unlimited pages</li>
+                <li className="text-dark-text-secondary">✅ 500MB file capacity</li>
+                <li className="text-dark-text-secondary">✅ Process larger PDFs</li>
+                <li className="text-dark-text-secondary">✅ Advanced export options</li>
+              </ul>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="flex-1 border border-dark-border text-dark-text-primary py-2 rounded-lg hover:bg-dark-tertiary transition-colors"
+                >
+                  Continue Free
+                </button>
+                <button className="flex-1 bg-dark-text-primary text-dark-primary py-2 rounded-lg font-medium hover:bg-dark-text-secondary transition-colors">
+                  Upgrade Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
