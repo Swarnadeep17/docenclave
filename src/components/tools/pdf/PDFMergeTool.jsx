@@ -10,15 +10,13 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 const PDFMergeTool = () => {
   const [files, setFiles] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [dragOver, setDragOver] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [error, setError] = useState('');
   const [outputFilename, setOutputFilename] = useState('merged-document.pdf');
   const [loadingPreviews, setLoadingPreviews] = useState(false);
 
   // Advanced options state (remains for future use)
-  const [mergeOptions, setMergeOptions] = useState({
+  const [mergeOptions, setMergeOptions] = useState(() => ({
     alternatePages: false,
     compressionLevel: 4,
     preserveBookmarks: false,
@@ -30,8 +28,12 @@ const PDFMergeTool = () => {
     addWatermark: false,
     watermarkText: '',
     stripMetadata: false,
-    customFileName: 'merged-document.pdf'
-  });
+    customFileName: 'merged-document.pdf',
+    // Keep track of which options are premium
+    isPremium: {
+      preserveBookmarks: true, generateTOC: true, addSectionDividers: true, customPageNumbering: true, passwordProtect: true, addWatermark: true, stripMetadata: true
+    }
+  }));
 
   const fileInputRef = useRef(null);
   const [userPlan] = useState('free'); // Placeholder for user plan
@@ -217,6 +219,7 @@ const PDFMergeTool = () => {
   const handleDrop = (e) => {
     e.preventDefault();
     setDragOver(false);
+    console.log('[handleDrop] Files dropped');
     handleFileSelect(e.dataTransfer.files);
   };
 
@@ -227,6 +230,7 @@ const PDFMergeTool = () => {
 
   const handleDragLeave = (e) => {
     e.preventDefault();
+    console.log('[handleDragLeave] Drag leave');
     setDragOver(false);
   };
   
@@ -283,7 +287,6 @@ const PDFMergeTool = () => {
       return;
     }
     setIsProcessing(true);
-    setProgress(0);
     setError('');
     try {
       const mergedPdf = await PDFDocument.create();
@@ -291,7 +294,6 @@ const PDFMergeTool = () => {
       for (const file of files) {
         const selectedPagesInFile = file.pages.filter(page => page.selected);
         if (selectedPagesInFile.length > 0) {
-          setProgress(Math.round((processedFiles / files.length) * 80));
           const fileArrayBuffer = await file.file.arrayBuffer();
           const pdf = await PDFDocument.load(fileArrayBuffer);
           const pageIndices = selectedPagesInFile.map(page => page.pageIndex);
@@ -300,13 +302,13 @@ const PDFMergeTool = () => {
         }
         processedFiles++;
       }
-      setProgress(95);
-      const pdfBytes = await mergedPdf.save();
+
+      const pdfBytes = await mergedPdf.save({ enableXRefTableStructure: false, useCompression: mergeOptions.compressionLevel > 0 });
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = outputFilename;
+      link.download = mergeOptions.customFileName || 'merged-document.pdf';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -314,11 +316,9 @@ const PDFMergeTool = () => {
       setProgress(100);
       toast.success('PDF merged successfully!');
       setTimeout(() => {
-        setIsProcessing(false);
-        setProgress(0);
         setFiles([]);
         setPreviewMode(false);
-      }, 1500);
+        setIsProcessing(false)
     } catch (err) {
       console.error('PDF merge error:', err);
       setError('Failed to merge PDFs. Please ensure all files are valid PDF documents.');
@@ -339,6 +339,14 @@ const PDFMergeTool = () => {
     );
   };
 
+  // Reset the tool to initial state
+  const resetTool = () => {
+    setFiles([]);
+    setPreviewMode(false);
+    setDragOver(false); // Reset dragOver state
+    setProgress(0);
+    setError('');
+  };
 
   return (
     // The main return with JSX. The key change is pointed out below.
@@ -373,8 +381,8 @@ const PDFMergeTool = () => {
           </div>
         )}
 
-        {/* Preview Mode */}
-        {previewMode && files.length > 0 && (
+        {/* Step 1: Upload Files / Step 3: Preview & Review */}
+        {!isProcessing && (
           <div className="space-y-6 mb-6">
             {/* ... (File list header remains the same) ... */}
             {files.map((file, index) => (
