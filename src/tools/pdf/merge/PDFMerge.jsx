@@ -272,7 +272,7 @@ const PDFMerge = () => {
         description="Merge PDF files for free with page preview. Combine, reorder, and select specific pages. 100% secure, no uploads required. Start merging PDFs instantly."
       />
       <div className="container mx-auto px-4 py-8">
-        {/* Tool Header and USP Cards... (unchanged) */}
+        {/* Tool Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-dark-text-primary mb-4">
             PDF Merge Tool
@@ -282,16 +282,81 @@ const PDFMerge = () => {
             reorder content, and merge instantly — all while keeping your files 100% private.
           </p>
         </div>
+
+        {/* 4 USP Cards - 2 per row */}
         <div className="grid grid-cols-2 gap-4 mb-12 max-w-3xl mx-auto">
-          {/* ... USP Cards JSX ... */}
+          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/30 rounded-lg p-4 shadow-lg shadow-blue-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">👁️</span>
+              <h3 className="text-lg font-semibold text-blue-400">Page Preview</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              See every page before merging. Select, reorder, and delete pages with visual thumbnails.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/30 rounded-lg p-4 shadow-lg shadow-green-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">🔒</span>
+              <h3 className="text-lg font-semibold text-green-400">100% Private</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              Your PDFs never leave your device. All processing happens locally in your browser.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/30 rounded-lg p-4 shadow-lg shadow-purple-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">⚡</span>
+              <h3 className="text-lg font-semibold text-purple-400">Instant Processing</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              No uploads, no waiting. Merge PDFs instantly without server delays.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/30 rounded-lg p-4 shadow-lg shadow-yellow-500/20">
+            <div className="flex items-center mb-2">
+              <span className="text-2xl mr-2">🎯</span>
+              <h3 className="text-lg font-semibold text-yellow-400">Smart Detection</h3>
+            </div>
+            <p className="text-dark-text-secondary text-sm">
+              Automatically highlights duplicate pages and provides bulk selection tools.
+            </p>
+          </div>
         </div>
 
-        {/* Plan Limits Display... (unchanged) */}
+        {/* Plan Limits Display */}
         <div className="bg-dark-secondary rounded-lg p-4 mb-6 border border-dark-border">
-          {/* ... Plan Limits JSX ... */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-6">
+              <span className="text-dark-text-secondary text-sm">
+                <span className="font-medium text-dark-text-primary">{currentPlan}</span> Plan
+              </span>
+              <span className="text-dark-text-secondary text-sm">
+                Files: <span className="text-dark-text-primary">{files.length}</span>/{limits.maxFiles}
+              </span>
+              <span className="text-dark-text-secondary text-sm">
+                Size: <span className="text-dark-text-primary">{formatFileSize(totalSize)}</span>/{formatFileSize(limits.maxTotalSize)}
+              </span>
+              {previewMode && (
+                <span className="text-dark-text-secondary text-sm">
+                  Selected Pages: <span className="text-dark-text-primary">{totalSelectedPages}</span>
+                </span>
+              )}
+            </div>
+            {currentPlan === 'FREE' && (
+              <button 
+                onClick={() => setShowUpgradeModal(true)}
+                className="bg-dark-text-primary text-dark-primary px-4 py-2 rounded text-sm font-medium hover:bg-dark-text-secondary transition-colors"
+              >
+                Upgrade to Premium
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Error Display... (unchanged) */}
+        {/* Error Display */}
         {error && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
             <div className="flex items-center space-x-3">
@@ -301,10 +366,27 @@ const PDFMerge = () => {
           </div>
         )}
 
-        {/* File Upload Zone... (unchanged) */}
+        {/* File Upload Zone */}
         {(!previewMode || files.length === 0) && (
-          <div {...getRootProps()} className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${isDragActive ? 'border-blue-400 bg-blue-500/5' : 'border-dark-border hover:border-gray-500 bg-dark-secondary'}`}>
-            {/* ... Dropzone JSX ... */}
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer mb-6 ${
+              isDragActive
+                ? 'border-blue-400 bg-blue-500/5'
+                : 'border-dark-border hover:border-gray-500 bg-dark-secondary'
+            }`}
+          >
+            <input {...getInputProps()} />
+            <div className="text-6xl mb-4">📄</div>
+            <h3 className="text-xl font-semibold text-dark-text-primary mb-2">
+              {isDragActive ? 'Drop your PDF files here' : 'Choose or drag PDF files here'}
+            </h3>
+            <p className="text-dark-text-secondary mb-4">
+              Select multiple PDF files to combine them into one document
+            </p>
+            <p className="text-dark-text-muted text-sm">
+              Supports up to {limits.maxFiles} files • Maximum {formatFileSize(limits.maxTotalSize)} total
+            </p>
           </div>
         )}
 
@@ -338,16 +420,16 @@ const PDFMerge = () => {
                     <div className="flex items-center space-x-3 overflow-hidden">
                       <span className="text-2xl">📄</span>
                       <div className="overflow-hidden">
-                        <p className="text-dark-text-primary font-medium truncate">{file.name}</p>
+                        <p className="text-dark-text-primary font-medium truncate" title={file.name}>{file.name}</p>
                         <p className="text-dark-text-muted text-sm">
                           {formatFileSize(file.size)} • {file.pages.length} pages
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <button onClick={() => moveFile(file.id, 'up')} disabled={index === 0} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed">⬆️</button>
-                      <button onClick={() => moveFile(file.id, 'down')} disabled={index === files.length - 1} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed">⬇️</button>
-                      <button onClick={() => removeFile(file.id)} className="p-2 text-red-400 hover:text-red-300">🗑️</button>
+                      <button onClick={() => moveFile(file.id, 'up')} disabled={index === 0} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Move file up">⬆️</button>
+                      <button onClick={() => moveFile(file.id, 'down')} disabled={index === files.length - 1} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Move file down">⬇️</button>
+                      <button onClick={() => removeFile(file.id)} className="p-2 text-red-400 hover:text-red-300" aria-label="Remove file">🗑️</button>
                     </div>
                   </div>
                 ))}
@@ -387,8 +469,8 @@ const PDFMerge = () => {
                 renderPageActions={() => renderMergePageActions(file)}
                 renderReorderControls={() => (
                   <div className="flex items-center space-x-2">
-                    <button onClick={() => moveFile(file.id, 'up')} disabled={index === 0} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed">⬆️</button>
-                    <button onClick={() => moveFile(file.id, 'down')} disabled={index === files.length - 1} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed">⬇️</button>
+                    <button onClick={() => moveFile(file.id, 'up')} disabled={index === 0} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Move file up">⬆️</button>
+                    <button onClick={() => moveFile(file.id, 'down')} disabled={index === files.length - 1} className="p-2 text-dark-text-secondary hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Move file down">⬇️</button>
                   </div>
                 )}
               />
@@ -396,21 +478,199 @@ const PDFMerge = () => {
           </div>
         )}
 
-        {/* Merge Controls and other sections... (unchanged) */}
+        {/* Merge Controls */}
         {files.length > 0 && (
           <div className="bg-dark-secondary rounded-xl p-6 border border-dark-border mb-16">
-            {/* ... Merge controls JSX ... */}
+            {currentPlan === 'PREMIUM' && (
+              <div className="mb-4">
+                <label className="block text-dark-text-primary text-sm font-medium mb-2">
+                  Custom Output Filename
+                </label>
+                <input
+                  type="text"
+                  value={outputFilename}
+                  onChange={(e) => setOutputFilename(e.target.value)}
+                  className="w-full bg-dark-tertiary border border-dark-border rounded-lg px-4 py-2 text-dark-text-primary focus:outline-none focus:border-blue-500"
+                  placeholder="merged-document.pdf"
+                />
+              </div>
+            )}
+            
+            <button
+              onClick={mergePDFs}
+              disabled={totalSelectedPages < 1 || isProcessing}
+              className="w-full bg-dark-text-primary text-dark-primary py-4 rounded-lg font-semibold hover:bg-dark-text-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+            >
+              {isProcessing ? `Merging... ${progress}%` : 
+               previewMode ? `Merge ${totalSelectedPages} Selected Pages` : 
+               `Combine ${files.length} PDF Files`}
+            </button>
           </div>
         )}
+
+        {/* How to Use Section */}
         <section className="mb-16">
-          {/* ... How To Use section JSX ... */}
+          <h2 className="text-2xl font-bold text-dark-text-primary text-center mb-8">
+            How to Use
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">1</div>
+              <h3 className="font-semibold text-dark-text-primary mb-2">Upload PDFs</h3>
+              <p className="text-dark-text-secondary text-sm">Drag & drop or browse to select multiple PDF files</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">2</div>
+              <h3 className="font-semibold text-dark-text-primary mb-2">Preview & Select</h3>
+              <p className="text-dark-text-secondary text-sm">Choose specific pages and reorder as needed</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">3</div>
+              <h3 className="font-semibold text-dark-text-primary mb-2">Download</h3>
+              <p className="text-dark-text-secondary text-sm">Click merge and get your combined PDF instantly</p>
+            </div>
+          </div>
         </section>
+
+        {/* SEO Blog Section */}
         <section className="mb-16">
-          {/* ... SEO Blog section JSX ... */}
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold text-dark-text-primary mb-8">
+              The Complete Guide to PDF Merging
+            </h2>
+            
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Why You Need a Reliable PDF Merger
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  In today's digital workspace, PDF files are everywhere. Whether you're a student combining research papers, 
+                  a professional merging reports, or someone organizing personal documents, you need a tool that's both powerful 
+                  and secure. Traditional PDF merger tools often require uploading your sensitive documents to unknown servers, 
+                  creating privacy risks that simply aren't worth taking.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  The Privacy Problem with Online PDF Tools
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Most online PDF merger tools process your files on their servers. This means your confidential business documents, 
+                  personal papers, or sensitive information is temporarily stored on computers you don't control. Even if they 
+                  promise to delete files after processing, there's always a risk. DocEnclave solves this by processing everything 
+                  locally in your browser — your files never leave your device.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Advanced Features That Make a Difference
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Not all PDF mergers are created equal. While basic tools simply combine files in order, DocEnclave offers 
+                  page-by-page preview, allowing you to see exactly what you're merging. You can select specific pages, 
+                  delete unwanted content, and even detect duplicate pages automatically. This level of control is typically 
+                  found only in expensive desktop software.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  When to Use PDF Merging vs Other Solutions
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  PDF merging is ideal when you need to combine related documents while maintaining formatting and quality. 
+                  It's perfect for creating comprehensive reports, combining multiple invoices, merging chapters of a document, 
+                  or creating a single file for email attachments. Unlike copying and pasting content, PDF merging preserves 
+                  original formatting, images, and layout exactly as intended.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Best Practices for Professional PDF Management
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  When merging PDFs for business use, always preview your files first to ensure proper page order. Remove any 
+                  unnecessary pages to keep the final document concise. Consider the logical flow of information — does the 
+                  merged document tell a coherent story? For legal or compliance documents, maintain a backup of original files 
+                  before merging, and consider adding page numbers or headers for easier navigation.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Technical Advantages of Browser-Based Processing
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Browser-based PDF processing using modern JavaScript libraries offers several advantages over traditional 
+                  server-based tools. It's faster (no upload/download time), more secure (files stay local), and works offline 
+                  once loaded. The processing happens using your device's computational power, which is often faster than 
+                  waiting in server queues. Plus, there are no file size restrictions imposed by server limitations.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Common PDF Merging Mistakes to Avoid
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  Many users make the mistake of merging PDFs without checking page orientation, leading to documents with mixed 
+                  portrait and landscape pages. Always preview your merged document before finalizing. Another common error is 
+                  including duplicate pages — our automatic detection feature helps prevent this. Also, consider the final file 
+                  size, especially if you plan to email the document or upload it to systems with size limits.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-semibold text-dark-text-primary mb-3">
+                  Future of Document Processing
+                </h3>
+                <p className="text-dark-text-secondary leading-relaxed">
+                  The trend in document processing is clearly moving toward privacy-first, client-side solutions. As data 
+                  privacy regulations become stricter and users become more aware of digital privacy rights, tools that process 
+                  documents locally will become the standard. DocEnclave is at the forefront of this movement, offering 
+                  enterprise-grade functionality without compromising user privacy.
+                </p>
+              </div>
+            </div>
+          </div>
         </section>
+
+        {/* Upgrade Modal */}
         {showUpgradeModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            {/* ... Upgrade Modal JSX ... */}
+            <div className="bg-dark-secondary rounded-xl p-8 max-w-md mx-4 border border-dark-border">
+              <h3 className="text-xl font-bold text-dark-text-primary mb-4">
+                Upgrade to Premium for More Power
+              </h3>
+              <p className="text-dark-text-secondary mb-6">
+                You've reached the free plan limits. Upgrade to Premium and unlock:
+              </p>
+              <ul className="space-y-2 mb-6">
+                <li className="text-dark-text-secondary">✅ Merge up to 50 PDF files</li>
+                <li className="text-dark-text-secondary">✅ 500MB total file capacity</li>
+                <li className="text-dark-text-secondary">✅ Custom output filenames</li>
+                <li className="text-dark-text-secondary">✅ Password protect merged PDFs</li>
+                <li className="text-dark-text-secondary">✅ Priority processing speed</li>
+                <li className="text-dark-text-secondary">✅ Batch queue operations</li>
+              </ul>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="flex-1 border border-dark-border text-dark-text-primary py-2 rounded-lg hover:bg-dark-tertiary transition-colors"
+                >
+                  Continue Free
+                </button>
+                <button className="flex-1 bg-dark-text-primary text-dark-primary py-2 rounded-lg font-medium hover:bg-dark-text-secondary transition-colors">
+                  Upgrade to Premium
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
