@@ -49,6 +49,7 @@ const PDFMergeTool = () => {
    */
   const renderPagePreview = async (pdfDoc, pageIndex, scale = 0.5) => {
     try {
+      console.log(`renderPagePreview: Starting to render page ${pageIndex + 1}`);
       const page = await pdfDoc.getPage(pageIndex + 1);
       const viewport = page.getViewport({ scale });
       
@@ -62,7 +63,9 @@ const PDFMergeTool = () => {
         viewport: viewport
       };
 
+      console.log(`renderPagePreview: Before page.render for page ${pageIndex + 1}`);
       await page.render(renderContext).promise;
+      console.log(`renderPagePreview: After page.render for page ${pageIndex + 1}. Generating data URL.`);
       return canvas.toDataURL('image/jpeg', 0.8);
     } catch (error) {
       console.error('Error rendering page preview:', error);
