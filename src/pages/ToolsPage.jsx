@@ -1,28 +1,13 @@
-
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, useParams, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import ToolCategoryGrid from '../components/tools/ToolCategoryGrid';
 import ToolCategoryDetail from '../components/tools/ToolCategoryDetail';
 import PDFMergeTool from '../components/tools/pdf/PDFMergeTool';
 
 const ToolsPage = () => {
-  const { category, tool } = useParams();
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState(null);
-
-  useEffect(() => {
-    if (category) {
-      setSelectedCategory(category);
-    }
-  }, [category]);
-
-  const handleCategorySelect = (categoryId) => {
-    setSelectedCategory(categoryId);
-    navigate(`/tools/${categoryId}`);
-  };
 
   const handleBackToCategories = () => {
-    setSelectedCategory(null);
     navigate('/tools');
   };
 
@@ -39,28 +24,28 @@ const ToolsPage = () => {
           </p>
         </div>
 
-        {/* Tools Content */}
+        {/* Tools Content - FIXED ROUTING */}
         <Routes>
+          {/* Base route for /tools shows the category grid */}
           <Route 
             path="/" 
-            element={
-              <ToolCategoryGrid 
-                onCategorySelect={handleCategorySelect}
-              />
-            } 
+            element={<ToolCategoryGrid />} 
           />
+          
+          {/* Specific tool route - This must come before the general category route */}
           <Route 
-            path="/:category" 
+            path="pdf/merge" 
+            element={<PDFMergeTool />} 
+          />
+
+          {/* General category route - This will match /pdf, /image, etc. */}
+          <Route 
+            path=":category" 
             element={
               <ToolCategoryDetail 
-                category={selectedCategory}
                 onBack={handleBackToCategories}
               />
             } 
-          />
-          <Route 
-            path="/pdf/merge" 
-            element={<PDFMergeTool />} 
           />
         </Routes>
       </div>
@@ -69,4 +54,3 @@ const ToolsPage = () => {
 };
 
 export default ToolsPage;
-
