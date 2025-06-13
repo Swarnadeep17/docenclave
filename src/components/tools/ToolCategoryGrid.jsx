@@ -39,7 +39,7 @@ const toolCategories = [
   }
 ];
 
-const ToolCategoryGrid = ({ onCategorySelect }) => {
+const ToolCategoryGrid = () => {
   return (
     <div className="space-y-12">
       {/* Category Grid */}
@@ -48,7 +48,6 @@ const ToolCategoryGrid = ({ onCategorySelect }) => {
           <Link
             key={category.id}
             to={`/tools/${category.id}`}
-            onClick={() => onCategorySelect(category.id)}
             className="group relative bg-gray-900 border border-gray-800 rounded-2xl p-8 hover:bg-gray-800 hover:border-gray-600 hover:scale-105 transition-all duration-500 cursor-pointer overflow-hidden"
           >
             {/* Background Gradient */}
