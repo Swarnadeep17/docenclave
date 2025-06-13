@@ -32,12 +32,13 @@ const ToolsPage = () => {
             element={<ToolCategoryGrid />} 
           />
           
-          {/* Specific tool route - This must come before the general category route */}
+          {/* Specific tool route */}
           <Route 
             path="pdf/merge" 
             element={<PDFMergeTool />} 
           />
 
+          {/* General category route - This will match /pdf, /image, etc. - MUST COME AFTER SPECIFIC ROUTES */}
           {/* General category route - This will match /pdf, /image, etc. */}
           <Route 
             path=":category" 
