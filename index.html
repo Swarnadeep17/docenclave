@@ -45,10 +45,12 @@
       gtag('js', new Date());
       gtag('config', 'G-YMT8E4PJN0');
     </script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-functions.js"></script>
+    
+    <!-- === UPDATED FIREBASE SDKs === -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+
 </head>
 <body class="bg-black text-gray-200 dark">
 
@@ -241,9 +243,7 @@
                 measurementId: "G-YMT8E4PJN0"
             };
 
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
+            firebase.initializeApp(firebaseConfig);
 
             const db = firebase.firestore();
             const functions = firebase.functions();
@@ -262,14 +262,12 @@
                     if (filesProcessedElement) filesProcessedElement.textContent = data.filesProcessed || 0;
                     if (pdfMergeStatElement) pdfMergeStatElement.textContent = (data.toolUsage && data.toolUsage.pdfMerge) || 0;
                 } else {
-                    // If doc doesn't exist, our UI already defaults to 0. No action needed.
                     console.log("Stats document does not exist yet. It will be created on the first event.");
                 }
-                // Fade in the stats container once we have our first result (either data or confirmation of no data)
                 statsContainer.style.opacity = 1;
             }, (error) => {
                 console.error("Error fetching stats:", error);
-                if (statsContainer) statsContainer.style.opacity = 1; // Show container even on error
+                if (statsContainer) statsContainer.style.opacity = 1; 
                 if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'Error';
                 if (filesProcessedElement) filesProcessedElement.textContent = 'Error';
                 if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'Error';
@@ -279,12 +277,10 @@
             // --- Stats Tracking (Writing data via Firebase Function) ---
             const trackEvent = functions.httpsCallable('trackEvent');
 
-            // Track a page view when the page loads
             trackEvent({ event: 'pageView' })
                 .then(result => console.log(result.data.result))
                 .catch(error => console.error("Error tracking page view:", error));
 
-            // Make the trackToolUsage function globally available for your tool implementations
             window.trackToolUsage = function(toolName) {
                 if (!toolName) {
                     console.error("trackToolUsage requires a toolName.");
@@ -294,9 +290,6 @@
                     .then(result => console.log(result.data.result))
                     .catch(error => console.error(`Error tracking ${toolName} usage:`, error));
             }
-
-            // Example of how you would call it from your tool's code later:
-            // window.trackToolUsage('pdfMerge');
         });
     </script>
 
