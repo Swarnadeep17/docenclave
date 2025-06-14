@@ -17,7 +17,7 @@
       gtag('config', 'G-YMT8E4PJN0');
     </script>
     
-    <!-- Simplified Firebase SDKs - NO Functions, NO App Check -->
+    <!-- Simplified Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -63,30 +63,40 @@
             const statsContainer = document.getElementById('stats-container');
 
             overallStatsRef.onSnapshot((doc) => {
-                statsContainer.style.opacity = 1; // Fade in the container
+                statsContainer.style.opacity = 1; 
                 if (doc.exists) {
                     const data = doc.data();
                     if (monthlyVisitsElement) monthlyVisitsElement.textContent = data.monthlyVisits || 0;
                     if (filesProcessedElement) filesProcessedElement.textContent = data.filesProcessed || 0;
                     if (pdfMergeStatElement) pdfMergeStatElement.textContent = (data.toolUsage && data.toolUsage.pdfMerge) || 0;
-                } else {
-                    // If doc doesn't exist, our UI already defaults to 0.
-                    console.log("Stats document does not exist yet. A write operation will create it.");
                 }
             }, (error) => {
                 console.error("Firestore connection error:", error);
                 statsContainer.style.opacity = 1;
             });
 
-            // --- Direct Client-Side Write for Page View ---
-            overallStatsRef.set({
-                monthlyVisits: firebase.firestore.FieldValue.increment(1)
-            }, { merge: true })
-            .then(() => {
-                console.log("Page visit write operation sent successfully.");
-            })
-            .catch(error => {
-                console.error("Error sending page visit write:", error);
+            // --- CORRECTED: Use a Transaction to safely increment the counter ---
+            db.runTransaction((transaction) => {
+                return transaction.get(overallStatsRef).then((doc) => {
+                    if (!doc.exists) {
+                        // If the document doesn't exist, create it with a count of 1.
+                        // The security rule will allow this.
+                        transaction.set(overallStatsRef, { monthlyVisits: 1 });
+                        return 1;
+                    }
+
+                    // If the document exists, read the old count and add 1.
+                    const newVisitCount = (doc.data().monthlyVisits || 0) + 1;
+                    
+                    // Update the document with the specific new count.
+                    // The security rule will allow this because it's exactly one more.
+                    transaction.update(overallStatsRef, { monthlyVisits: newVisitCount });
+                    return newVisitCount;
+                });
+            }).then((finalCount) => {
+                console.log("Transaction successfully committed! New count is:", finalCount);
+            }).catch((error) => {
+                console.error("Transaction failed: ", error);
             });
         });
     </script>
