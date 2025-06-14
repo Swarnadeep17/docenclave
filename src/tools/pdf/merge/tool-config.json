@@ -1,0 +1,26 @@
+{
+    "id": "pdf-merge",
+    "name": "PDF Merge",
+    "description": "Combine multiple PDF files into one document",
+    "category": "pdf",
+    "status": "available",
+    "version": "1.0.0",
+    "icon": "merge",
+    "features": {
+        "free": {
+            "description": "Basic PDF merging",
+            "limits": ["20MB total size", "Basic merge order"]
+        },
+        "premium": {
+            "description": "Advanced PDF merging",
+            "limits": ["Unlimited files", "200MB total size", "Custom page ranges", "Bookmark preservation", "Password protection"]
+        }
+    },
+    "fileSizeLimit": {
+        "free": "20MB",
+        "premium": "200MB"
+    },
+    "fileTypes": [".pdf"],
+    "processingTime": "Fast",
+    "privacy": "Client-side only"
+}
