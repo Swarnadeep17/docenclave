@@ -16,10 +16,13 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '16' # Or a recent stable version
+        node-version: '20' # Updated to Node.js 20
 
     - name: Install Firebase CLI
       run: npm install -g firebase-tools
 
     - name: Deploy to Firebase Hosting
-      run: firebase deploy --only hosting --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOCENCLAVE_APP }} --project docenclave-d5a43
+      run: firebase deploy --only hosting
+      env:
+        FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOCENCLAVE_APP }}
+        FIREBASE_PROJECT: docenclave-d5a43 # Your Firebase Project ID
