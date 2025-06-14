@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import { PDFDocument } from 'pdf-lib'
 import { useAuth } from '../../../contexts/AuthContext'
+import { useStats } from '../../../contexts/StatsContext'
 
 const PdfMerge = () => {
   const [files, setFiles] = useState([])
@@ -8,6 +9,7 @@ const PdfMerge = () => {
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState('')
   const { user, userTier, getUserLimits } = useAuth()
+  const { incrementFilesProcessed } = useStats()
   const limits = getUserLimits()
 
   const handleDrag = useCallback((e) => {
@@ -110,6 +112,9 @@ const PdfMerge = () => {
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
+      // Increment stats
+      incrementFilesProcessed(files.length)
+      
       // Reset form
       setFiles([])
     } catch (err) {

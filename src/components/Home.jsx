@@ -23,17 +23,14 @@ const Home = () => {
 
   // Simulate real stats (in production, this would come from Firebase/analytics)
   useEffect(() => {
-    const allTools = getAllTools()
-    const availableTools = Object.values(allTools).filter(tool => tool.status !== 'soon').length
-    const totalTools = Object.keys(allTools).length
-    
+    // Set target stats from global stats
     setStats({
-      filesProcessed: 12847,
-      toolsAvailable: totalTools,
-      happyUsers: 3421,
-      dataProcessed: 2.4 // GB
+      filesProcessed: globalStats.filesProcessed,
+      toolsAvailable: globalStats.toolsAvailable,
+      happyUsers: globalStats.happyUsers,
+      dataProcessed: Math.round(globalStats.filesProcessed * 0.0035 * 10) / 10 // Estimate data processed in GB
     })
-  }, [])
+  }, [globalStats])
 
   // Animate counters
   useEffect(() => {
