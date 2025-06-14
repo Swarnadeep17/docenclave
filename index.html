@@ -17,7 +17,7 @@
       gtag('config', 'G-YMT8E4PJN0');
     </script>
     
-    <!-- Simplified Firebase SDKs -->
+    <!-- Simplified Firebase SDKs - NO Functions, NO App Check -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
@@ -30,6 +30,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // UI Expansion Logic
             const toolCategoryHeaders = document.querySelectorAll('.tool-category-header');
             toolCategoryHeaders.forEach(header => {
                 header.addEventListener('click', function() {
@@ -41,6 +42,7 @@
                 });
             });
 
+            // Firebase Initialization
             const firebaseConfig = {
                 apiKey: "AIzaSyAwgqYEEUWu0aGminZCl11c_yKYfUu-9MU",
                 authDomain: "docenclave-d5a43.firebaseapp.com",
@@ -50,27 +52,29 @@
                 appId: "1:13497976521:web:fd2f8c357e3bdebfaf6f18",
                 measurementId: "G-YMT8E4PJN0"
             };
-
             firebase.initializeApp(firebaseConfig);
             const db = firebase.firestore();
             const overallStatsRef = db.collection('stats').doc('overall');
 
-            // --- Real-time Stat Display (Reading data) ---
+            // --- Real-time Stat Display ---
             const monthlyVisitsElement = document.getElementById('monthly-visits-stat');
             const filesProcessedElement = document.getElementById('files-processed-stat');
             const pdfMergeStatElement = document.getElementById('pdf-merge-stat');
             const statsContainer = document.getElementById('stats-container');
 
             overallStatsRef.onSnapshot((doc) => {
+                statsContainer.style.opacity = 1; // Fade in the container
                 if (doc.exists) {
                     const data = doc.data();
                     if (monthlyVisitsElement) monthlyVisitsElement.textContent = data.monthlyVisits || 0;
                     if (filesProcessedElement) filesProcessedElement.textContent = data.filesProcessed || 0;
                     if (pdfMergeStatElement) pdfMergeStatElement.textContent = (data.toolUsage && data.toolUsage.pdfMerge) || 0;
+                } else {
+                    // If doc doesn't exist, our UI already defaults to 0.
+                    console.log("Stats document does not exist yet. A write operation will create it.");
                 }
-                statsContainer.style.opacity = 1;
             }, (error) => {
-                console.error("Error fetching stats:", error);
+                console.error("Firestore connection error:", error);
                 statsContainer.style.opacity = 1;
             });
 
@@ -78,14 +82,12 @@
             overallStatsRef.set({
                 monthlyVisits: firebase.firestore.FieldValue.increment(1)
             }, { merge: true })
-            .then(() => console.log("Page visit tracked successfully."))
-            .catch(error => console.error("Error tracking page visit:", error));
-
-            // Placeholder for tool usage tracking
-            window.trackToolUsage = function(toolName) {
-                // This can be implemented later with more advanced rules
-                console.log(`Tool usage tracking for ${toolName} would go here.`);
-            }
+            .then(() => {
+                console.log("Page visit write operation sent successfully.");
+            })
+            .catch(error => {
+                console.error("Error sending page visit write:", error);
+            });
         });
     </script>
 
