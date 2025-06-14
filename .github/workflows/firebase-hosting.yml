@@ -18,8 +18,6 @@ jobs:
       with:
         firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOCENCLAVE_APP }}
         projectId: docenclave-d5a43
-        siteId: docenclave-d5a43 # Explicitly specify the hosting site ID
-        # Optional: Specify the channel (e.g., "live" for production)
-        # channelId: live
+        channelId: live # Specify the live channel
         # Optional: Specify the directory to deploy (defaults to firebase.json.hosting.public)
         # entryPoint: .
