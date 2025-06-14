@@ -43,4 +43,4 @@ jobs:
 
       # Step 6: Deploy to Firebase.
       - name: Deploy to Firebase Hosting and Functions
-        run: firebase deploy --only hosting,functions --project docenclave-d5a43 --non-interactive
+        run: firebase deploy --only hosting,functions --project docenclave-d5a43 --non-interactive --force
