@@ -1,27 +1,22 @@
 docenclave/
-├── index.html
-├── manifest.json
-├── sw.js
-├── .github/
-│   └── workflows/
-│       └── deploy.yml
+├── index.html (Homepage - exact design match)
+├── manifest.json (PWA)
+├── sw.js (Service Worker)
 ├── css/
-│   ├── main.css
-│   └── responsive.css
+│   ├── main.css (Dark theme, compact design)
+│   └── responsive.css (Mobile: 320-767px, Desktop: 768px+)
 ├── js/
-│   ├── app.js
-│   ├── auth.js
-│   ├── firebase-config.js
-│   ├── stats.js
-│   └── tool-discovery.js
+│   ├── firebase-config.js (Your project credentials)
+│   ├── app.js (Main app logic)
+│   ├── auth.js (Firebase Auth - minimal header integration)
+│   ├── stats.js (Real-time analytics)
+│   └── tool-discovery.js (Dynamic tool loading)
 ├── tools/
-│   ├── tools-manifest.json
+│   ├── tools-manifest.json (Dynamic tool discovery)
 │   └── pdf/
 │       ├── pdf-manifest.json
 │       └── merge/
 │           ├── tool-config.json
-│           ├── index.html
-│           └── merge.js
-├── admin/
-│   └── dashboard.html
-└── firebase.json
+│           └── index.html
+└── admin/
+    └── dashboard.html (Dark theme, all stats)
