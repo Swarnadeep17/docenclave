@@ -16,7 +16,8 @@ jobs:
     - name: Deploy to Firebase
       uses: FirebaseExtended/action-hosting-deploy@v0
       with:
-        firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOCENCLAVE_APP }}
+        repoToken: ${{ secrets.GITHUB_TOKEN }} # Recommended for this action
+        firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }} # Use your service account key secret
         projectId: docenclave-d5a43
         channelId: live # Specify the live channel
         # Optional: Specify the directory to deploy (defaults to firebase.json.hosting.public)
