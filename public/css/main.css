@@ -5,148 +5,153 @@
     --text-primary: #FFFFFF;
     --text-secondary: #B2BAC2;
     --accent: #1976D2;
-    
-    /* Updated font sizes */
-    --font-h1: 2.5rem;    /* DocEnclave title */
-    --font-h2: 2.25rem;   /* Section headers */
-    --font-h3: 1.75rem;   /* Card titles */
-    --font-large: 1.5rem; /* Larger text */
-    --font-base: 1.25rem; /* Regular text */
-    --font-small: 1rem;   /* Small text */
+    --highlight: #00C853;
+    --lowlight: #FF1744;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    margin: 0;
-    padding: 0;
     line-height: 1.6;
     text-align: center;
-    min-height: 100vh;
 }
 
 .app {
-    width: 100%;
-    max-width: 1000px; /* Increased from 800px */
+    max-width: 1200px;
     margin: 0 auto;
     padding: 2rem;
 }
 
-/* Header */
-header h1 {
-    font-size: var(--font-h1);
+h1 {
+    font-size: 2.5rem;
     margin: 2rem 0;
 }
 
-/* Hero Section */
-.hero {
-    padding: 3rem 0;
+h2 {
+    font-size: 2rem;
+    margin: 2rem 0 1rem;
 }
 
-.hero h2 {
-    font-size: var(--font-h2);
-    margin-bottom: 1rem;
-}
-
-.subtitle {
-    font-size: var(--font-large);
-    color: var(--text-secondary);
-    margin-bottom: 2rem;
-}
-
-.description {
-    font-size: var(--font-base);
-    max-width: 800px;
-    margin: 0 auto 2rem;
-}
-
-.cta-button {
-    font-size: var(--font-base);
-    padding: 1rem 2rem;
-    border-radius: 8px;
+h3 {
+    font-size: 1.5rem;
     margin: 1rem 0;
 }
 
-/* Feature Cards */
-.cards-container {
+.hero {
+    margin: 4rem 0;
+}
+
+.subtitle {
+    font-size: 1.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.description {
+    font-size: 1.25rem;
+    max-width: 800px;
+    margin: 0 auto 2rem;
+    color: var(--text-secondary);
+}
+
+.cta-button {
+    background: white;
+    color: black;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1.25rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+}
+
+.feature-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
-    padding: 1.5rem 0;
+    margin: 2rem 0;
 }
 
 .feature-card {
     background: var(--bg-card);
-    border-radius: 12px;
     padding: 2rem;
-    text-align: center;
-    transition: background-color 0.3s ease;
+    border-radius: 12px;
+    transition: background-color 0.3s;
 }
 
-.feature-card h3 {
-    font-size: var(--font-h3);
-    margin: 1rem 0;
+.feature-card:hover {
+    background: var(--bg-card-hover);
 }
 
-.feature-card p {
-    font-size: var(--font-base);
+.feature-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1rem;
 }
 
-/* Section Headers */
-section h2 {
-    font-size: var(--font-h2);
-    margin: 3rem 0 1.5rem;
-    text-align: center;
-}
-
-/* Stats Section */
 .stats-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 3rem;
     background: var(--bg-card);
     border-radius: 12px;
     padding: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4rem;
     margin: 2rem auto;
     max-width: 600px;
 }
 
-.stat {
-    text-align: center;
-}
-
 .stat-number {
-    font-size: var(--font-h2);
+    font-size: 2.5rem;
     display: block;
     margin: 0.5rem 0;
 }
 
 .stat-label {
-    font-size: var(--font-base);
     color: var(--text-secondary);
+    font-size: 1.25rem;
 }
 
-/* Tools Section */
+.stat-divider {
+    width: 1px;
+    height: 60px;
+    background: var(--text-secondary);
+    opacity: 0.2;
+}
+
 .tool-card {
     background: var(--bg-card);
     border-radius: 12px;
     margin: 1rem auto;
-    max-width: 800px;
     cursor: pointer;
+    transition: background-color 0.3s;
+    max-width: 800px;
+}
+
+.tool-card:hover {
+    background: var(--bg-card-hover);
 }
 
 .tool-header {
     padding: 1.5rem;
-    font-size: var(--font-large);
+    font-size: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 1rem;
 }
 
-/* Comparison Table */
 .comparison-table {
     background: var(--bg-card);
     border-radius: 12px;
@@ -155,10 +160,27 @@ section h2 {
     max-width: 800px;
 }
 
-/* Footer */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+th, td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--bg-card-hover);
+}
+
+.highlight {
+    color: var(--highlight);
+}
+
+.lowlight {
+    color: var(--lowlight);
+}
+
 footer {
-    padding: 3rem 0;
-    font-size: var(--font-base);
+    margin-top: 4rem;
     color: var(--text-secondary);
 }
 
@@ -169,20 +191,10 @@ footer {
 .footer-links a {
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: var(--font-small);
     margin: 0 1rem;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
-    :root {
-        --font-h1: 2rem;
-        --font-h2: 1.75rem;
-        --font-h3: 1.5rem;
-        --font-large: 1.25rem;
-        --font-base: 1rem;
-    }
-
     .app {
         padding: 1rem;
     }
@@ -190,5 +202,9 @@ footer {
     .stats-container {
         flex-direction: column;
         gap: 2rem;
+    }
+
+    .stat-divider {
+        display: none;
     }
 }
