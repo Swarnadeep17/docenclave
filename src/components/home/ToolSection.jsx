@@ -1,4 +1,3 @@
-// src/components/home/ToolSection.jsx
 import React from 'react';
 
 const ToolSection = ({ categories, expandedCategory, setExpandedCategory }) => {
