@@ -1,4 +1,3 @@
-// src/components/home/ComparisonSection.jsx
 import React from 'react';
 
 const ComparisonSection = () => {
