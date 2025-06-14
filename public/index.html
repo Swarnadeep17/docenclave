@@ -3,83 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#000000">
-    <meta name="description" content="DocEnclave - Process documents securely & instantly">
+    <title>DocEnclave - Secure Client-Side Document Processing</title>
     
-    <title>DocEnclave</title>
-    
-    <link rel="manifest" href="/manifest.json">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="apple-touch-icon" href="/assets/icons/icon-192x192.png">
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Transform your documents instantly with DocEnclave's secure, client-side processing tools. No uploads, no server storage, just lightning-fast results.">
+    <meta name="keywords" content="document processing, PDF tools, secure document handling, client-side processing, file conversion">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="DocEnclave - Secure Document Processing">
+    <meta property="og:description" content="Transform your documents instantly with DocEnclave's secure, client-side processing tools.">
+    <meta property="og:type" content="website">
     
     <link rel="stylesheet" href="/css/main.css">
-    <link rel="stylesheet" href="/css/components.css">
 </head>
 <body>
-    <div class="app">
-        <header class="header">
-            <div class="container">
-                <h1 class="logo">DocEnclave</h1>
-                <nav class="nav">
-                    <button class="auth-btn" id="authBtn">Sign In</button>
-                </nav>
-            </div>
-        </header>
+    <!-- Header -->
+    <header class="header">
+        <div class="container text-center">
+            <h1 class="logo">DocEnclave</h1>
+        </div>
+    </header>
 
-        <main>
-            <section class="hero">
-                <div class="container">
-                    <h2>Process Documents</h2>
-                    <p class="subtitle">Securely & Instantly</p>
-                    <button class="cta-btn">Explore Available Tools</button>
-                </div>
-            </section>
-
-            <section class="features">
-                <div class="container">
-                    <div class="feature-grid">
-                        <div class="feature-card">
-                            <span class="icon">🔒</span>
-                            <h3>Privacy First</h3>
-                            <p>Your documents never leave your browser.</p>
+    <main>
+        <!-- Hero Section with Vision & Stats -->
+        <section class="hero">
+            <div class="container text-center">
+                <h2 class="vision-text">Process Documents</h2>
+                <p class="vision-subtext">Securely & Instantly</p>
+                
+                <!-- Innovative Stats Display -->
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <div class="stat-circle">
+                            <span class="stat-number" id="processedFiles">0</span>
+                            <span class="stat-label">Documents<br>Processed</span>
                         </div>
-                        <div class="feature-card">
-                            <span class="icon">⚡</span>
-                            <h3>Lightning Speed</h3>
-                            <p>Process files instantly, no uploads needed.</p>
-                        </div>
-                        <div class="feature-card">
-                            <span class="icon">👥</span>
-                            <h3>User Friendly</h3>
-                            <p>Simple, intuitive interface for everyone.</p>
-                        </div>
-                        <div class="feature-card">
-                            <span class="icon">🌱</span>
-                            <h3>Always Growing</h3>
-                            <p>New tools added regularly based on your needs.</p>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-circle">
+                            <span class="stat-number" id="savedTime">0</span>
+                            <span class="stat-label">Hours<br>Saved</span>
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <section class="tools">
-                <div class="container">
-                    <h2>Choose Your Tool</h2>
-                    <div class="tools-grid" id="toolsGrid">
-                        <!-- Tools will be dynamically populated -->
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer class="footer">
-            <div class="container">
-                <p>&copy; 2024 DocEnclave. All rights reserved.</p>
             </div>
-        </footer>
-    </div>
+        </section>
 
-    <script src="/js/app.js" type="module"></script>
-    <script src="/js/pwa.js" type="module"></script>
+        <!-- USP Cards -->
+        <section class="usp">
+            <div class="container">
+                <div class="usp-grid">
+                    <article class="usp-card">
+                        <div class="usp-icon">🔒</div>
+                        <h3>Client-Side Processing</h3>
+                        <p>Your files never leave your device</p>
+                    </article>
+                    <!-- More USP cards... -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Expandable Tools Section -->
+        <section class="tools">
+            <div class="container">
+                <h2>Available Tools</h2>
+                <div class="tools-grid" id="toolsContainer">
+                    <!-- Dynamic content -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparison Chart -->
+        <section class="comparison">
+            <div class="container">
+                <h2>Why Choose DocEnclave?</h2>
+                <div class="comparison-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>DocEnclave</th>
+                                <th>Traditional Tools</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Processing Location</td>
+                                <td>Your Device</td>
+                                <td>Remote Server</td>
+                            </tr>
+                            <!-- More comparison rows... -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="container text-center">
+            <p>&copy; 2024 DocEnclave. All rights reserved.</p>
+        </div>
+    </footer>
 </body>
 </html>
