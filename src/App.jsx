@@ -8,7 +8,7 @@ function App() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow pt-16 md:pt-20"> {/* Added padding for fixed header */}
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="*" element={<HomePage />} />
