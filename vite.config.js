@@ -24,7 +24,15 @@ export default defineConfig({
             type: 'image/png'
           }
         ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,woff2}'], // Fixed pattern
+        globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
+        maximumFileSizeToCacheInBytes: 5000000 // 5MB
       }
     })
-  ]
+  ],
+  build: {
+    chunkSizeWarningLimit: 1000 // 1000KB
+  }
 })
