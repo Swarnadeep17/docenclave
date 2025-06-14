@@ -5,6 +5,14 @@
     --text-primary: #FFFFFF;
     --text-secondary: #B2BAC2;
     --accent: #1976D2;
+    
+    /* Updated font sizes */
+    --font-h1: 2.5rem;    /* DocEnclave title */
+    --font-h2: 2.25rem;   /* Section headers */
+    --font-h3: 1.75rem;   /* Card titles */
+    --font-large: 1.5rem; /* Larger text */
+    --font-base: 1.25rem; /* Regular text */
+    --font-small: 1rem;   /* Small text */
 }
 
 body {
@@ -13,91 +21,128 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     margin: 0;
     padding: 0;
-    line-height: 1.5;
+    line-height: 1.6;
+    text-align: center;
+    min-height: 100vh;
 }
 
 .app {
-    max-width: 800px;
+    width: 100%;
+    max-width: 1000px; /* Increased from 800px */
     margin: 0 auto;
-    padding: 1rem;
+    padding: 2rem;
+}
+
+/* Header */
+header h1 {
+    font-size: var(--font-h1);
+    margin: 2rem 0;
 }
 
 /* Hero Section */
 .hero {
-    text-align: center;
-    padding: 2rem 0;
+    padding: 3rem 0;
 }
 
 .hero h2 {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
+    font-size: var(--font-h2);
+    margin-bottom: 1rem;
 }
 
 .subtitle {
+    font-size: var(--font-large);
     color: var(--text-secondary);
-    font-size: 1.25rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.description {
+    font-size: var(--font-base);
+    max-width: 800px;
+    margin: 0 auto 2rem;
 }
 
 .cta-button {
-    background: white;
-    color: black;
-    border: none;
-    padding: 0.75rem 1.5rem;
+    font-size: var(--font-base);
+    padding: 1rem 2rem;
     border-radius: 8px;
-    font-weight: 500;
-    cursor: pointer;
+    margin: 1rem 0;
 }
 
 /* Feature Cards */
+.cards-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+}
+
 .feature-card {
     background: var(--bg-card);
     border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    padding: 2rem;
+    text-align: center;
     transition: background-color 0.3s ease;
 }
 
-.feature-card:hover {
-    background: var(--bg-card-hover);
+.feature-card h3 {
+    font-size: var(--font-h3);
+    margin: 1rem 0;
 }
 
-.feature-icon {
-    width: 48px;
-    height: 48px;
-    margin-bottom: 1rem;
+.feature-card p {
+    font-size: var(--font-base);
+}
+
+/* Section Headers */
+section h2 {
+    font-size: var(--font-h2);
+    margin: 3rem 0 1.5rem;
+    text-align: center;
 }
 
 /* Stats Section */
 .stats-container {
-    background: var(--bg-card);
-    border-radius: 12px;
-    padding: 1rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 2rem;
+    gap: 3rem;
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 600px;
 }
 
-.stat-divider {
-    width: 1px;
-    height: 40px;
-    background: var(--text-secondary);
-    opacity: 0.2;
+.stat {
+    text-align: center;
 }
 
-/* Tool Cards */
+.stat-number {
+    font-size: var(--font-h2);
+    display: block;
+    margin: 0.5rem 0;
+}
+
+.stat-label {
+    font-size: var(--font-base);
+    color: var(--text-secondary);
+}
+
+/* Tools Section */
 .tool-card {
     background: var(--bg-card);
     border-radius: 12px;
-    margin-bottom: 1rem;
+    margin: 1rem auto;
+    max-width: 800px;
     cursor: pointer;
 }
 
 .tool-header {
-    padding: 1rem;
+    padding: 1.5rem;
+    font-size: var(--font-large);
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 1rem;
 }
 
@@ -105,26 +150,45 @@ body {
 .comparison-table {
     background: var(--bg-card);
     border-radius: 12px;
-    padding: 1rem;
-    margin-top: 1rem;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 800px;
 }
 
 /* Footer */
 footer {
-    text-align: center;
-    padding: 2rem 0;
+    padding: 3rem 0;
+    font-size: var(--font-base);
     color: var(--text-secondary);
 }
 
 .footer-links {
-    margin-top: 0.5rem;
+    margin-top: 1rem;
 }
 
 .footer-links a {
     color: var(--text-secondary);
     text-decoration: none;
+    font-size: var(--font-small);
+    margin: 0 1rem;
 }
 
-.separator {
-    margin: 0 0.5rem;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    :root {
+        --font-h1: 2rem;
+        --font-h2: 1.75rem;
+        --font-h3: 1.5rem;
+        --font-large: 1.25rem;
+        --font-base: 1rem;
+    }
+
+    .app {
+        padding: 1rem;
+    }
+
+    .stats-container {
+        flex-direction: column;
+        gap: 2rem;
+    }
 }
