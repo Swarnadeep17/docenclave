@@ -12,7 +12,7 @@ export default defineConfig({
         short_name: 'DocEnclave',
         description: 'Client-side document processing tools',
         theme_color: '#ffffff',
-        background_color: '#ffffff',
+        background_color: '#0f0f13',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -28,21 +28,12 @@ export default defineConfig({
             type: 'image/png',
             purpose: 'any maskable'
           }
-        ],
-        shortcuts: [
-          {
-            name: 'PDF Tools',
-            short_name: 'PDF',
-            description: 'Merge, split and compress PDFs',
-            url: '/tools/pdf',
-            icons: [{ src: '/pdf-icon.png', sizes: '192x192' }]
-          }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,woff2,wasm}'],
         globIgnores: ['**/node_modules/**/*', 'sw.js', 'workbox-*.js'],
-        maximumFileSizeToCacheInBytes: 5000000, // 5MB
+        maximumFileSizeToCacheInBytes: 5000000,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -51,7 +42,7 @@ export default defineConfig({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -65,7 +56,7 @@ export default defineConfig({
               cacheName: 'gstatic-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -77,20 +68,14 @@ export default defineConfig({
     })
   ],
   build: {
-    chunkSizeWarningLimit: 1000, // 1000KB
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('firebase')) {
-              return 'firebase';
-            }
-            if (id.includes('pdf-lib')) {
-              return 'pdf-lib';
-            }
-            if (id.includes('react')) {
-              return 'react';
-            }
+            if (id.includes('firebase')) return 'firebase';
+            if (id.includes('pdf-lib')) return 'pdf-lib';
+            if (id.includes('react')) return 'react';
             return 'vendor';
           }
         }
@@ -111,7 +96,7 @@ export default defineConfig({
   },
   server: {
     hmr: {
-      overlay: false // Disable HMR error overlay on mobile
+      overlay: false
     }
   }
 });
