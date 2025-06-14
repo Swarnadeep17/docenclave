@@ -1,10 +1,13 @@
 
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import AuthModal from './auth/AuthModal'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [user, setUser] = useState(null) // Will be connected to Firebase auth later
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const { user, userTier, logout } = useAuth()
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
@@ -49,20 +52,45 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <i className="fas fa-user text-primary-600 text-sm"></i>
+                    {user.photoURL ? (
+                      <img 
+                        src={user.photoURL} 
+                        alt="Profile" 
+                        className="w-8 h-8 rounded-full"
+                      />
+                    ) : (
+                      <i className="fas fa-user text-primary-600 text-sm"></i>
+                    )}
                   </div>
-                  <span className="text-gray-700 font-medium">{user.name}</span>
+                  <div className="flex flex-col">
+                    <span className="text-gray-700 font-medium text-sm">
+                      {user.displayName || 'Anonymous User'}
+                    </span>
+                    <span className="text-xs text-gray-500 capitalize">
+                      {userTier} Plan
+                    </span>
+                  </div>
                 </div>
-                <button className="text-gray-500 hover:text-gray-700">
+                <button 
+                  onClick={logout}
+                  className="text-gray-500 hover:text-gray-700 p-2"
+                  title="Sign Out"
+                >
                   <i className="fas fa-sign-out-alt"></i>
                 </button>
               </div>
             ) : (
               <>
-                <button className="text-gray-700 hover:text-primary-600 font-medium transition-colors">
+                <button 
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="text-gray-700 hover:text-primary-600 font-medium transition-colors"
+                >
                   Sign In
                 </button>
-                <button className="btn-primary">
+                <button 
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="btn-primary"
+                >
                   <i className="fas fa-user-plus mr-2"></i>
                   Get Started
                 </button>
