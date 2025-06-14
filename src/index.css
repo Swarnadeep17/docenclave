@@ -17,6 +17,20 @@ body {
   overflow-x: hidden;
 }
 
+/* Glassmorphism effect */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Animations */
 @keyframes float1 {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
   25% { transform: translate(5px, -5px) rotate(2deg); }
@@ -58,4 +72,11 @@ body {
 
 .animate-slide-down {
   animation: slide-down 0.4s ease-out;
+}
+
+/* Gradient text */
+.gradient-text {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
