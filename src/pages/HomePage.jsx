@@ -1,4 +1,3 @@
-// src/pages/HomePage.jsx
 import React, { useState } from 'react';
 import HeroSection from '../components/home/HeroSection';
 import USPFeatures from '../components/home/USPFeatures';
@@ -10,12 +9,11 @@ import CTASection from '../components/home/CTASection';
 const HomePage = () => {
   const [expandedCategory, setExpandedCategory] = useState(null);
   
-  // Mock tool data - will be replaced with GitHub API integration
   const toolCategories = [
     {
       id: 'pdf',
       name: 'PDF Tools',
-      icon: 'description',
+      icon: '📄',
       tools: [
         { name: 'Merge PDF', status: 'live', usage: 12489 },
         { name: 'Split PDF', status: 'live', usage: 8923 },
@@ -26,7 +24,7 @@ const HomePage = () => {
     {
       id: 'image',
       name: 'Image Tools',
-      icon: 'image',
+      icon: '🖼️',
       tools: [
         { name: 'Resize Image', status: 'soon' },
         { name: 'Convert Format', status: 'soon' },
@@ -36,7 +34,7 @@ const HomePage = () => {
     {
       id: 'document',
       name: 'Document Tools',
-      icon: 'article',
+      icon: '📝',
       tools: [
         { name: 'Text Extract', status: 'soon' },
         { name: 'Format Convert', status: 'soon' },
@@ -45,7 +43,7 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="space-y-16 md:space-y-24">
+    <div className="space-y-16 md:space-y-24 pt-16">
       <HeroSection />
       <USPFeatures />
       <StatsSection />
