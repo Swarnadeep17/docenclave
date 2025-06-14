@@ -1,0 +1,263 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DocEnclave - Process Documents Securely & Instantly</title>
+    <meta name="description" content="Free client-side document processing tools. Merge, split, compress PDFs and more. Your files never leave your browser.">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0a0a0a">
+    
+    <!-- Icons -->
+    <link rel="icon" type="image/png" href="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/d1dfcf04-65dd-461f-b725-f9a90f47317c.png" sizes="32x32" alt="DocEnclave favicon - document processing icon">
+    <link rel="apple-touch-icon" href="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/3cf3db0c-2a96-473c-89c3-c4d58999bf63.png" alt="DocEnclave app icon for iOS home screen">
+    
+    <!-- Google Fonts & Material Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-analytics-compat.js"></script>
+</head>
+<body>
+    <!-- Minimal Header -->
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">DocEnclave</h1>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h2 class="hero-title">Process Documents</h2>
+                    <h3 class="hero-subtitle">Securely & Instantly</h3>
+                    <p class="hero-description">
+                        DocEnclave provides free, client-side document processing tools. Your files stay on your device, ensuring ultimate privacy and speed.
+                    </p>
+                    <button class="btn-primary" id="exploreToolsBtn">
+                        Explore Available Tools
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Highlights -->
+        <section class="highlights">
+            <div class="container">
+                <h2 class="section-title">Key Highlights</h2>
+                <div class="highlights-list">
+                    <div class="highlight-card">
+                        <div class="highlight-icon">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/1200e425-2b08-4363-8c8e-084934be5b65.png" alt="Privacy chart icon representing data security and protection">
+                        </div>
+                        <div class="highlight-content">
+                            <h3 class="highlight-title">Privacy First</h3>
+                            <p class="highlight-description">Your documents never leave your browser.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="highlight-card">
+                        <div class="highlight-icon">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/e9dabdee-14e3-4adc-beca-1eb7a04a2b95.png" alt="Package cube icon representing fast processing speed">
+                        </div>
+                        <div class="highlight-content">
+                            <h3 class="highlight-title">Lightning Speed</h3>
+                            <p class="highlight-description">Process files instantly, no uploads needed.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="highlight-card">
+                        <div class="highlight-icon">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/18a8cddf-ea96-4f32-b7ff-fa50ba26b511.png" alt="Star icon representing user-friendly interface">
+                        </div>
+                        <div class="highlight-content">
+                            <h3 class="highlight-title">User Friendly</h3>
+                            <p class="highlight-description">Simple, intuitive interface for everyone.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="highlight-card">
+                        <div class="highlight-icon">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/8051d081-4e4a-43dc-b1bd-a60b054d8e40.png" alt="Growing plant seedling representing continuous development">
+                        </div>
+                        <div class="highlight-content">
+                            <h3 class="highlight-title">Always Growing</h3>
+                            <p class="highlight-description">New tools added regularly based on your needs.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Progress Stats -->
+        <section class="progress">
+            <div class="container">
+                <h2 class="section-title">Our Progress</h2>
+                <div class="stats-container">
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/a7af7bea-d618-4aa0-b78e-d879554af36f.png" alt="Chart trending upward representing website traffic growth">
+                        </div>
+                        <div class="stat-number" id="monthlyVisits">0</div>
+                        <div class="stat-label">Monthly Visits</div>
+                    </div>
+                    
+                    <div class="stat-divider"></div>
+                    
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/a2237efb-15d7-4717-8660-7829b60cec87.png" alt="Folder icon representing files processed by users">
+                        </div>
+                        <div class="stat-number" id="filesProcessed">0</div>
+                        <div class="stat-label">Files Processed</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tool Selection -->
+        <section class="tools">
+            <div class="container">
+                <h2 class="section-title">Choose Your Tool</h2>
+                <p class="tools-description">Select a file type to see the available tools.</p>
+                
+                <div class="tools-container" id="toolsContainer">
+                    <!-- PDF Tools Category -->
+                    <div class="tool-category" data-category="pdf">
+                        <div class="tool-header" id="pdfToolHeader">
+                            <div class="tool-main">
+                                <div class="tool-icon">
+                                    <span class="material-icons">description</span>
+                                </div>
+                                <div class="tool-info">
+                                    <h3 class="tool-title">PDF Tools</h3>
+                                    <p class="tool-description">Merge, split, compress, and convert your PDF files.</p>
+                                </div>
+                            </div>
+                            <div class="tool-expand">
+                                <span class="material-icons">keyboard_arrow_down</span>
+                            </div>
+                        </div>
+                        <div class="tool-subtasks" id="pdfTools">
+                            <!-- Dynamic content loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparison Table -->
+        <section class="comparison">
+            <div class="container">
+                <h2 class="section-title">Why Choose DocEnclave?</h2>
+                <div class="comparison-table">
+                    <div class="comparison-header">
+                        <div class="comparison-col">Feature</div>
+                        <div class="comparison-col highlight">DocEnclave</div>
+                        <div class="comparison-col">Traditional Tools</div>
+                    </div>
+                    
+                    <div class="comparison-row">
+                        <div class="comparison-col feature">Data Privacy</div>
+                        <div class="comparison-col highlight positive">Client-Side (High)</div>
+                        <div class="comparison-col negative">Server-Side (Lower)</div>
+                    </div>
+                    
+                    <div class="comparison-row">
+                        <div class="comparison-col feature">Processing Speed</div>
+                        <div class="comparison-col highlight positive">Instant (Local)</div>
+                        <div class="comparison-col negative">Upload Dependent</div>
+                    </div>
+                    
+                    <div class="comparison-row">
+                        <div class="comparison-col feature">Internet Required</div>
+                        <div class="comparison-col highlight positive">No (After Load)</div>
+                        <div class="comparison-col negative">Yes (Always)</div>
+                    </div>
+                    
+                    <div class="comparison-row">
+                        <div class="comparison-col feature">File Security</div>
+                        <div class="comparison-col highlight positive">On Your Device</div>
+                        <div class="comparison-col negative">Server Storage Risk</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <p class="copyright">© 2023 DocEnclave. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="/privacy" class="footer-link">Privacy Policy</a>
+                    <span class="footer-separator">|</span>
+                    <a href="/terms" class="footer-link">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Auth Modal (Hidden) -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-content">
+            <button class="auth-close" id="authClose">&times;</button>
+            <h2 class="auth-title" id="authTitle">Login to DocEnclave</h2>
+            <form class="auth-form" id="authForm">
+                <input type="email" placeholder="Email" required class="auth-input" id="authEmail">
+                <input type="password" placeholder="Password" required class="auth-input" id="authPassword">
+                <button type="submit" class="btn-primary" id="authSubmit">Login</button>
+            </form>
+            <p class="auth-switch">
+                <span id="authSwitchText">Don't have an account?</span>
+                <a href="#" id="authSwitchLink">Sign up</a>
+            </p>
+            <button class="btn-secondary" id="guestMode">Continue as Guest</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <span class="material-icons">refresh</span>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/stats.js"></script>
+    <script src="js/tool-discovery.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(function(registration) {
+                        console.log('ServiceWorker registration successful');
+                    }, function(err) {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
+
