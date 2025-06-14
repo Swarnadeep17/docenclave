@@ -399,6 +399,33 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Tools and Company Links Section */}
+      <section className="py-8 md:py-12 px-4 bg-gray-900">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+            <div>
+              <h3 className="font-semibold text-white mb-4">Tools</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><Link to="/tools" className="hover:text-white transition-colors">PDF Tools</Link></li>
+                <li><Link to="/tools" className="hover:text-white transition-colors">Image Tools</Link></li>
+                <li><Link to="/tools" className="hover:text-white transition-colors">Document Tools</Link></li>
+                <li><Link to="/tools" className="hover:text-white transition-colors">Security Tools</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h3 className="font-semibold text-white mb-4">Company</h3>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* DocEnclave Description Section */}
       <section className="py-12 md:py-16 px-4 bg-gradient-to-b from-black to-gray-900">
         <div className="max-w-4xl mx-auto text-center">
@@ -449,53 +476,6 @@ const Home = () => {
       {/* Footer */}
       <footer className="py-8 md:py-12 px-4 border-t border-white/10">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 mb-6 md:mb-8">
-            <div className="md:col-span-2">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                  <i className="fas fa-file-alt text-black text-sm"></i>
-                </div>
-                <span className="text-xl md:text-2xl font-bold text-white">
-                  Doc<span className="text-gray-400">Enclave</span>
-                </span>
-              </div>
-              <p className="text-gray-400 mb-4 max-w-md text-sm md:text-base">
-                Built by developers who believe your documents should remain yours.
-              </p>
-              <div className="flex space-x-4">
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                  <i className="fab fa-twitter text-white"></i>
-                </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                  <i className="fab fa-github text-white"></i>
-                </a>
-                <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                  <i className="fab fa-discord text-white"></i>
-                </a>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-white mb-4">Tools</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/tools" className="hover:text-white transition-colors">PDF Tools</Link></li>
-                <li><Link to="/tools" className="hover:text-white transition-colors">Image Tools</Link></li>
-                <li><Link to="/tools" className="hover:text-white transition-colors">Document Tools</Link></li>
-                <li><Link to="/tools" className="hover:text-white transition-colors">Security Tools</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold text-white mb-4">Company</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact</a></li>
-              </ul>
-            </div>
-          </div>
-          
           <div className="pt-8 border-t border-white/10 text-center text-gray-400">
             <p>&copy; 2025 DocEnclave. All rights reserved. Built with privacy in mind.</p>
           </div>
