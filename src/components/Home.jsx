@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { toolCategories, getAllTools } from '../config/tools'
+import { useStats } from '../contexts/StatsContext'
 import ToolCard from './ToolCard'
 
 const Home = () => {
+  const { stats: globalStats } = useStats()
   const [stats, setStats] = useState({
     filesProcessed: 0,
     toolsAvailable: 0,
