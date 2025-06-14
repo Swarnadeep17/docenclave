@@ -1,4 +1,3 @@
-// src/components/home/StatsSection.jsx
 import React, { useState, useEffect } from 'react';
 
 const StatsSection = () => {
@@ -10,7 +9,6 @@ const StatsSection = () => {
   });
 
   useEffect(() => {
-    // Simulate counting up animation
     const interval = setInterval(() => {
       setCounts(prev => ({
         processed: Math.min(prev.processed + 127, 125000),
@@ -54,7 +52,6 @@ const StatsSection = () => {
             />
           </div>
           
-          {/* Animated file processing visualization */}
           <div className="mt-16">
             <div className="flex items-center justify-center mb-4">
               <div className="flex items-center space-x-2">
