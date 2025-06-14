@@ -1,0 +1,28 @@
+/* Header Styles */
+.header {
+    padding: 1rem 0;
+    background: var(--bg-secondary);
+    text-align: center;
+}
+
+/* Hero Section */
+.hero {
+    padding: var(--section-spacing) 0;
+    text-align: center;
+}
+
+/* Stats Display */
+.stats-container {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+/* Tool Categories */
+.tool-category {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
