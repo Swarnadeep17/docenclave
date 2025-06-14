@@ -6,36 +6,17 @@ import { useStats } from '../contexts/StatsContext'
 import { useAuth } from '../contexts/AuthContext'
 
 const Home = () => {
-  const { stats: globalStats } = useStats()
+  const { stats: globalStats, activeUsers, isConnected, incrementFilesProcessed, incrementToolsUsed } = useStats()
   const { user } = useAuth()
   const [expandedCategory, setExpandedCategory] = useState(null)
-  const [realTimeStats, setRealTimeStats] = useState({
-    filesSecured: 0,
-    filesDownloaded: 0,
-    activeUsers: 0,
-    toolsUsed: 0
-  })
 
-  // Real-time stats based on actual usage
-  useEffect(() => {
-    // Initialize with realistic base numbers plus actual stats
-    setRealTimeStats({
-      filesSecured: globalStats.filesProcessed + 12847,
-      filesDownloaded: globalStats.filesProcessed + 28456,
-      activeUsers: 127 + Math.floor(Math.random() * 20), // Only active users vary
-      toolsUsed: globalStats.filesProcessed + 5670
-    })
-
-    // Update active users periodically (realistic fluctuation)
-    const interval = setInterval(() => {
-      setRealTimeStats(prev => ({
-        ...prev,
-        activeUsers: 127 + Math.floor(Math.random() * 20)
-      }))
-    }, 30000) // Update every 30 seconds
-
-    return () => clearInterval(interval)
-  }, [globalStats])
+  // Use real-time stats from Firebase
+  const realTimeStats = {
+    filesSecured: globalStats.filesProcessed || 12847,
+    filesDownloaded: globalStats.filesDownloaded || 28456,
+    activeUsers: activeUsers || 127,
+    toolsUsed: globalStats.toolsUsed || 5670
+  }
 
   const uspCards = [
     {
@@ -133,19 +114,21 @@ const Home = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10 max-w-4xl mx-auto">
             <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
               <div className="flex items-center justify-center mb-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                <div className={`w-2 h-2 rounded-full animate-pulse mr-2 ${isConnected ? 'bg-green-400' : 'bg-yellow-400'}`}></div>
                 <i className="fas fa-shield-alt text-green-400 text-sm"></i>
               </div>
               <div className="text-lg md:text-2xl font-bold text-white mb-1">
                 {realTimeStats.filesSecured.toLocaleString()}
               </div>
               <div className="text-xs text-gray-400">Files Secured</div>
-              <div className="text-xs text-green-400 mt-1">This Month</div>
+              <div className="text-xs text-green-400 mt-1">
+                {isConnected ? 'Live Data' : 'Cached Data'}
+              </div>
             </div>
 
             <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
               <div className="flex items-center justify-center mb-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse mr-2"></div>
+                <div className={`w-2 h-2 rounded-full animate-pulse mr-2 ${isConnected ? 'bg-blue-400' : 'bg-yellow-400'}`}></div>
                 <i className="fas fa-download text-blue-400 text-sm"></i>
               </div>
               <div className="text-lg md:text-2xl font-bold text-white mb-1">
@@ -157,7 +140,7 @@ const Home = () => {
 
             <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
               <div className="flex items-center justify-center mb-2">
-                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse mr-2"></div>
+                <div className={`w-2 h-2 rounded-full animate-pulse mr-2 ${isConnected ? 'bg-purple-400' : 'bg-yellow-400'}`}></div>
                 <i className="fas fa-users text-purple-400 text-sm"></i>
               </div>
               <div className="text-lg md:text-2xl font-bold text-white mb-1">
@@ -169,14 +152,16 @@ const Home = () => {
 
             <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
               <div className="flex items-center justify-center mb-2">
-                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse mr-2"></div>
+                <div className={`w-2 h-2 rounded-full animate-pulse mr-2 ${isConnected ? 'bg-orange-400' : 'bg-yellow-400'}`}></div>
                 <i className="fas fa-tools text-orange-400 text-sm"></i>
               </div>
               <div className="text-lg md:text-2xl font-bold text-white mb-1">
                 {realTimeStats.toolsUsed.toLocaleString()}
               </div>
               <div className="text-xs text-gray-400">Tools Used</div>
-              <div className="text-xs text-orange-400 mt-1">This Month</div>
+              <div className="text-xs text-orange-400 mt-1">
+                {isConnected ? 'Live Data' : 'Cached Data'}
+              </div>
             </div>
           </div>
           
