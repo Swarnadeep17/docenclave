@@ -1,4 +1,3 @@
-// src/components/home/USPFeatures.jsx
 import React from 'react';
 
 const USPFeatures = () => {
