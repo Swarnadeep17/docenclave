@@ -1,0 +1,12 @@
+127.0.0.1 - - [14/Jun/2025 17:59:05] "HEAD / HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 17:59:19] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 17:59:19] "GET /assets/index-DpYhlsId.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 17:59:19] "GET /assets/index-CYfKtSzu.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 17:59:19] "GET /registerSW.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 18:01:17] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 18:01:17] "GET /assets/index-CYfKtSzu.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 18:01:17] "GET /assets/index-DpYhlsId.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 18:01:17] "GET /registerSW.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 18:01:21] code 404, message File not found
+127.0.0.1 - - [14/Jun/2025 18:01:21] "GET /apple-touch-icon.png HTTP/1.1" 404 -
+127.0.0.1 - - [14/Jun/2025 18:01:21] "GET /favicon.svg HTTP/1.1" 200 -
