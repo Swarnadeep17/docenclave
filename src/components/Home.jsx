@@ -114,7 +114,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Hero Section */}
-      <section className="relative min-h-screen md:min-h-screen flex items-center justify-center overflow-hidden py-20 md:py-0">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden py-12 md:py-16">
         {/* Animated Background */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
@@ -128,35 +128,55 @@ const Home = () => {
             <br />
             <span className="text-3xl md:text-6xl">Reimagined</span>
           </h1>
-          <p className="text-lg md:text-2xl text-gray-300 mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed">
-            Privacy-first tools that work entirely in your browser. No uploads, no limits, no compromises.
-          </p>
           
-          {/* Real-time Stats in Hero */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 mb-8 md:mb-12 max-w-3xl mx-auto">
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white mb-1">
+          {/* Live Activity Stats in Hero */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10 max-w-4xl mx-auto">
+            <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+                <i className="fas fa-shield-alt text-green-400 text-sm"></i>
+              </div>
+              <div className="text-lg md:text-2xl font-bold text-white mb-1">
                 {realTimeStats.filesSecured.toLocaleString()}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Files Secured</div>
+              <div className="text-xs text-gray-400">Files Secured</div>
+              <div className="text-xs text-green-400 mt-1">This Month</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white mb-1">
+
+            <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse mr-2"></div>
+                <i className="fas fa-download text-blue-400 text-sm"></i>
+              </div>
+              <div className="text-lg md:text-2xl font-bold text-white mb-1">
                 {realTimeStats.filesDownloaded.toLocaleString()}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Downloads</div>
+              <div className="text-xs text-gray-400">Files Downloaded</div>
+              <div className="text-xs text-blue-400 mt-1">Privately</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white mb-1">
+
+            <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse mr-2"></div>
+                <i className="fas fa-users text-purple-400 text-sm"></i>
+              </div>
+              <div className="text-lg md:text-2xl font-bold text-white mb-1">
                 {realTimeStats.activeUsers}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Active Users</div>
+              <div className="text-xs text-gray-400">Active Users</div>
+              <div className="text-xs text-purple-400 mt-1">Right Now</div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-white mb-1">
+
+            <div className="p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse mr-2"></div>
+                <i className="fas fa-tools text-orange-400 text-sm"></i>
+              </div>
+              <div className="text-lg md:text-2xl font-bold text-white mb-1">
                 {realTimeStats.toolsUsed.toLocaleString()}
               </div>
-              <div className="text-xs md:text-sm text-gray-400">Tools Used</div>
+              <div className="text-xs text-gray-400">Tools Used</div>
+              <div className="text-xs text-orange-400 mt-1">This Month</div>
             </div>
           </div>
           
@@ -172,21 +192,21 @@ const Home = () => {
       </section>
 
       {/* USP Cards Section */}
-      <section className="py-20 px-4">
+      <section className="py-12 md:py-16 px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-white">
+          <h2 className="text-2xl md:text-4xl font-bold text-center mb-8 md:mb-12 text-white">
             Why Choose DocEnclave?
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {uspCards.map((card, index) => (
               <div 
                 key={index}
-                className="group p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                className="group p-4 md:p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300"
               >
-                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <i className={`fas ${card.icon} text-white text-xl`}></i>
+                <div className="w-10 h-10 md:w-12 md:h-12 bg-white/10 rounded-xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+                  <i className={`fas ${card.icon} text-white text-lg md:text-xl`}></i>
                 </div>
-                <h3 className="text-lg font-semibold mb-2 text-white">{card.title}</h3>
+                <h3 className="text-base md:text-lg font-semibold mb-2 text-white">{card.title}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{card.description}</p>
               </div>
             ))}
@@ -194,68 +214,10 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Innovative Stats Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-black to-gray-900">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-16 text-white">
-            Live Activity
-          </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
-              <div className="flex items-center justify-center mb-3">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse mr-2"></div>
-                <i className="fas fa-shield-alt text-green-400"></i>
-              </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {realTimeStats.filesSecured.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-400">Files Secured</div>
-              <div className="text-xs text-green-400 mt-1">This Month</div>
-            </div>
-
-            <div className="p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
-              <div className="flex items-center justify-center mb-3">
-                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse mr-2"></div>
-                <i className="fas fa-download text-blue-400"></i>
-              </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {realTimeStats.filesDownloaded.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-400">Files Downloaded</div>
-              <div className="text-xs text-blue-400 mt-1">Privately</div>
-            </div>
-
-            <div className="p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
-              <div className="flex items-center justify-center mb-3">
-                <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse mr-2"></div>
-                <i className="fas fa-users text-purple-400"></i>
-              </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {realTimeStats.activeUsers}
-              </div>
-              <div className="text-xs text-gray-400">Active Users</div>
-              <div className="text-xs text-purple-400 mt-1">Right Now</div>
-            </div>
-
-            <div className="p-6 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl">
-              <div className="flex items-center justify-center mb-3">
-                <div className="w-3 h-3 bg-orange-400 rounded-full animate-pulse mr-2"></div>
-                <i className="fas fa-tools text-orange-400"></i>
-              </div>
-              <div className="text-2xl font-bold text-white mb-1">
-                {realTimeStats.toolsUsed.toLocaleString()}
-              </div>
-              <div className="text-xs text-gray-400">Tools Used</div>
-              <div className="text-xs text-orange-400 mt-1">This Month</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Expandable Tools Section */}
-      <section id="tools" className="py-20 px-4">
+      <section id="tools" className="py-12 md:py-16 px-4">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-white">
+          <h2 className="text-2xl md:text-4xl font-bold text-center mb-8 md:mb-12 text-white">
             Powerful Tools at Your Fingertips
           </h2>
           
@@ -358,13 +320,13 @@ const Home = () => {
       </section>
 
       {/* Comparison Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-gray-900 to-black">
+      <section className="py-12 md:py-16 px-4 bg-gradient-to-b from-gray-900 to-black">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-4xl font-bold mb-4 md:mb-6 text-white">
               Why DocEnclave Leads the Document Processing Revolution
             </h2>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base md:text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
               While other platforms compromise your privacy and limit your productivity, DocEnclave delivers 
               unmatched security, unlimited processing power, and professional results—all completely free.
             </p>
@@ -421,13 +383,13 @@ const Home = () => {
             ))}
           </div>
           
-          <div className="text-center mt-12">
-            <p className="text-gray-300 text-lg mb-6">
+          <div className="text-center mt-8 md:mt-12">
+            <p className="text-gray-300 text-base md:text-lg mb-4 md:mb-6">
               Experience the difference that true privacy and unlimited processing can make for your workflow.
             </p>
             <a 
               href="#tools" 
-              className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white font-semibold text-lg hover:from-white/30 hover:to-white/20 transition-all duration-300 group"
+              className="inline-flex items-center px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-md border border-white/20 rounded-2xl text-white font-semibold text-base md:text-lg hover:from-white/30 hover:to-white/20 transition-all duration-300 group"
             >
               <i className="fas fa-rocket mr-3 group-hover:scale-110 transition-transform"></i>
               Start Processing Documents Now
@@ -438,73 +400,67 @@ const Home = () => {
       </section>
 
       {/* DocEnclave Description Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-black to-gray-900">
+      <section className="py-12 md:py-16 px-4 bg-gradient-to-b from-black to-gray-900">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-3 mb-8">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center">
-              <i className="fas fa-file-alt text-black text-xl"></i>
+          <div className="flex items-center justify-center space-x-3 mb-6 md:mb-8">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl md:rounded-2xl flex items-center justify-center">
+              <i className="fas fa-file-alt text-black text-lg md:text-xl"></i>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white">
+            <h2 className="text-3xl md:text-5xl font-bold text-white">
               Doc<span className="text-gray-400">Enclave</span>
             </h2>
           </div>
           
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 leading-relaxed">
-            Privacy-first document processing tools that work entirely in your browser. 
-            No uploads, no tracking, no compromises.
-          </p>
-          
-          <p className="text-lg text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg text-gray-400 mb-8 md:mb-12 max-w-3xl mx-auto leading-relaxed">
             Built by developers who believe your documents should remain yours. DocEnclave processes everything 
             locally on your device, ensuring complete privacy while delivering professional-grade results. 
             Join thousands of users who've made the switch to truly secure document processing.
           </p>
           
-          <div className="flex justify-center space-x-6 mb-8">
+          <div className="flex justify-center space-x-4 md:space-x-6">
             <a 
               href="https://twitter.com/docenclave" 
               target="_blank"
               rel="noopener noreferrer"
-              className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
+              className="w-12 h-12 md:w-14 md:h-14 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
             >
-              <i className="fab fa-twitter text-white text-xl group-hover:scale-110 transition-transform"></i>
+              <i className="fab fa-twitter text-white text-lg md:text-xl group-hover:scale-110 transition-transform"></i>
             </a>
             <a 
               href="https://github.com/docenclave" 
               target="_blank"
               rel="noopener noreferrer"
-              className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
+              className="w-12 h-12 md:w-14 md:h-14 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
             >
-              <i className="fab fa-github text-white text-xl group-hover:scale-110 transition-transform"></i>
+              <i className="fab fa-github text-white text-lg md:text-xl group-hover:scale-110 transition-transform"></i>
             </a>
             <a 
               href="https://discord.gg/docenclave" 
               target="_blank"
               rel="noopener noreferrer"
-              className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
+              className="w-12 h-12 md:w-14 md:h-14 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
             >
-              <i className="fab fa-discord text-white text-xl group-hover:scale-110 transition-transform"></i>
+              <i className="fab fa-discord text-white text-lg md:text-xl group-hover:scale-110 transition-transform"></i>
             </a>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 border-t border-white/10">
+      <footer className="py-8 md:py-12 px-4 border-t border-white/10">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 mb-6 md:mb-8">
             <div className="md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                   <i className="fas fa-file-alt text-black text-sm"></i>
                 </div>
-                <span className="text-2xl font-bold text-white">
+                <span className="text-xl md:text-2xl font-bold text-white">
                   Doc<span className="text-gray-400">Enclave</span>
                 </span>
               </div>
-              <p className="text-gray-400 mb-4 max-w-md">
-                Privacy-first document processing tools that work entirely in your browser. 
-                No uploads, no tracking, no compromises.
+              <p className="text-gray-400 mb-4 max-w-md text-sm md:text-base">
+                Built by developers who believe your documents should remain yours.
               </p>
               <div className="flex space-x-4">
                 <a href="#" className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
