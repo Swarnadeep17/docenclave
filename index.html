@@ -78,17 +78,7 @@
             </div>
         </section>
 
-        <!-- Dedicated Stats Section -->
         <section class="compact-mb-12">
-<<<<<<< HEAD
-            <h3 class="text-xl font-bold text-center mb-4 text-white">Our Progress</h3>
-            <div class="bg-gray-900 p-4 rounded-lg max-w-sm mx-auto border border-gray-700 flex justify-around items-center text-center text-sm">
-                <div class="flex flex-col items-center">
-                    <div class="flex items-center text-gray-200">
-                        📈 <span class="ml-1 font-bold">[Visits Stat]</span>
-                    </div>
-                    <p class="text-xxs text-gray-400 mt-1">Monthly Visits</p>
-=======
             <h3 class="text-xl font-bold text-center mb-4 text-white">Key Highlights</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 compact-gap-8 max-w-xl mx-auto">
                 <div class="bg-gray-900 compact-p-6 rounded-lg text-center border border-gray-700">
@@ -118,13 +108,10 @@
                      </div>
                     <h4 class="text-base font-semibold mb-1 text-gray-200">Always Growing</h4>
                     <p class="text-xs text-gray-400">New tools added regularly based on your needs.</p>
->>>>>>> a96a4c1d96660a60e4e4f16119a90f7ca767ee51
                 </div>
             </div>
         </section>
 
-<<<<<<< HEAD
-=======
          <!-- Dedicated Stats Section -->
         <section class="compact-mb-12">
             <h3 class="text-xl font-bold text-center mb-4 text-white">Our Progress</h3>
@@ -145,13 +132,10 @@
             </div>
         </section>
 
->>>>>>> a96a4c1d96660a60e4e4f16119a90f7ca767ee51
         <section id="tools" class="compact-mb-12">
             <h3 class="text-xl font-bold text-center mb-4 text-white">Choose Your Tool</h3>
             <p class="text-sm text-gray-400 text-center mb-8">
                 Select a file type to see the available tools.
-<<<<<<< HEAD
-=======
             </p>
             <!-- Tool Categories will be listed here -->
             <div class="space-y-4 max-w-3xl mx-auto">
@@ -185,7 +169,6 @@
                     </div>
                  </div>
                  <!-- More Categories will be added here -->
->>>>>>> a96a4c1d96660a60e4e4f16119a90f7ca767ee51
             </div>
         </section>
 
@@ -272,6 +255,7 @@
             }
 
             const db = firebase.firestore();
+            const statsRef = db.collection('stats').doc('overall');
 
             // Get references to the stat elements
             const monthlyVisitsElement = document.getElementById('monthly-visits-stat');
@@ -279,39 +263,65 @@
             const pdfMergeStatElement = document.getElementById('pdf-merge-stat'); // Get the PDF Merge stat element
 
             // Listen for real-time updates to the 'overall' document in the 'stats' collection
-            db.collection("stats").doc("overall")
-                .onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const data = doc.data();
-                        // Update overall stats
-                        if (monthlyVisitsElement) {
-                            monthlyVisitsElement.textContent = data.monthlyVisits || 0; // Display 0 if data is missing
-                        }
-                        if (filesProcessedElement) {
-                             filesProcessedElement.textContent = data.filesProcessed || 0; // Display 0 if data is missing
-                        }
-
-                        // Update tool-specific stats
-                        if (pdfMergeStatElement && data.toolUsage && data.toolUsage.pdfMerge !== undefined) {
-                            pdfMergeStatElement.textContent = data.toolUsage.pdfMerge;
-                        } else if (pdfMergeStatElement) {
-                             pdfMergeStatElement.textContent = 0; // Display 0 if data is missing
-                        }
-
-                    } else {
-                        // Document doesn't exist
-                        console.log("Stats document does not exist.");
-                        if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'N/A';
-                        if (filesProcessedElement) filesProcessedElement.textContent = 'N/A';
-                        if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'N/A';
+            statsRef.onSnapshot((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    // Update overall stats
+                    if (monthlyVisitsElement) {
+                        monthlyVisitsElement.textContent = data.monthlyVisits || 0; // Display 0 if data is missing
                     }
-                }, (error) => {
-                    console.error("Error fetching stats:", error);
-                    if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'Error';
-                    if (filesProcessedElement) filesProcessedElement.textContent = 'Error';
+                    if (filesProcessedElement) {
+                         filesProcessedElement.textContent = data.filesProcessed || 0; // Display 0 if data is missing
+                    }
+
+                    // Update tool-specific stats
+                    if (pdfMergeStatElement && data.toolUsage && data.toolUsage.pdfMerge !== undefined) {
+                        pdfMergeStatElement.textContent = data.toolUsage.pdfMerge;
+                    } else if (pdfMergeStatElement) {
+                         pdfMergeStatElement.textContent = 0; // Display 0 if data is missing
+                    }
+
+                } else {
+                    // Document doesn't exist
+                    console.log("Stats document does not exist.");
+                    if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'N/A';
+                    if (filesProcessedElement) filesProcessedElement.textContent = 'N/A';
+                    if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'N/A';
+                }
+            }, (error) => {
+                console.error("Error fetching stats:", error);
+                if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'Error';
+                if (filesProcessedElement) filesProcessedElement.textContent = 'Error';
                      if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'Error';
                 });
 
+            // --- Stats Tracking (Frontend Writes) ---
+
+            // Increment monthly visits (simple session count for now)
+            // A more robust approach would involve tracking unique users and monthly resets
+            statsRef.update({
+                monthlyVisits: firebase.firestore.FieldValue.increment(1)
+            }).then(() => {
+                console.log("Monthly visits incremented.");
+            }).catch((error) => {
+                console.error("Error incrementing monthly visits:", error);
+            });
+
+            // Placeholder function to call when a tool is successfully used
+            function trackToolUsage(toolName) {
+                const toolUsagePath = `toolUsage.${toolName}`;
+                statsRef.update({
+                    [toolUsagePath]: firebase.firestore.FieldValue.increment(1),
+                    filesProcessed: firebase.firestore.FieldValue.increment(1) // Increment total files processed
+                }).then(() => {
+                    console.log(`${toolName} usage tracked.`);
+                }).catch((error) => {
+                    console.error(`Error tracking ${toolName} usage:`, error);
+                });
+            }
+
+            // Example of how you would call trackToolUsage (integrate this when building tools)
+            // trackToolUsage('pdfMerge'); // Call this when a PDF merge is successful
         });
     </script>
 
