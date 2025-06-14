@@ -1,22 +1,18 @@
 docenclave/
-├── index.html (Homepage - exact design match)
-├── manifest.json (PWA)
-├── sw.js (Service Worker)
-├── css/
-│   ├── main.css (Dark theme, compact design)
-│   └── responsive.css (Mobile: 320-767px, Desktop: 768px+)
-├── js/
-│   ├── firebase-config.js (Your project credentials)
-│   ├── app.js (Main app logic)
-│   ├── auth.js (Firebase Auth - minimal header integration)
-│   ├── stats.js (Real-time analytics)
-│   └── tool-discovery.js (Dynamic tool loading)
-├── tools/
-│   ├── tools-manifest.json (Dynamic tool discovery)
-│   └── pdf/
-│       ├── pdf-manifest.json
-│       └── merge/
-│           ├── tool-config.json
-│           └── index.html
-└── admin/
-    └── dashboard.html (Dark theme, all stats)
+├── .github/
+│   └── workflows/
+│       └── firebase-hosting-merge.yml
+├── public/
+│   ├── index.html
+│   ├── manifest.json
+│   ├── robots.txt
+│   ├── favicon.ico
+│   └── assets/
+│       ├── icons/
+│       └── images/
+├── src/
+│   ├── css/
+│   ├── js/
+│   └── tools/
+├── firebase.json
+└── .firebaserc
