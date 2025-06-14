@@ -23,5 +23,8 @@
     "tailwindcss": "^4.1.10",
     "vite": "^6.3.5",
     "vite-plugin-pwa": "^1.0.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.7.0"
   }
 }
