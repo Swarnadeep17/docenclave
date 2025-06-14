@@ -1,12 +1,36 @@
 
 import React from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { toolCategories } from '../config/tools'
 import ToolCard from './ToolCard'
+import PdfMerge from './tools/pdf/PdfMerge'
 
 const ToolsLayout = () => {
+  const location = useLocation()
+  const isToolPage = location.pathname !== '/tools'
+
+  if (isToolPage) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Routes>
+          <Route path="pdf-merge" element={<PdfMerge />} />
+          {/* Add more tool routes here as we implement them */}
+        </Routes>
+      </div>
+    )
+  }
+
   return (
     <div className="container px-4 py-8 mx-auto">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          All Tools
+        </h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          Choose from our comprehensive collection of document processing tools
+        </p>
+      </div>
+
       {Object.entries(toolCategories).map(([categoryId, category]) => (
         <div key={categoryId} className="mb-12">
           <div className="flex items-center mb-6">
@@ -21,9 +45,6 @@ const ToolsLayout = () => {
           </div>
         </div>
       ))}
-      <Routes>
-        {/* Tool routes will be dynamically added here as we implement them */}
-      </Routes>
     </div>
   )
 }

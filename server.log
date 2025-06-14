@@ -1,0 +1,5 @@
+127.0.0.1 - - [14/Jun/2025 13:30:56] "HEAD / HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 13:31:09] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 13:31:09] "GET /assets/index-KtAH8lU4.js HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 13:31:09] "GET /assets/index-CYfKtSzu.css HTTP/1.1" 200 -
+127.0.0.1 - - [14/Jun/2025 13:31:09] "GET /registerSW.js HTTP/1.1" 200 -
