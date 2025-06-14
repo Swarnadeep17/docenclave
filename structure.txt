@@ -1,18 +1,24 @@
-docenclave/
-├── .github/
-│   └── workflows/
-│       └── firebase-hosting-merge.yml
-├── public/
-│   ├── index.html
-│   ├── manifest.json
-│   ├── robots.txt
-│   ├── favicon.ico
-│   └── assets/
-│       ├── icons/
-│       └── images/
-├── src/
-│   ├── css/
-│   ├── js/
-│   └── tools/
-├── firebase.json
-└── .firebaserc
+.github/
+  workflows/
+    deploy.yml           # GitHub Actions config
+src/
+  components/
+    ToolLoader.jsx       # Dynamic tool loader
+  lib/
+    firebase.js          # Firebase initialization
+  pages/
+    Home.jsx             # Homepage component
+  tools/
+    pdf/
+      merge/
+        config.json      # {"status":"live","premium":false}
+        index.jsx        # Tool implementation
+      split/
+        config.json      # {"status":"soon"}
+public/
+  manifest.json         # PWA manifest
+  sw.js                 # Service worker
+.gitignore
+firebase.json           # Firebase config
+package.json
+vite.config.js          # Build configuration
