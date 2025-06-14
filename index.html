@@ -50,6 +50,9 @@
 
       gtag('config', 'G-YMT8E4PJN0');
     </script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
 <body class="bg-black text-gray-200 dark">
 
@@ -115,14 +118,14 @@
             <div class="bg-gray-900 p-4 rounded-lg max-w-sm mx-auto border border-gray-700 flex justify-around items-center text-center text-sm">
                 <div class="flex flex-col items-center">
                     <div class="flex items-center text-gray-200">
-                        📈 <span class="ml-1 font-bold">[Visits Stat]</span>
+                        📈 <span id="monthly-visits-stat" class="ml-1 font-bold">[Loading...]</span>
                     </div>
                     <p class="text-xxs text-gray-400 mt-1">Monthly Visits</p>
                 </div>
                 <div class="text-gray-700">|</div> <!-- Minimalist Separator -->
                 <div class="flex flex-col items-center">
                     <div class="flex items-center text-gray-200">
-                        📦 <span class="ml-1 font-bold">[Files Processed Stat]</span>
+                        📦 <span id="files-processed-stat" class="ml-1 font-bold">[Loading...]</span>
                     </div>
                     <p class="text-xxs text-gray-400 mt-1">Files Processed</p>
                 </div>
@@ -155,7 +158,7 @@
                                 <div>
                                     <h6 class="text-sm text-gray-200 font-medium">Merge PDF</h6>
                                     <p class="text-xxs text-gray-400">Combine multiple PDFs into one file.</p>
-                                    <p class="text-xxs text-gray-500 mt-1">[Merge PDF Stat]</p> <!-- Tool Specific Stat Placeholder -->
+                                    <p class="text-xxs text-gray-500 mt-1">Completions: <span id="pdf-merge-stat">[Loading...]</span></p> <!-- Tool Specific Stat Placeholder -->
                                 </div>
                                 <span class="text-xxs bg-gray-800 text-gray-400 px-2 py-0.5 rounded ml-2">
                                     Coming Soon
@@ -231,6 +234,67 @@
                     arrowIcon.classList.toggle('rotate-180');
                 });
             });
+
+            // --- Firebase and Firestore code for stats ---
+            // Your Firebase project configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyAwgqYEEUWu0aGminZCl11c_yKYfUu-9MU",
+                authDomain: "docenclave-d5a43.firebaseapp.com",
+                projectId: "docenclave-d5a43",
+                storageBucket: "docenclave-d5a43.firebasestorage.app",
+                messagingSenderId: "13497976521",
+                appId: "1:13497976521:web:fd2f8c357e3bdebfaf6f18",
+                measurementId: "G-YMT8E4PJN0" // Your Google Analytics Measurement ID
+            };
+
+            // Initialize Firebase
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            } else {
+                firebase.app(); // if already initialized, use that one
+            }
+
+            const db = firebase.firestore();
+
+            // Get references to the stat elements
+            const monthlyVisitsElement = document.getElementById('monthly-visits-stat');
+            const filesProcessedElement = document.getElementById('files-processed-stat');
+            const pdfMergeStatElement = document.getElementById('pdf-merge-stat'); // Get the PDF Merge stat element
+
+            // Listen for real-time updates to the 'overall' document in the 'stats' collection
+            db.collection("stats").doc("overall")
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        // Update overall stats
+                        if (monthlyVisitsElement) {
+                            monthlyVisitsElement.textContent = data.monthlyVisits || 0; // Display 0 if data is missing
+                        }
+                        if (filesProcessedElement) {
+                             filesProcessedElement.textContent = data.filesProcessed || 0; // Display 0 if data is missing
+                        }
+
+                        // Update tool-specific stats
+                        if (pdfMergeStatElement && data.toolUsage && data.toolUsage.pdfMerge !== undefined) {
+                            pdfMergeStatElement.textContent = data.toolUsage.pdfMerge;
+                        } else if (pdfMergeStatElement) {
+                             pdfMergeStatElement.textContent = 0; // Display 0 if data is missing
+                        }
+
+                    } else {
+                        // Document doesn't exist
+                        console.log("Stats document does not exist.");
+                        if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'N/A';
+                        if (filesProcessedElement) filesProcessedElement.textContent = 'N/A';
+                        if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'N/A';
+                    }
+                }, (error) => {
+                    console.error("Error fetching stats:", error);
+                    if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'Error';
+                    if (filesProcessedElement) filesProcessedElement.textContent = 'Error';
+                     if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'Error';
+                });
+
         });
     </script>
 
