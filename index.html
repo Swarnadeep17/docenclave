@@ -10,14 +10,14 @@
             font-family: sans-serif; /* Or your preferred minimalist font */
         }
         /* Custom smaller font sizes for compactness */
- .text-xxs { font-size: 0.65rem; }
+        .text-xxs { font-size: 0.65rem; }
         .text-xs { font-size: 0.75rem; }
- .text-sm { font-size: 0.875rem; }
- .text-base { font-size: 1rem; }
- .text-lg { font-size: 1.125rem; }
- .text-xl { font-size: 1.25rem; }
- .text-2xl { font-size: 1.5rem; }
- .text-3xl { font-size: 1.875rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-base { font-size: 1rem; }
+        .text-lg { font-size: 1.125rem; }
+        .text-xl { font-size: 1.25rem; }
+        .text-2xl { font-size: 1.5rem; }
+        .text-3xl { font-size: 1.875rem; }
         .text-4xl { font-size: 2.25rem; }
         .text-5xl { font-size: 3rem; }
         /* Adjust spacing */
@@ -25,8 +25,7 @@
         .compact-mb-12 { margin-bottom: 2rem; }
         .compact-gap-8 { gap: 1rem; }
         .compact-p-6 { padding: 1rem; }
-    </style>
-    <style>
+
         /* Custom classes for expandable section */
         .expanded-tools {
             max-height: 500px; /* Adjust based on expected tool list height */
@@ -42,6 +41,18 @@
             transform: rotate(180deg);
         }
     </style>
+     <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YMT8E4PJN0"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-YMT8E4PJN0');
+    </script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
 <body class="bg-black text-gray-200 dark">
 
@@ -69,6 +80,7 @@
 
         <!-- Dedicated Stats Section -->
         <section class="compact-mb-12">
+<<<<<<< HEAD
             <h3 class="text-xl font-bold text-center mb-4 text-white">Our Progress</h3>
             <div class="bg-gray-900 p-4 rounded-lg max-w-sm mx-auto border border-gray-700 flex justify-around items-center text-center text-sm">
                 <div class="flex flex-col items-center">
@@ -76,14 +88,104 @@
                         📈 <span class="ml-1 font-bold">[Visits Stat]</span>
                     </div>
                     <p class="text-xxs text-gray-400 mt-1">Monthly Visits</p>
+=======
+            <h3 class="text-xl font-bold text-center mb-4 text-white">Key Highlights</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 compact-gap-8 max-w-xl mx-auto">
+                <div class="bg-gray-900 compact-p-6 rounded-lg text-center border border-gray-700">
+                    <div class="text-2xl mb-2 text-gray-400 flex items-center justify-center">
+                         📈
+                    </div>
+                    <h4 class="text-base font-semibold mb-1 text-gray-200">Privacy First</h4>
+                    <p class="text-xs text-gray-400">Your documents never leave your browser.</p>
+                </div>
+                <div class="bg-gray-900 compact-p-6 rounded-lg text-center border border-gray-700">
+                     <div class="text-2xl mb-2 text-gray-400 flex items-center justify-center">
+                         📦
+                     </div>
+                    <h4 class="text-base font-semibold mb-1 text-gray-200">Lightning Speed</h4>
+                    <p class="text-xs text-gray-400">Process files instantly, no uploads needed.</p>
+                </div>
+                 <div class="bg-gray-900 compact-p-6 rounded-lg text-center border border-gray-700">
+                     <div class="text-2xl mb-2 text-gray-400 flex items-center justify-center">
+                         ✨
+                     </div>
+                    <h4 class="text-base font-semibold mb-1 text-gray-200">User Friendly</h4>
+                    <p class="text-xs text-gray-400">Simple, intuitive interface for everyone.</p>
+                </div>
+                 <div class="bg-gray-900 compact-p-6 rounded-lg text-center border border-gray-700">
+                     <div class="text-2xl mb-2 text-gray-400 flex items-center justify-center">
+                         🌱
+                     </div>
+                    <h4 class="text-base font-semibold mb-1 text-gray-200">Always Growing</h4>
+                    <p class="text-xs text-gray-400">New tools added regularly based on your needs.</p>
+>>>>>>> a96a4c1d96660a60e4e4f16119a90f7ca767ee51
                 </div>
             </div>
         </section>
 
+<<<<<<< HEAD
+=======
+         <!-- Dedicated Stats Section -->
+        <section class="compact-mb-12">
+            <h3 class="text-xl font-bold text-center mb-4 text-white">Our Progress</h3>
+            <div class="bg-gray-900 p-4 rounded-lg max-w-sm mx-auto border border-gray-700 flex justify-around items-center text-center text-sm">
+                <div class="flex flex-col items-center">
+                    <div class="flex items-center text-gray-200">
+                        📈 <span id="monthly-visits-stat" class="ml-1 font-bold">[Loading...]</span>
+                    </div>
+                    <p class="text-xxs text-gray-400 mt-1">Monthly Visits</p>
+                </div>
+                <div class="text-gray-700">|</div> <!-- Minimalist Separator -->
+                <div class="flex flex-col items-center">
+                    <div class="flex items-center text-gray-200">
+                        📦 <span id="files-processed-stat" class="ml-1 font-bold">[Loading...]</span>
+                    </div>
+                    <p class="text-xxs text-gray-400 mt-1">Files Processed</p>
+                </div>
+            </div>
+        </section>
+
+>>>>>>> a96a4c1d96660a60e4e4f16119a90f7ca767ee51
         <section id="tools" class="compact-mb-12">
             <h3 class="text-xl font-bold text-center mb-4 text-white">Choose Your Tool</h3>
             <p class="text-sm text-gray-400 text-center mb-8">
                 Select a file type to see the available tools.
+<<<<<<< HEAD
+=======
+            </p>
+            <!-- Tool Categories will be listed here -->
+            <div class="space-y-4 max-w-3xl mx-auto">
+                 <div class="tool-category bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+                    <div class="tool-category-header p-4 cursor-pointer hover:bg-gray-800 transition-colors duration-300 flex items-center justify-between">
+                        <div>
+                            <div class="text-2xl mb-1">📄</div>
+                            <h4 class="text-lg font-semibold text-gray-200 mb-1">PDF Tools</h4>
+                            <p class="text-xs text-gray-400">Merge, split, compress, and convert your PDF files.</p>
+                        </div>
+                        <div class="arrow-icon text-lg text-gray-500 transition-transform duration-300">
+                            ⌄
+                        </div>
+                    </div>
+                    <!-- Expanded Tools -->
+                    <div class="tool-list border-t border-gray-700 bg-black p-4 collapsed-tools">
+                        <h5 class="text-sm font-semibold text-gray-300 mb-3">Available Tools:</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="flex items-center justify-between bg-gray-900 p-3 rounded-md border border-gray-700 opacity-60">
+                                <div>
+                                    <h6 class="text-sm text-gray-200 font-medium">Merge PDF</h6>
+                                    <p class="text-xxs text-gray-400">Combine multiple PDFs into one file.</p>
+                                    <p class="text-xxs text-gray-500 mt-1">Completions: <span id="pdf-merge-stat">[Loading...]</span></p> <!-- Tool Specific Stat Placeholder -->
+                                </div>
+                                <span class="text-xxs bg-gray-800 text-gray-400 px-2 py-0.5 rounded ml-2">
+                                    Coming Soon
+                                </span>
+                            </div>
+                             <!-- More tools will be added here -->
+                        </div>
+                    </div>
+                 </div>
+                 <!-- More Categories will be added here -->
+>>>>>>> a96a4c1d96660a60e4e4f16119a90f7ca767ee51
             </div>
         </section>
 
@@ -123,6 +225,7 @@
                  </table>
              </div>
         </section>
+
     </main>
 
     <footer class="bg-gray-900 py-6 text-center text-xs text-gray-400 border-t border-gray-700">
@@ -148,6 +251,67 @@
                     arrowIcon.classList.toggle('rotate-180');
                 });
             });
+
+            // --- Firebase and Firestore code for stats ---
+            // Your Firebase project configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyAwgqYEEUWu0aGminZCl11c_yKYfUu-9MU",
+                authDomain: "docenclave-d5a43.firebaseapp.com",
+                projectId: "docenclave-d5a43",
+                storageBucket: "docenclave-d5a43.firebasestorage.app",
+                messagingSenderId: "13497976521",
+                appId: "1:13497976521:web:fd2f8c357e3bdebfaf6f18",
+                measurementId: "G-YMT8E4PJN0" // Your Google Analytics Measurement ID
+            };
+
+            // Initialize Firebase
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            } else {
+                firebase.app(); // if already initialized, use that one
+            }
+
+            const db = firebase.firestore();
+
+            // Get references to the stat elements
+            const monthlyVisitsElement = document.getElementById('monthly-visits-stat');
+            const filesProcessedElement = document.getElementById('files-processed-stat');
+            const pdfMergeStatElement = document.getElementById('pdf-merge-stat'); // Get the PDF Merge stat element
+
+            // Listen for real-time updates to the 'overall' document in the 'stats' collection
+            db.collection("stats").doc("overall")
+                .onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        // Update overall stats
+                        if (monthlyVisitsElement) {
+                            monthlyVisitsElement.textContent = data.monthlyVisits || 0; // Display 0 if data is missing
+                        }
+                        if (filesProcessedElement) {
+                             filesProcessedElement.textContent = data.filesProcessed || 0; // Display 0 if data is missing
+                        }
+
+                        // Update tool-specific stats
+                        if (pdfMergeStatElement && data.toolUsage && data.toolUsage.pdfMerge !== undefined) {
+                            pdfMergeStatElement.textContent = data.toolUsage.pdfMerge;
+                        } else if (pdfMergeStatElement) {
+                             pdfMergeStatElement.textContent = 0; // Display 0 if data is missing
+                        }
+
+                    } else {
+                        // Document doesn't exist
+                        console.log("Stats document does not exist.");
+                        if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'N/A';
+                        if (filesProcessedElement) filesProcessedElement.textContent = 'N/A';
+                        if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'N/A';
+                    }
+                }, (error) => {
+                    console.error("Error fetching stats:", error);
+                    if (monthlyVisitsElement) monthlyVisitsElement.textContent = 'Error';
+                    if (filesProcessedElement) filesProcessedElement.textContent = 'Error';
+                     if (pdfMergeStatElement) pdfMergeStatElement.textContent = 'Error';
+                });
+
         });
     </script>
 

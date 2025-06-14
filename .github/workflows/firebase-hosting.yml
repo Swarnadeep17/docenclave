@@ -13,15 +13,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
+    - name: Deploy to Firebase
+      uses: FirebaseExtended/action-hosting-deploy@v0
       with:
-        node-version: '20' # Using Node.js 20
-
-    - name: Deploy to Firebase Hosting
-      run: |
-        npm install -g firebase-tools # Install firebase-tools here before deploying
-        firebase deploy --only hosting
-      env:
-        FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DOCENCLAVE_APP }}
-        FIREBASE_PROJECT: docenclave-d5a43 # Your Firebase Project ID
+        repoToken: ${{ secrets.GITHUB_TOKEN }} # Recommended for this action
+        firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }} # Use your service account key secret
+        projectId: docenclave-d5a43
+        channelId: live # Specify the live channel
+        # Optional: Specify the directory to deploy (defaults to firebase.json.hosting.public)
+        # entryPoint: .
