@@ -138,20 +138,44 @@ const Navbar = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                        <i className="fas fa-user text-primary-600 text-sm"></i>
+                        {user.photoURL ? (
+                          <img 
+                            src={user.photoURL} 
+                            alt="Profile" 
+                            className="w-8 h-8 rounded-full"
+                          />
+                        ) : (
+                          <i className="fas fa-user text-primary-600 text-sm"></i>
+                        )}
                       </div>
-                      <span className="text-gray-700 font-medium">{user.name}</span>
+                      <div className="flex flex-col">
+                        <span className="text-gray-700 font-medium text-sm">
+                          {user.displayName || 'Anonymous User'}
+                        </span>
+                        <span className="text-xs text-gray-500 capitalize">
+                          {userTier} Plan
+                        </span>
+                      </div>
                     </div>
-                    <button className="text-gray-500 hover:text-gray-700">
+                    <button 
+                      onClick={logout}
+                      className="text-gray-500 hover:text-gray-700 p-2"
+                    >
                       <i className="fas fa-sign-out-alt"></i>
                     </button>
                   </div>
                 ) : (
                   <div className="flex flex-col space-y-2">
-                    <button className="text-left text-gray-700 hover:text-primary-600 font-medium transition-colors">
+                    <button 
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="text-left text-gray-700 hover:text-primary-600 font-medium transition-colors"
+                    >
                       Sign In
                     </button>
-                    <button className="btn-primary text-left">
+                    <button 
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className="btn-primary text-left"
+                    >
                       <i className="fas fa-user-plus mr-2"></i>
                       Get Started
                     </button>
@@ -162,6 +186,12 @@ const Navbar = () => {
           </div>
         )}
       </div>
+      
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </nav>
   )
 }

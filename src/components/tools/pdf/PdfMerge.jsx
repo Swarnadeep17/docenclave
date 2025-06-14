@@ -1,11 +1,14 @@
 import React, { useState, useCallback } from 'react'
 import { PDFDocument } from 'pdf-lib'
+import { useAuth } from '../../../contexts/AuthContext'
 
 const PdfMerge = () => {
   const [files, setFiles] = useState([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState('')
+  const { user, userTier, getUserLimits } = useAuth()
+  const limits = getUserLimits()
 
   const handleDrag = useCallback((e) => {
     e.preventDefault()
@@ -40,16 +43,18 @@ const PdfMerge = () => {
       return
     }
 
-    // Check file size limit (20MB for free users)
-    const oversizedFiles = pdfFiles.filter(file => file.size > 20 * 1024 * 1024)
+    // Check file size limit based on user tier
+    const maxSizeBytes = limits.maxFileSize === 'unlimited' ? Infinity : limits.maxFileSize * 1024 * 1024
+    const oversizedFiles = pdfFiles.filter(file => file.size > maxSizeBytes)
     if (oversizedFiles.length > 0) {
-      setError('File size must be less than 20MB for free users')
+      setError(`File size must be less than ${limits.maxFileSize}MB for ${userTier} users`)
       return
     }
 
-    // Check file count limit (3 for free users)
-    if (files.length + pdfFiles.length > 3) {
-      setError('Free users can merge up to 3 PDF files')
+    // Check file count limit based on user tier
+    const maxFiles = limits.maxFiles === 'unlimited' ? Infinity : limits.maxFiles
+    if (files.length + pdfFiles.length > maxFiles) {
+      setError(`${userTier} users can merge up to ${limits.maxFiles} PDF files`)
       return
     }
 
