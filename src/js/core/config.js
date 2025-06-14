@@ -2,11 +2,12 @@
 const firebaseConfig = {
     apiKey: "AIzaSyAwgqYEEUWu0aGminZCl11c_yKYfUu-9MU",
     authDomain: "docenclave-d5a43.firebaseapp.com",
+    databaseURL: "https://docenclave-d5a43-default-rtdb.firebaseio.com",
     projectId: "docenclave-d5a43",
-    storageBucket: "docenclave-d5a43.appspot.com",
+    storageBucket: "docenclave-d5a43.firebasestorage.app",
     messagingSenderId: "13497976521",
-    appId: "1:13497976521:web:YOUR_APP_ID", // You'll get this when you add web app
-    measurementId: "G-YOUR_MEASUREMENT_ID" // You'll get this when you enable Analytics
+    appId: "1:13497976521:web:fd2f8c357e3bdebfaf6f18",
+    measurementId: "G-YMT8E4PJN0"
 };
 
 // App Configuration
@@ -26,6 +27,11 @@ const appConfig = {
     features: {
         free: ['Basic tools', '20MB file limit', 'Standard processing'],
         premium: ['All tools', '100MB file limit', 'Priority processing', 'Advanced features']
+    },
+    supportedFileTypes: {
+        pdf: ['.pdf'],
+        image: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'],
+        document: ['.doc', '.docx', '.txt', '.rtf']
     }
 };
 
