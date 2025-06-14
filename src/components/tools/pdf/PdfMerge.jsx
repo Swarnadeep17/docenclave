@@ -157,7 +157,7 @@ const PdfMerge = () => {
             Drop PDF files here or click to browse
           </p>
           <p className="text-sm text-gray-500">
-            Free users: Up to 3 files, 20MB each
+            {userTier} users: Up to {limits.maxFiles === 'unlimited' ? 'unlimited' : limits.maxFiles} files, {limits.maxFileSize === 'unlimited' ? 'unlimited' : `${limits.maxFileSize}MB`} each
           </p>
         </div>
         
