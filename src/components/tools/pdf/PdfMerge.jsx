@@ -134,155 +134,162 @@ const PdfMerge = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <i className="fas fa-object-group text-2xl text-primary-600"></i>
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-4xl mx-auto p-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <i className="fas fa-object-group text-2xl text-white"></i>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Merge PDF Files</h1>
+          <p className="text-gray-400">Combine multiple PDF files into a single document</p>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Merge PDF Files</h1>
-        <p className="text-gray-600">Combine multiple PDF files into a single document</p>
-      </div>
 
-      {/* Upload Area */}
-      <div
-        className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-          dragActive 
-            ? 'border-primary-500 bg-primary-50' 
-            : 'border-gray-300 hover:border-primary-400'
-        }`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-      >
-        <div className="mb-4">
-          <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-          <p className="text-lg font-medium text-gray-700 mb-2">
-            Drop PDF files here or click to browse
-          </p>
-          <p className="text-sm text-gray-500">
-            {userTier} users: Up to {limits.maxFiles === 'unlimited' ? 'unlimited' : limits.maxFiles} files, {limits.maxFileSize === 'unlimited' ? 'unlimited' : `${limits.maxFileSize}MB`} each
-          </p>
-        </div>
-        
-        <input
-          type="file"
-          multiple
-          accept=".pdf"
-          onChange={handleFileInput}
-          className="hidden"
-          id="file-input"
-        />
-        <label
-          htmlFor="file-input"
-          className="btn-primary cursor-pointer inline-block"
+        {/* Upload Area */}
+        <div
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            dragActive 
+              ? 'border-white/50 bg-white/5' 
+              : 'border-white/20 hover:border-white/40'
+          }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
         >
-          <i className="fas fa-plus mr-2"></i>
-          Select PDF Files
-        </label>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <div className="flex items-center">
-            <i className="fas fa-exclamation-triangle text-red-500 mr-2"></i>
-            <span className="text-red-700">{error}</span>
+          <div className="mb-4">
+            <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+            <p className="text-lg font-medium text-white mb-2">
+              Drop PDF files here or click to browse
+            </p>
+            <p className="text-sm text-gray-400">
+              {userTier} users: Up to {limits.maxFiles === 'unlimited' ? 'unlimited' : limits.maxFiles} files, {limits.maxFileSize === 'unlimited' ? 'unlimited' : `${limits.maxFileSize}MB`} each
+            </p>
           </div>
+          
+          <input
+            type="file"
+            multiple
+            accept=".pdf"
+            onChange={handleFileInput}
+            className="hidden"
+            id="pdf-upload"
+          />
+          <label
+            htmlFor="pdf-upload"
+            className="inline-flex items-center px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white font-semibold hover:bg-white/20 transition-all duration-300 cursor-pointer"
+          >
+            <i className="fas fa-plus mr-2"></i>
+            Select PDF Files
+          </label>
         </div>
-      )}
 
-      {/* File List */}
-      {files.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Selected Files ({files.length})
-          </h3>
-          <div className="space-y-3">
-            {files.map((fileData, index) => (
-              <div
-                key={fileData.id}
-                className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => index > 0 && moveFile(index, index - 1)}
-                      disabled={index === 0}
-                      className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                    >
-                      <i className="fas fa-chevron-up"></i>
-                    </button>
-                    <button
-                      onClick={() => index < files.length - 1 && moveFile(index, index + 1)}
-                      disabled={index === files.length - 1}
-                      className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                    >
-                      <i className="fas fa-chevron-down"></i>
-                    </button>
-                  </div>
-                  <i className="fas fa-file-pdf text-red-500 text-xl"></i>
-                  <div>
-                    <p className="font-medium text-gray-900">{fileData.name}</p>
-                    <p className="text-sm text-gray-500">{formatFileSize(fileData.size)}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => removeFile(fileData.id)}
-                  className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+        {/* Error Message */}
+        {error && (
+          <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <div className="flex items-center">
+              <i className="fas fa-exclamation-triangle text-red-400 mr-2"></i>
+              <span className="text-red-300">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* File List */}
+        {files.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold text-white mb-4">
+              Selected Files ({files.length})
+            </h3>
+            <div className="space-y-3">
+              {files.map((fileData, index) => (
+                <div
+                  key={fileData.id}
+                  className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-lg"
                 >
-                  <i className="fas fa-times"></i>
-                </button>
-              </div>
-            ))}
-          </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => index > 0 && moveFile(index, index - 1)}
+                        disabled={index === 0}
+                        className="p-1 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+                      >
+                        <i className="fas fa-chevron-up"></i>
+                      </button>
+                      <button
+                        onClick={() => index < files.length - 1 && moveFile(index, index + 1)}
+                        disabled={index === files.length - 1}
+                        className="p-1 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
+                      >
+                        <i className="fas fa-chevron-down"></i>
+                      </button>
+                    </div>
+                    <i className="fas fa-file-pdf text-red-400 text-xl"></i>
+                    <div>
+                      <p className="font-medium text-white">{fileData.file.name}</p>
+                      <p className="text-sm text-gray-400">{formatFileSize(fileData.file.size)}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => removeFile(fileData.id)}
+                    className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
 
-          {/* Merge Button */}
-          <div className="mt-6 text-center">
-            <button
-              onClick={mergePDFs}
-              disabled={files.length < 2 || isProcessing}
-              className="btn-primary px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isProcessing ? (
-                <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  Merging PDFs...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-object-group mr-2"></i>
-                  Merge {files.length} PDFs
-                </>
+            {/* Merge Button */}
+            <div className="mt-6 text-center">
+              <button
+                onClick={mergePDFs}
+                disabled={isProcessing || files.length < 2}
+                className="inline-flex items-center px-8 py-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-white font-semibold hover:bg-white/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    Merging PDFs...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-object-group mr-2"></i>
+                    Merge {files.length} PDFs
+                  </>
+                )}
+              </button>
+              {files.length < 2 && (
+                <p className="text-sm text-gray-400 mt-2">
+                  Select at least 2 PDF files to merge
+                </p>
               )}
-            </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Features */}
-      <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="text-center p-4">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <i className="fas fa-shield-alt text-green-600"></i>
+        {/* Features */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+            <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i className="fas fa-shield-alt text-green-400"></i>
+            </div>
+            <h4 className="font-semibold text-white mb-2">Secure Processing</h4>
+            <p className="text-sm text-gray-400">All processing happens in your browser. Files never leave your device.</p>
           </div>
-          <h4 className="font-semibold text-gray-900 mb-2">Secure Processing</h4>
-          <p className="text-sm text-gray-600">All processing happens in your browser. Files never leave your device.</p>
-        </div>
-        <div className="text-center p-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <i className="fas fa-bolt text-blue-600"></i>
+          <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+            <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i className="fas fa-bolt text-blue-400"></i>
+            </div>
+            <h4 className="font-semibold text-white mb-2">Lightning Fast</h4>
+            <p className="text-sm text-gray-400">No uploads or downloads. Instant processing with modern web technology.</p>
           </div>
-          <h4 className="font-semibold text-gray-900 mb-2">Lightning Fast</h4>
-          <p className="text-sm text-gray-600">No uploads or downloads. Instant processing and results.</p>
-        </div>
-        <div className="text-center p-4">
-          <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <i className="fas fa-heart text-purple-600"></i>
+          <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+            <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i className="fas fa-infinity text-purple-400"></i>
+            </div>
+            <h4 className="font-semibold text-white mb-2">Unlimited Usage</h4>
+            <p className="text-sm text-gray-400">Merge as many PDFs as you need. No restrictions or hidden fees.</p>
           </div>
-          <h4 className="font-semibold text-gray-900 mb-2">Always Free</h4>
-          <p className="text-sm text-gray-600">Core features are completely free. No hidden costs or subscriptions.</p>
         </div>
       </div>
     </div>
