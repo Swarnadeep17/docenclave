@@ -18,17 +18,6 @@ jobs:
       - name: Install dependencies
         run: npm install
         
-      - name: Generate lock file
-        run: npm install --package-lock-only
-      
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-            
       - name: Build project
         run: |
           echo "VITE_BUILD_TIME=$(date +'%Y-%m-%d %H:%M:%S')" >> .env.production
