@@ -1,0 +1,27 @@
+docenclave/
+├── index.html
+├── manifest.json
+├── sw.js
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+├── css/
+│   ├── main.css
+│   └── responsive.css
+├── js/
+│   ├── app.js
+│   ├── auth.js
+│   ├── firebase-config.js
+│   ├── stats.js
+│   └── tool-discovery.js
+├── tools/
+│   ├── tools-manifest.json
+│   └── pdf/
+│       ├── pdf-manifest.json
+│       └── merge/
+│           ├── tool-config.json
+│           ├── index.html
+│           └── merge.js
+├── admin/
+│   └── dashboard.html
+└── firebase.json
