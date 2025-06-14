@@ -1,13 +1,12 @@
-// src/components/home/HeroSection.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden px-4">
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden px-4 pt-16">
       {/* Glassmorphism background */}
-      <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519681393784-d120267933ba')] bg-cover bg-center">
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-3xl" />
+      <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-900 to-black" />
       </div>
       
       {/* Floating particles */}
