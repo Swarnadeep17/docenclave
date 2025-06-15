@@ -1,6 +1,11 @@
 import { realtimeDb } from '../config/firebase'
 import { ref, onValue, set, get, runTransaction } from 'firebase/database'
 
+// --- Add this helper at the top ---
+function sanitizeKey(key) {
+  return key.replace(/[.#$/[\]]/g, '_')
+}
+
 class StatsService {
   constructor() {
     this.statsRef = ref(realtimeDb, 'stats')
@@ -10,64 +15,58 @@ class StatsService {
 
   // Helper to get the current month's stats path
   getCurrentMonthPath() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
-    return `stats/${year}/${month}`;
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = (now.getMonth() + 1).toString().padStart(2, '0')
+    return `stats/${year}/${month}`
   }
 
   // Initialize stats - return default values if no data exists
   async initializeStats() {
     try {
-      const monthStatsRef = ref(realtimeDb, this.getCurrentMonthPath());
-      const snapshot = await get(monthStatsRef);
-      
+      const monthStatsRef = ref(realtimeDb, this.getCurrentMonthPath())
+      const snapshot = await get(monthStatsRef)
       if (snapshot.exists()) {
-        return snapshot.val();
+        return snapshot.val()
       } else {
-        // Return default structure if no data exists
         const defaultStats = {
           visits: 0,
           filesDownloaded: 0,
           toolsUsed: 0,
           toolUsage: {},
           lastUpdated: Date.now()
-        };
-        
-        // Initialize the database with default values
-        await set(monthStatsRef, defaultStats);
-        return defaultStats;
+        }
+        await set(monthStatsRef, defaultStats)
+        return defaultStats
       }
     } catch (error) {
-      console.error('Error initializing stats:', error);
+      console.error('Error initializing stats:', error)
       return {
         visits: 0,
         filesDownloaded: 0,
         toolsUsed: 0,
         toolUsage: {},
         lastUpdated: Date.now()
-      };
+      }
     }
   }
 
   // Listen to real-time stats updates
   subscribeToStats(callback) {
-    const monthStatsRef = ref(realtimeDb, this.getCurrentMonthPath());
+    const monthStatsRef = ref(realtimeDb, this.getCurrentMonthPath())
     const unsubscribe = onValue(monthStatsRef, (snapshot) => {
       if (snapshot.exists()) {
-        callback(snapshot.val());
+        callback(snapshot.val())
       } else {
-        // Provide a default structure if the month's node doesn't exist yet
         callback({
           visits: 0,
           filesDownloaded: 0,
           toolsUsed: 0,
           toolUsage: {},
           lastUpdated: Date.now()
-        });
+        })
       }
     })
-
     this.listeners.add(unsubscribe)
     return unsubscribe
   }
@@ -79,13 +78,12 @@ class StatsService {
         const activeUsers = Object.keys(snapshot.val()).length
         callback(activeUsers)
       } else {
-        callback(0) // Start from 0 users
+        callback(0)
       }
     }, (error) => {
       console.error('Error listening to active users:', error)
-      callback(0) // Start from 0 users
+      callback(0)
     })
-
     this.listeners.add(unsubscribe)
     return unsubscribe
   }
@@ -93,18 +91,13 @@ class StatsService {
   // Increment file processed count (visits)
   async incrementFilesProcessed(count = 1) {
     try {
-      const monthPath = this.getCurrentMonthPath();
-      
+      const monthPath = this.getCurrentMonthPath()
       await runTransaction(ref(realtimeDb, `${monthPath}/visits`), (currentValue) => {
         return (currentValue || 0) + count
       })
-      
-      // Also update files downloaded (assuming 1.5x ratio)
       await runTransaction(ref(realtimeDb, `${monthPath}/filesDownloaded`), (currentValue) => {
         return (currentValue || 0) + Math.floor(count * 1.5)
       })
-
-      // Update last updated timestamp
       await set(ref(realtimeDb, `${monthPath}/lastUpdated`), Date.now())
     } catch (error) {
       console.error('Error incrementing files processed:', error)
@@ -114,31 +107,27 @@ class StatsService {
   // Increment tools used count
   async incrementToolsUsed(count = 1, toolId = null) {
     try {
-      const monthPath = this.getCurrentMonthPath();
-      
+      const monthPath = this.getCurrentMonthPath()
       await runTransaction(ref(realtimeDb, `${monthPath}/toolsUsed`), (currentValue) => {
         return (currentValue || 0) + count
       })
-
-      // If toolId is provided, increment specific tool usage
       if (toolId) {
-        await runTransaction(ref(realtimeDb, `${monthPath}/toolUsage/${toolId}`), (currentValue) => {
+        const safeToolId = sanitizeKey(toolId)
+        await runTransaction(ref(realtimeDb, `${monthPath}/toolUsage/${safeToolId}`), (currentValue) => {
           return (currentValue || 0) + count
         })
       }
-
       await set(ref(realtimeDb, `${monthPath}/lastUpdated`), Date.now())
     } catch (error) {
       console.error('Error incrementing tools used:', error)
     }
   }
 
-  // Register active user session
+  // Register active user session (with key sanitization)
   async registerActiveUser(userId = null) {
     try {
-      const sessionId = userId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const sessionId = sanitizeKey(userId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
       const userRef = ref(realtimeDb, `activeUsers/${sessionId}`)
-      
       await set(userRef, {
         timestamp: Date.now(),
         lastSeen: Date.now()
@@ -152,7 +141,7 @@ class StatsService {
           console.error('Error updating heartbeat:', error)
           clearInterval(heartbeatInterval)
         }
-      }, 30000) // Update every 30 seconds
+      }, 30000)
 
       // Clean up on page unload
       const cleanup = () => {
@@ -161,7 +150,7 @@ class StatsService {
       }
 
       window.addEventListener('beforeunload', cleanup)
-      
+
       return { sessionId, cleanup }
     } catch (error) {
       console.error('Error registering active user:', error)
@@ -175,8 +164,7 @@ class StatsService {
       const snapshot = await get(this.activeUsersRef)
       if (snapshot.exists()) {
         const activeUsers = snapshot.val()
-        const cutoffTime = Date.now() - (2 * 60 * 1000) // 2 minutes ago
-        
+        const cutoffTime = Date.now() - (2 * 60 * 1000)
         const updates = {}
         Object.keys(activeUsers).forEach(sessionId => {
           const user = activeUsers[sessionId]
@@ -184,7 +172,6 @@ class StatsService {
             updates[`activeUsers/${sessionId}`] = null
           }
         })
-
         if (Object.keys(updates).length > 0) {
           await set(ref(realtimeDb), updates)
         }
@@ -194,7 +181,6 @@ class StatsService {
     }
   }
 
-  // Cleanup all listeners
   cleanup() {
     this.listeners.forEach(unsubscribe => {
       if (typeof unsubscribe === 'function') {
