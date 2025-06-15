@@ -1,14 +1,23 @@
-
-> docenclave@1.0.0 dev
-> vite
-
-Port 5173 is in use, trying another one...
-Port 5174 is in use, trying another one...
-Port 5175 is in use, trying another one...
-Port 5176 is in use, trying another one...
-
-  VITE v6.3.5  ready in 262 ms
-
-  ➜  Local:   http://localhost:5177/
-  ➜  Network: http://169.254.0.21:5177/
-  ➜  press h + enter to show help
+127.0.0.1 - - [15/Jun/2025 04:43:43] "HEAD / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:43:57] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:43:57] "GET /assets/index-xKBxVTEk.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:43:57] "GET /assets/index-CYfKtSzu.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:43:57] "GET /registerSW.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:44:45] "HEAD /assets/index-xKBxVTEk.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:45:26] code 404, message File not found
+127.0.0.1 - - [15/Jun/2025 04:45:26] "GET /test-index.html HTTP/1.1" 404 -
+127.0.0.1 - - [15/Jun/2025 04:45:55] "GET /test-index.html HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:48:11] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:48:11] "GET /assets/index-O6x4iJwh.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:48:11] "GET /assets/index-CYfKtSzu.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:48:11] "GET /registerSW.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:49:43] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:49:43] "GET /assets/index-DdyI7q0c.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:49:43] "GET /assets/index-CYfKtSzu.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:49:43] "GET /registerSW.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:52:24] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:52:24] "GET /assets/index-4gNU-8f2.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:52:24] "GET /assets/index-CYfKtSzu.css HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:52:24] "GET /registerSW.js HTTP/1.1" 200 -
+127.0.0.1 - - [15/Jun/2025 04:53:13] code 404, message File not found
+127.0.0.1 - - [15/Jun/2025 04:53:13] "GET /tools/pdf-merge HTTP/1.1" 404 -
