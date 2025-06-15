@@ -238,8 +238,8 @@ const Home = () => {
                           </div>
                           <div className="text-xs text-gray-400">
                             {globalStats.toolUsage?.[toolId] || 0} uses this month
+                          </div>
                         </div>
-                        <i className={`fas fa-chevron-down text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}></i>
                       </div>
                     </div>
                   </button>
