@@ -8,53 +8,37 @@ class StatsService {
     this.listeners = new Set()
   }
 
-  // Initialize stats if they don't exist
+  // Helper to get the current month's stats path
+  getCurrentMonthPath() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = (now.getMonth() + 1).toString().padStart(2, '0'); // Month is 0-indexed
+    return `stats/${year}/${month}`;
+  }
+
+  // Initialize stats - now just a placeholder for potential future use, not for hardcoded values
   async initializeStats() {
-    try {
-      const snapshot = await get(this.statsRef)
-      if (!snapshot.exists()) {
-        const initialStats = {
-          filesProcessed: 12847,
-          filesDownloaded: 28456,
-          toolsUsed: 5670,
-          totalUsers: 2156,
-          lastUpdated: Date.now()
-        }
-        await set(this.statsRef, initialStats)
-        return initialStats
-      }
-      return snapshot.val()
-    } catch (error) {
-      console.error('Error initializing stats:', error)
-      // Return fallback stats if Firebase fails
-      return {
-        filesProcessed: 12847,
-        filesDownloaded: 28456,
-        toolsUsed: 5670,
-        totalUsers: 2156,
-        activeUsers: 127,
-        lastUpdated: Date.now()
-      }
-    }
+    // This function can be used later if needed for initial setup checks,
+    // but it no longer provides hardcoded values.
+    console.log('StatsService initialized.');
   }
 
   // Listen to real-time stats updates
   subscribeToStats(callback) {
-    const unsubscribe = onValue(this.statsRef, (snapshot) => {
+    const monthStatsRef = ref(realtimeDb, this.getCurrentMonthPath());
+    const unsubscribe = onValue(monthStatsRef, (snapshot) => {
       if (snapshot.exists()) {
-        callback(snapshot.val())
+        callback(snapshot.val());
+      } else {
+        // Provide a default structure if the month's node doesn't exist yet
+        callback({
+          visits: 0,
+          filesDownloaded: 0,
+          toolsUsed: 0,
+          toolUsage: {},
+          lastUpdated: Date.now()
+        });
       }
-    }, (error) => {
-      console.error('Error listening to stats:', error)
-      // Provide fallback data on error
-      callback({
-        filesProcessed: 12847,
-        filesDownloaded: 28456,
-        toolsUsed: 5670,
-        totalUsers: 2156,
-        activeUsers: 127,
-        lastUpdated: Date.now()
-      })
     })
 
     this.listeners.add(unsubscribe)
