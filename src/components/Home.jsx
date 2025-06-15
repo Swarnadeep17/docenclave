@@ -12,10 +12,10 @@ const Home = () => {
 
   // Use real-time stats from Firebase
   const realTimeStats = {
-    filesSecured: globalStats.filesProcessed || 12847,
-    filesDownloaded: globalStats.filesDownloaded || 28456,
-    activeUsers: activeUsers || 127,
-    toolsUsed: globalStats.toolsUsed || 5670
+    filesSecured: globalStats.visits,
+    filesDownloaded: globalStats.filesDownloaded,
+    activeUsers: activeUsers,
+    toolsUsed: globalStats.toolsUsed,
   }
 
   const uspCards = [
@@ -237,8 +237,8 @@ const Home = () => {
                             {availableTools}/{totalTools} Available
                           </div>
                           <div className="text-xs text-gray-400">
-                            {Math.floor(Math.random() * 500 + 100)} uses this month
-                          </div>
+                            {/* We'll update this to use real-time tool usage stats later */} uses this month
+ {globalStats.toolUsage?.[toolId] || 0} uses this month
                         </div>
                         <i className={`fas fa-chevron-down text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}></i>
                       </div>
