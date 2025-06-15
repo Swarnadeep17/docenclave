@@ -3,7 +3,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 
 const ToolCard = ({ tool }) => {
-  const { id, name, description, icon, status } = tool
+  const { id, name, description, icon, status, usage } = tool
   
   return (
     <div className="card transition-transform hover:scale-105">

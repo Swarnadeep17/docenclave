@@ -4,10 +4,12 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { toolCategories } from '../config/tools'
 import ToolCard from './ToolCard'
 import PdfMerge from './tools/pdf/PdfMerge'
+import { useStats } from '../contexts/StatsContext'
 
 const ToolsLayout = () => {
   const location = useLocation()
   const isToolPage = location.pathname !== '/tools'
+  const { stats: globalStats } = useStats();
 
   if (isToolPage) {
     return (
@@ -40,7 +42,7 @@ const ToolsLayout = () => {
           <p className="mb-6 text-gray-600">{category.description}</p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(category.tools).map(([toolId, tool]) => (
-              <ToolCard key={toolId} tool={{ ...tool, id: toolId }} />
+              <ToolCard key={toolId} tool={{ ...tool, id: toolId }} usage={globalStats.toolUsage?.[toolId] || 0} />
             ))}
           </div>
         </div>
