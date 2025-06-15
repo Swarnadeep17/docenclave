@@ -237,7 +237,7 @@ const Home = () => {
                             {availableTools}/{totalTools} Available
                           </div>
                           <div className="text-xs text-gray-400">
-                            {globalStats.toolUsage?.[toolId] || 0} uses this month
+                            {Object.values(globalStats.toolUsage || {}).reduce((sum, count) => sum + count, 0)} total uses
                           </div>
                         </div>
                       </div>

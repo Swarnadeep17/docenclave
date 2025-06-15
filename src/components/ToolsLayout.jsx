@@ -42,7 +42,7 @@ const ToolsLayout = () => {
           <p className="mb-6 text-gray-600">{category.description}</p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Object.entries(category.tools).map(([toolId, tool]) => (
-              <ToolCard key={toolId} tool={{ ...tool, id: toolId }} usage={globalStats.toolUsage?.[toolId] || 0} />
+              <ToolCard key={toolId} tool={{ ...tool, id: toolId }} usage={(globalStats?.toolUsage && globalStats.toolUsage[toolId]) || 0} />
             ))}
           </div>
         </div>

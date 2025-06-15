@@ -126,7 +126,8 @@ class StatsService {
   // Register active user session (with key sanitization)
   async registerActiveUser(userId = null) {
     try {
-      const sessionId = sanitizeKey(userId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+      const rawSessionId = userId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const sessionId = sanitizeKey(rawSessionId)
       const userRef = ref(realtimeDb, `activeUsers/${sessionId}`)
       await set(userRef, {
         timestamp: Date.now(),
