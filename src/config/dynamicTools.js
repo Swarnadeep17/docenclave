@@ -1,12 +1,7 @@
 import { toolCategories } from './tools'
-import fs from 'fs'
-import path from 'path'
 
 // Function to dynamically discover available tools from file system
 export const discoverAvailableTools = () => {
-  const toolsPath = path.join(process.cwd(), 'src/components/tools')
-  const discoveredTools = {}
-  
   try {
     // This would work in a Node.js environment, but for browser we'll use a different approach
     // We'll create a manifest-based system instead

@@ -13,15 +13,16 @@ export const useStats = () => {
 
 export const StatsProvider = ({ children }) => {
   const [stats, setStats] = useState({
-    filesProcessed: 12847,
-    filesDownloaded: 28456,
-    toolsUsed: 5670,
-    totalUsers: 2156,
-    activeUsers: 127,
+    visits: 0,
+    filesDownloaded: 0,
+    toolsUsed: 0,
+    totalUsers: 0,
+    activeUsers: 0,
     toolsAvailable: 15,
+    toolUsage: {},
     lastUpdated: Date.now()
   })
-  const [activeUsers, setActiveUsers] = useState(127)
+  const [activeUsers, setActiveUsers] = useState(0)
   const [isConnected, setIsConnected] = useState(false)
   const [userSession, setUserSession] = useState(null)
 
@@ -104,16 +105,20 @@ export const StatsProvider = ({ children }) => {
     }
   }
 
-  const incrementToolsUsed = async (count = 1) => {
+  const incrementToolsUsed = async (count = 1, toolId = null) => {
     if (isConnected) {
       // Update Firebase
-      await statsService.incrementToolsUsed(count)
+      await statsService.incrementToolsUsed(count, toolId)
     } else {
       // Fall back to localStorage
       setStats(prev => {
         const newStats = {
           ...prev,
-          toolsUsed: prev.toolsUsed + count
+          toolsUsed: prev.toolsUsed + count,
+          toolUsage: {
+            ...prev.toolUsage,
+            [toolId]: (prev.toolUsage?.[toolId] || 0) + count
+          }
         }
         localStorage.setItem('docenclave-stats', JSON.stringify(newStats))
         return newStats

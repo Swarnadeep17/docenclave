@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { toolCategories, getAllTools } from '/home/runner/work/docenclave/docenclave/src/config/tools.js'
+import { toolCategories, getAllTools } from '../config/tools.js'
 import { getToolsFromManifest } from '../config/dynamicTools'
 import { useStats } from '../contexts/StatsContext'
 import { useAuth } from '../contexts/AuthContext'

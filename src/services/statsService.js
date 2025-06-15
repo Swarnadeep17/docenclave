@@ -16,11 +16,38 @@ class StatsService {
     return `stats/${year}/${month}`;
   }
 
-  // Initialize stats - now just a placeholder for potential future use, not for hardcoded values
+  // Initialize stats - return default values if no data exists
   async initializeStats() {
-    // This function can be used later if needed for initial setup checks,
-    // but it no longer provides hardcoded values.
-    console.log('StatsService initialized.');
+    try {
+      const monthStatsRef = ref(realtimeDb, this.getCurrentMonthPath());
+      const snapshot = await get(monthStatsRef);
+      
+      if (snapshot.exists()) {
+        return snapshot.val();
+      } else {
+        // Return default structure if no data exists
+        const defaultStats = {
+          visits: 0,
+          filesDownloaded: 0,
+          toolsUsed: 0,
+          toolUsage: {},
+          lastUpdated: Date.now()
+        };
+        
+        // Initialize the database with default values
+        await set(monthStatsRef, defaultStats);
+        return defaultStats;
+      }
+    } catch (error) {
+      console.error('Error initializing stats:', error);
+      return {
+        visits: 0,
+        filesDownloaded: 0,
+        toolsUsed: 0,
+        toolUsage: {},
+        lastUpdated: Date.now()
+      };
+    }
   }
 
   // Listen to real-time stats updates
@@ -52,44 +79,55 @@ class StatsService {
         const activeUsers = Object.keys(snapshot.val()).length
         callback(activeUsers)
       } else {
-        callback(127) // Fallback number
+        callback(0) // Start from 0 users
       }
     }, (error) => {
       console.error('Error listening to active users:', error)
-      callback(127) // Fallback number
+      callback(0) // Start from 0 users
     })
 
     this.listeners.add(unsubscribe)
     return unsubscribe
   }
 
-  // Increment file processed count
+  // Increment file processed count (visits)
   async incrementFilesProcessed(count = 1) {
     try {
-      await runTransaction(ref(realtimeDb, 'stats/filesProcessed'), (currentValue) => {
+      const monthPath = this.getCurrentMonthPath();
+      
+      await runTransaction(ref(realtimeDb, `${monthPath}/visits`), (currentValue) => {
         return (currentValue || 0) + count
       })
       
       // Also update files downloaded (assuming 1.5x ratio)
-      await runTransaction(ref(realtimeDb, 'stats/filesDownloaded'), (currentValue) => {
+      await runTransaction(ref(realtimeDb, `${monthPath}/filesDownloaded`), (currentValue) => {
         return (currentValue || 0) + Math.floor(count * 1.5)
       })
 
       // Update last updated timestamp
-      await set(ref(realtimeDb, 'stats/lastUpdated'), Date.now())
+      await set(ref(realtimeDb, `${monthPath}/lastUpdated`), Date.now())
     } catch (error) {
       console.error('Error incrementing files processed:', error)
     }
   }
 
   // Increment tools used count
-  async incrementToolsUsed(count = 1) {
+  async incrementToolsUsed(count = 1, toolId = null) {
     try {
-      await runTransaction(ref(realtimeDb, 'stats/toolsUsed'), (currentValue) => {
+      const monthPath = this.getCurrentMonthPath();
+      
+      await runTransaction(ref(realtimeDb, `${monthPath}/toolsUsed`), (currentValue) => {
         return (currentValue || 0) + count
       })
 
-      await set(ref(realtimeDb, 'stats/lastUpdated'), Date.now())
+      // If toolId is provided, increment specific tool usage
+      if (toolId) {
+        await runTransaction(ref(realtimeDb, `${monthPath}/toolUsage/${toolId}`), (currentValue) => {
+          return (currentValue || 0) + count
+        })
+      }
+
+      await set(ref(realtimeDb, `${monthPath}/lastUpdated`), Date.now())
     } catch (error) {
       console.error('Error incrementing tools used:', error)
     }
