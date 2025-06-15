@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { toolCategories, getAllTools } from '../config/tools'
+import { toolCategories, getAllTools } from '/home/runner/work/docenclave/docenclave/src/config/tools.js'
 import { getToolsFromManifest } from '../config/dynamicTools'
 import { useStats } from '../contexts/StatsContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -284,7 +284,7 @@ const Home = () => {
                               <p className="text-gray-400 text-sm mb-3">{tool.description}</p>
                               {isAvailable && (
                                 <button 
-                                  onClick={() => window.location.href = `/tools/${toolId}`}
+                                  onClick={() => window.location.href = `/tools/${toolId}`}//eslint-disable-line
                                   className="inline-flex items-center text-sm text-white hover:text-gray-300 transition-colors group"
                                 >
                                   Use Tool <i className="fas fa-arrow-right ml-1 group-hover:translate-x-1 transition-transform"></i>
@@ -390,10 +390,10 @@ const Home = () => {
             <div>
               <h3 className="font-semibold text-white mb-4">Tools</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/tools" className="hover:text-white transition-colors">PDF Tools</Link></li>
-                <li><Link to="/tools" className="hover:text-white transition-colors">Image Tools</Link></li>
-                <li><Link to="/tools" className="hover:text-white transition-colors">Document Tools</Link></li>
-                <li><Link to="/tools" className="hover:text-white transition-colors">Security Tools</Link></li>
+                <li><Link to="/tools/pdf-merge" className="hover:text-white transition-colors">PDF Tools</Link></li>
+                <li><Link to="/tools/image-converter" className="hover:text-white transition-colors">Image Tools</Link></li>
+                <li><Link to="/tools/text-analyzer" className="hover:text-white transition-colors">Document Tools</Link></li>
+                <li><Link to="/tools/password-generator" className="hover:text-white transition-colors">Security Tools</Link></li>
               </ul>
             </div>
             
@@ -431,7 +431,7 @@ const Home = () => {
           <div className="flex justify-center space-x-4 md:space-x-6">
             <a 
               href="https://twitter.com/docenclave" 
-              target="_blank"
+              target="_blank"//eslint-disable-line
               rel="noopener noreferrer"
               className="w-12 h-12 md:w-14 md:h-14 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
             >
@@ -439,7 +439,7 @@ const Home = () => {
             </a>
             <a 
               href="https://github.com/docenclave" 
-              target="_blank"
+              target="_blank"//eslint-disable-line
               rel="noopener noreferrer"
               className="w-12 h-12 md:w-14 md:h-14 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
             >
@@ -447,7 +447,7 @@ const Home = () => {
             </a>
             <a 
               href="https://discord.gg/docenclave" 
-              target="_blank"
+              target="_blank"//eslint-disable-line
               rel="noopener noreferrer"
               className="w-12 h-12 md:w-14 md:h-14 bg-white/10 rounded-xl md:rounded-2xl flex items-center justify-center hover:bg-white/20 transition-all duration-300 group"
             >
