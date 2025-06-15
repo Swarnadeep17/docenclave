@@ -136,7 +136,7 @@ class StatsService {
   // Register active user session
   async registerActiveUser(userId = null) {
     try {
-      const sessionId = userId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const sessionId = userId || `session${Date.now()}${Math.random().toString(36).substr(2, 9)}`
       const userRef = ref(realtimeDb, `activeUsers/${sessionId}`)
       
       await set(userRef, {
@@ -186,7 +186,13 @@ class StatsService {
         })
 
         if (Object.keys(updates).length > 0) {
-          await set(ref(realtimeDb), updates)
+          // Remove old sessions individually
+          for (const [path, value] of Object.entries(updates)) {
+            if (value === null) {
+              const sessionId = path.replace('activeUsers/', '')
+              await set(ref(realtimeDb, `activeUsers/${sessionId}`), null)
+            }
+          }
         }
       }
     } catch (error) {
