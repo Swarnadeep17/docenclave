@@ -237,8 +237,7 @@ const Home = () => {
                             {availableTools}/{totalTools} Available
                           </div>
                           <div className="text-xs text-gray-400">
-                            {/* We'll update this to use real-time tool usage stats later */} uses this month
- {globalStats.toolUsage?.[toolId] || 0} uses this month
+                            {globalStats.toolUsage?.[toolId] || 0} uses this month
                         </div>
                         <i className={`fas fa-chevron-down text-gray-400 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}></i>
                       </div>
