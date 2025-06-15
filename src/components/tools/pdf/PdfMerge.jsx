@@ -9,7 +9,7 @@ const PdfMerge = () => {
   const [dragActive, setDragActive] = useState(false)
   const [error, setError] = useState('')
   const { user, userTier, getUserLimits } = useAuth()
-  const { incrementFilesProcessed } = useStats()
+  const { incrementFilesProcessed, incrementToolsUsed } = useStats()
   const limits = getUserLimits()
 
   const handleDrag = useCallback((e) => {
@@ -114,6 +114,7 @@ const PdfMerge = () => {
 
       // Increment stats
       incrementFilesProcessed(files.length)
+      incrementToolsUsed(1, 'pdf-merge') // Track specific tool usage
       
       // Reset form
       setFiles([])

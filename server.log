@@ -5,9 +5,10 @@
 Port 5173 is in use, trying another one...
 Port 5174 is in use, trying another one...
 Port 5175 is in use, trying another one...
+Port 5176 is in use, trying another one...
 
-  VITE v6.3.5  ready in 282 ms
+  VITE v6.3.5  ready in 262 ms
 
-  ➜  Local:   http://localhost:5176/
-  ➜  Network: http://169.254.0.21:5176/
+  ➜  Local:   http://localhost:5177/
+  ➜  Network: http://169.254.0.21:5177/
   ➜  press h + enter to show help
