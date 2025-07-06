@@ -3,7 +3,7 @@ name: Deploy to Firebase Hosting
 on:
   push:
     branches:
-      - main
+      - main # or the branch you want to deploy from
 
 jobs:
   build_and_deploy:
@@ -14,12 +14,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20' # Or a recent stable Node.js version
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
       - name: Deploy to Firebase Hosting
-        run: firebase deploy --only hosting --token "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}"
+        run: firebase deploy --only hosting --token "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" --debug
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
