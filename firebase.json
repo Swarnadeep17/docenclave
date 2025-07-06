@@ -1,6 +1,7 @@
 {
   "hosting": {
-    "public": "public",
+    "site": "docenclave-d5a43",
+    "public": "./",
     "ignore": [
       "firebase.json",
       "**/.*",
