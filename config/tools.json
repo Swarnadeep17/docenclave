@@ -1,0 +1,39 @@
+[
+  {
+    "fileType": "PDF",
+    "tools": [
+      {
+        "name": "Merge PDF",
+        "description": "Combine multiple PDF files into one.",
+        "status": "available",
+        "features": {
+          "basic": ["Merge up to 5 files"],
+          "advanced": ["Merge unlimited files", "Reorder pages"]
+        }
+      },
+      {
+        "name": "Split PDF",
+        "description": "Split a PDF file into multiple files.",
+        "status": "coming_soon",
+        "features": {
+          "basic": ["Split by page range"],
+          "advanced": ["Split by bookmarks", "Split by file size"]
+        }
+      }
+    ]
+  },
+  {
+    "fileType": "Image",
+    "tools": [
+      {
+        "name": "Compress Image",
+        "description": "Reduce the file size of an image.",
+        "status": "available",
+        "features": {
+          "basic": ["Basic compression"],
+          "advanced": ["Lossless compression", "Resize image"]
+        }
+      }
+    ]
+  }
+]
